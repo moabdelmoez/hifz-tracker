@@ -5,6 +5,7 @@ MODE="${1:-run}"
 APP_NAME="HifzTracker"
 BUNDLE_ID="dev.mostafa.HifzTracker"
 MIN_SYSTEM_VERSION="14.0"
+APP_ICON_FILE="AppIcon.icns"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
@@ -35,6 +36,10 @@ chmod +x "$APP_BINARY"
 install_name_tool -delete_rpath "$ROOT_DIR/assets/runtime/onnxruntime-osx-arm64-1.26.0/lib" "$APP_BINARY" >/dev/null 2>&1 || true
 
 cp -R "$ROOT_DIR/HifzTracker/Resources/." "$APP_RESOURCES/"
+if [ ! -f "$APP_RESOURCES/$APP_ICON_FILE" ]; then
+  echo "missing app icon resource: HifzTracker/Resources/$APP_ICON_FILE" >&2
+  exit 1
+fi
 
 if [ -f "$ORT_LIB_SOURCE" ]; then
   cp "$ORT_LIB_SOURCE" "$APP_FRAMEWORKS/libonnxruntime.1.dylib"
@@ -51,6 +56,8 @@ cat >"$INFO_PLIST" <<PLIST
   <string>$APP_NAME</string>
   <key>CFBundleIdentifier</key>
   <string>$BUNDLE_ID</string>
+  <key>CFBundleIconFile</key>
+  <string>$APP_ICON_FILE</string>
   <key>CFBundleName</key>
   <string>Hifz Tracker</string>
   <key>CFBundlePackageType</key>
