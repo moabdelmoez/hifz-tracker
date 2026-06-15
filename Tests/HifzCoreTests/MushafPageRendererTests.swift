@@ -86,12 +86,131 @@ final class MushafPageRendererTests: XCTestCase {
         }
     }
 
+    func testRendersMidPageSurahHeaderAtItsLayoutLine() throws {
+        let page = try makePage(106)
+        let headerLine = try XCTUnwrap(page.lines.first { $0.lineType == .surahName })
+        let bismillahLine = try XCTUnwrap(page.lines.first { $0.lineType == .basmallah })
+
+        XCTAssertEqual(headerLine.lineNumber, 6)
+        XCTAssertEqual(headerLine.surahNumber, 5)
+        XCTAssertEqual(bismillahLine.lineNumber, 7)
+
+        let image = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 106,
+            fontDirectory: fontDirectory,
+            canvasSize: MushafPageRenderer.canonicalContentSize(for: page),
+            stateProvider: Optional<((QuranWord) -> WordProgressState)>.none
+        )
+
+        XCTAssertLessThan(
+            try darkPixelCount(in: image, rect: CGRect(x: 62, y: 18, width: 900, height: 126)),
+            12_000,
+            "A mid-page surah header must not be drawn in the fixed top-page header slot."
+        )
+        XCTAssertGreaterThan(
+            try darkPixelCount(in: image, rect: CGRect(x: 62, y: 458, width: 900, height: 126)),
+            10_000,
+            "The Surah Al-Ma'idah header should render around layout line 6."
+        )
+    }
+
+    func testRendersShortSurahPageWithSeparatedAyahAndHeaderBands() throws {
+        let page = try makePage(602)
+        let canvasSize = MushafPageRenderer.canonicalContentSize(for: page)
+        let image = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 602,
+            fontDirectory: fontDirectory,
+            canvasSize: canvasSize,
+            stateProvider: Optional<((QuranWord) -> WordProgressState)>.none
+        )
+        let bands = try darkRowBands(in: image, rect: CGRect(x: 52, y: 1, width: 920, height: canvasSize.height - 2))
+
+        let headerBands = bands.filter { $0.maxCount > 720 }
+        XCTAssertGreaterThanOrEqual(headerBands.count, 3)
+
+        let ayahBandBeforeSecondHeader = bands.first { band in
+            band.start > 390 && band.end < headerBands[1].start - 12 && band.maxCount < 500
+        }
+        XCTAssertNotNil(
+            ayahBandBeforeSecondHeader,
+            "The last Quraysh ayah line should remain visually separate before the Surah Al-Ma'un header."
+        )
+    }
+
+    func testRendersShortSurahPageWithoutBottomEdgeClipping() throws {
+        let page = try makePage(602)
+        let canvasSize = MushafPageRenderer.canonicalContentSize(for: page)
+
+        XCTAssertGreaterThan(
+            canvasSize.height,
+            MushafPageRenderer.canonicalPageSize.height,
+            "Dense short-surah pages need a taller canonical canvas so the app can scroll to their final lines."
+        )
+
+        let image = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 602,
+            fontDirectory: fontDirectory,
+            canvasSize: canvasSize,
+            stateProvider: Optional<((QuranWord) -> WordProgressState)>.none
+        )
+
+        try writePreviewIfRequested(image)
+        XCTAssertLessThan(
+            try edgeInkPixelCount(in: image, edgeWidth: 6),
+            20,
+            "Dense short-surah pages should not push later ayah lines through the bottom edge of the page canvas."
+        )
+    }
+
+    func testRendersFinalShortSurahPageWithoutBottomEdgeClipping() throws {
+        let page = try makePage(604)
+        let canvasSize = MushafPageRenderer.canonicalContentSize(for: page)
+
+        XCTAssertGreaterThan(
+            canvasSize.height,
+            MushafPageRenderer.canonicalPageSize.height,
+            "The final page has multiple short surahs and must be scrollable to its final line."
+        )
+
+        let image = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 604,
+            fontDirectory: fontDirectory,
+            canvasSize: canvasSize,
+            stateProvider: Optional<((QuranWord) -> WordProgressState)>.none
+        )
+
+        try writePreviewIfRequested(image)
+        XCTAssertLessThan(
+            try edgeInkPixelCount(in: image, edgeWidth: 6),
+            20,
+            "Page 604 should render all final surah lines without clipping at the bottom edge."
+        )
+    }
+
+    func testFindsCanonicalAyahCenterForLowerShortSurahSelection() throws {
+        let page = try makePage(604)
+        let centerY = try XCTUnwrap(
+            MushafPageRenderer.canonicalAyahCenterY(surah: 113, ayah: 1, in: page)
+        )
+
+        XCTAssertGreaterThan(centerY, 700)
+        XCTAssertLessThan(centerY, 850)
+    }
+
     private var fontDirectory: URL {
         URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appending(path: "HifzTracker/Resources/Fonts")
     }
 
     private func makePage574() throws -> MushafPage {
+        try makePage(574)
+    }
+
+    private func makePage(_ pageNumber: Int) throws -> MushafPage {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let layoutURL = root.appending(path: "HifzTracker/Resources/Layout/kfgqpc-v4-layout.sqlite")
         let mapping = try PageMapping.loadKFGQPCV4Layout(
@@ -104,7 +223,7 @@ final class MushafPageRendererTests: XCTestCase {
             pageMapping: mapping,
             layoutDatabaseURL: layoutURL
         )
-        return try repo.mushafPage(pageNumber: 574)
+        return try repo.mushafPage(pageNumber: pageNumber)
     }
 
     private func saturatedPixelCount(in image: NSImage) throws -> Int {
@@ -123,6 +242,67 @@ final class MushafPageRendererTests: XCTestCase {
             let darkness = 1 - min(color.redComponent, color.greenComponent, color.blueComponent)
             return color.alphaComponent > 0.1 && darkness > 0.25
         }
+    }
+
+    private func darkPixelCount(in image: NSImage, rect: CGRect) throws -> Int {
+        try pixelCount(in: image) { color, x, y, _, _ in
+            guard rect.contains(CGPoint(x: x, y: y)) else { return false }
+            let darkness = 1 - min(color.redComponent, color.greenComponent, color.blueComponent)
+            return color.alphaComponent > 0.1 && darkness > 0.45
+        }
+    }
+
+    private func darkRowBands(in image: NSImage, rect: CGRect) throws -> [DarkRowBand] {
+        guard let tiff = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff) else {
+            XCTFail("Unable to read rendered image pixels.")
+            return []
+        }
+
+        var rows: [(y: Int, count: Int)] = []
+        let xRange = max(0, Int(rect.minX))..<min(bitmap.pixelsWide, Int(rect.maxX))
+        let yRange = max(0, Int(rect.minY))..<min(bitmap.pixelsHigh, Int(rect.maxY))
+        for y in yRange {
+            var count = 0
+            for x in xRange {
+                guard let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) else {
+                    continue
+                }
+                let darkness = 1 - min(color.redComponent, color.greenComponent, color.blueComponent)
+                if color.alphaComponent > 0.1 && darkness > 0.45 {
+                    count += 1
+                }
+            }
+            if count > 20 {
+                rows.append((y, count))
+            }
+        }
+
+        guard let first = rows.first else { return [] }
+        var bands: [DarkRowBand] = []
+        var start = first.y
+        var previous = first.y
+        var total = first.count
+        var maxCount = first.count
+        for row in rows.dropFirst() {
+            if row.y <= previous + 1 {
+                previous = row.y
+                total += row.count
+                maxCount = max(maxCount, row.count)
+            } else {
+                if previous - start > 3 {
+                    bands.append(DarkRowBand(start: start, end: previous, total: total, maxCount: maxCount))
+                }
+                start = row.y
+                previous = row.y
+                total = row.count
+                maxCount = row.count
+            }
+        }
+        if previous - start > 3 {
+            bands.append(DarkRowBand(start: start, end: previous, total: total, maxCount: maxCount))
+        }
+        return bands
     }
 
     private func pixelCount(in image: NSImage, matching predicate: (NSColor) -> Bool) throws -> Int {
@@ -165,5 +345,12 @@ final class MushafPageRendererTests: XCTestCase {
         }
         try png.write(to: URL(fileURLWithPath: outputPath))
     }
+}
+
+private struct DarkRowBand {
+    var start: Int
+    var end: Int
+    var total: Int
+    var maxCount: Int
 }
 #endif

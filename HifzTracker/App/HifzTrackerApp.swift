@@ -13,8 +13,9 @@ struct HifzTrackerApp: App {
         WindowGroup("Hifz Tracker", id: "recite") {
             RecitationRootView()
                 .modelContainer(for: StoredSessionRecord.self)
-                .frame(minWidth: 980, minHeight: 620)
+                .frame(minWidth: 760, minHeight: 520)
         }
+        .defaultSize(width: 1_180, height: 780)
         .commands {
             HifzTrackerCommands()
         }

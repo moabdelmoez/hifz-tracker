@@ -45,6 +45,10 @@ let package = Package(
             name: "HifzCoreTests",
             dependencies: ["HifzCore"]
         ),
+        .testTarget(
+            name: "HifzTrackerTests",
+            dependencies: ["HifzTracker"]
+        ),
         .executableTarget(
             name: "HifzTracker",
             dependencies: ["HifzCore"],

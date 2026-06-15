@@ -13,6 +13,10 @@ struct MushafPageCanvasView: NSViewRepresentable {
         view.pageNumber = pageNumber
         view.stateProvider = state
         view.fontDirectory = Bundle.main.url(forResource: "Fonts", withExtension: nil)
+        view.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        view.setContentHuggingPriority(.defaultLow, for: .vertical)
+        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        view.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
         return view
     }
 
@@ -39,7 +43,9 @@ final class MushafPageDrawingView: NSView {
     }
 
     override var isFlipped: Bool { true }
-    override var intrinsicContentSize: NSSize { MushafPageRenderer.canonicalPageSize }
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)

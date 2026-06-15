@@ -17,6 +17,21 @@ public enum MushafPageRenderer {
     public static let canonicalPageSize = CGSize(width: 1_024, height: 1_366)
     public static let canonicalPageAspectRatio = canonicalPageSize.width / canonicalPageSize.height
 
+    public static func canonicalContentSize(for page: MushafPage) -> CGSize {
+        canonicalContentSize(lineLayout: MushafLineLayout(lines: page.lines))
+    }
+
+    public static func canonicalAyahCenterY(surah: Int, ayah: Int, in page: MushafPage) -> CGFloat? {
+        let lineLayout = MushafLineLayout(lines: page.lines)
+        guard let line = page.lines.sorted(by: { $0.lineNumber < $1.lineNumber }).first(where: { line in
+            line.words.contains { $0.surah == surah && $0.ayah == ayah }
+        }) else {
+            return nil
+        }
+
+        return lineLayout.yPosition(for: line) + canonicalAyahLineRect(y: 0).height / 2
+    }
+
     public static func glyphText(for line: MushafPageLine) -> String {
         line.words.map(\.text).joined()
     }
@@ -34,15 +49,26 @@ public enum MushafPageRenderer {
     }
 
     public static func fittedPageRect(in bounds: CGRect) -> CGRect {
+        fittedPageRect(in: bounds, canonicalSize: canonicalPageSize)
+    }
+
+    private static func fittedPageRect(in bounds: CGRect, canonicalSize: CGSize) -> CGRect {
         guard bounds.width > 0, bounds.height > 0 else { return .zero }
 
-        let scale = min(bounds.width / canonicalPageSize.width, bounds.height / canonicalPageSize.height)
-        let size = CGSize(width: canonicalPageSize.width * scale, height: canonicalPageSize.height * scale)
+        let scale = min(bounds.width / canonicalSize.width, bounds.height / canonicalSize.height)
+        let size = CGSize(width: canonicalSize.width * scale, height: canonicalSize.height * scale)
         return CGRect(
             x: bounds.midX - size.width / 2,
             y: bounds.midY - size.height / 2,
             width: size.width,
             height: size.height
+        )
+    }
+
+    private static func canonicalContentSize(lineLayout: MushafLineLayout) -> CGSize {
+        CGSize(
+            width: canonicalPageSize.width,
+            height: max(canonicalPageSize.height, lineLayout.requiredContentHeight)
         )
     }
 
@@ -78,14 +104,14 @@ public enum MushafPageRenderer {
         in bounds: CGRect,
         stateProvider: ((QuranWord) -> WordProgressState)?
     ) throws {
-        let pageRect = fittedPageRect(in: bounds)
+        let lineLayout = MushafLineLayout(lines: page.lines)
+        let pageRect = fittedPageRect(in: bounds, canonicalSize: canonicalContentSize(lineLayout: lineLayout))
         guard pageRect.width > 0, pageRect.height > 0 else { return }
 
         NSColor.white.setFill()
         pageRect.fill()
 
         let scale = pageRect.width / canonicalPageSize.width
-        let hasOpeningHeader = page.lines.contains { $0.lineType == .surahName || $0.lineType == .basmallah }
 
         for line in page.lines.sorted(by: { $0.lineNumber < $1.lineNumber }) {
             switch displayLine(for: line) {
@@ -94,6 +120,7 @@ public enum MushafPageRenderer {
                     frameToken: frameToken,
                     surahToken: surahToken,
                     iconToken: iconToken,
+                    y: lineLayout.yPosition(for: line),
                     pageRect: pageRect,
                     scale: scale,
                     fontDirectory: fontDirectory
@@ -101,14 +128,14 @@ public enum MushafPageRenderer {
             case .bismillah(let glyph):
                 try drawQULBismillah(
                     glyph,
+                    y: lineLayout.yPosition(for: line),
                     pageRect: pageRect,
                     scale: scale,
                     fontDirectory: fontDirectory
                 )
             case .ayah:
                 let lineRect = canonicalAyahLineRect(
-                    lineNumber: line.lineNumber,
-                    hasOpeningHeader: hasOpeningHeader
+                    y: lineLayout.yPosition(for: line)
                 )
                 .scaled(from: pageRect.origin, by: scale)
 
@@ -117,7 +144,7 @@ public enum MushafPageRenderer {
                     pageNumber: pageNumber,
                     fontDirectory: fontDirectory,
                     in: lineRect,
-                    fontSize: canonicalAyahFontSize(hasOpeningHeader: hasOpeningHeader) * scale,
+                    fontSize: canonicalAyahFontSize(lineLayout: lineLayout) * scale,
                     stateProvider: stateProvider
                 )
             }
@@ -252,6 +279,7 @@ public enum MushafPageRenderer {
         frameToken: String,
         surahToken: String,
         iconToken: String,
+        y: CGFloat,
         pageRect: CGRect,
         scale: CGFloat,
         fontDirectory: URL
@@ -271,18 +299,19 @@ public enum MushafPageRenderer {
 
         drawCenteredToken(
             frameToken,
-            in: CGRect(x: 62, y: 18, width: 900, height: 126).scaled(from: pageRect.origin, by: scale),
+            in: canonicalSurahHeaderRect(y: y).scaled(from: pageRect.origin, by: scale),
             font: frameFont
         )
         drawCenteredToken(
             "\(surahToken) \(iconToken)",
-            in: CGRect(x: 360, y: 58, width: 304, height: 56).scaled(from: pageRect.origin, by: scale),
+            in: canonicalSurahTitleRect(y: y).scaled(from: pageRect.origin, by: scale),
             font: titleFont
         )
     }
 
     private static func drawQULBismillah(
         _ glyph: String,
+        y: CGFloat,
         pageRect: CGRect,
         scale: CGFloat,
         fontDirectory: URL
@@ -295,7 +324,7 @@ public enum MushafPageRenderer {
         )
         drawCenteredToken(
             glyph,
-            in: CGRect(x: 246, y: 154, width: 532, height: 78).scaled(from: pageRect.origin, by: scale),
+            in: canonicalBismillahRect(y: y).scaled(from: pageRect.origin, by: scale),
             font: font
         )
     }
@@ -355,18 +384,117 @@ public enum MushafPageRenderer {
         throw MushafPageRendererError.unavailableFont(candidates.first ?? "")
     }
 
-    private static func canonicalAyahLineRect(lineNumber: Int, hasOpeningHeader: Bool) -> CGRect {
-        if hasOpeningHeader {
-            let index = max(0, lineNumber - 3)
-            return CGRect(x: 52, y: 246 + CGFloat(index) * 80.5, width: 920, height: 130)
-        }
-
-        let index = max(0, lineNumber - 1)
-        return CGRect(x: 52, y: 46 + CGFloat(index) * 88, width: 920, height: 130)
+    private static func canonicalSurahHeaderRect(y: CGFloat) -> CGRect {
+        CGRect(x: 62, y: y, width: 900, height: 126)
     }
 
-    private static func canonicalAyahFontSize(hasOpeningHeader: Bool) -> CGFloat {
-        hasOpeningHeader ? 54 : 51
+    private static func canonicalSurahTitleRect(y: CGFloat) -> CGRect {
+        CGRect(x: 360, y: y + 40, width: 304, height: 56)
+    }
+
+    private static func canonicalBismillahRect(y: CGFloat) -> CGRect {
+        return CGRect(x: 246, y: y, width: 532, height: 78)
+    }
+
+    private static func canonicalAyahLineRect(y: CGFloat) -> CGRect {
+        CGRect(x: 52, y: y, width: 920, height: 130)
+    }
+
+    private static func canonicalAyahFontSize(lineLayout: MushafLineLayout) -> CGFloat {
+        lineLayout.containsSpecialLines ? 54 : 51
+    }
+}
+
+private struct MushafLineLayout {
+    private static let topHeaderY: CGFloat = 18
+    private static let topAyahY: CGFloat = 46
+    private static let headerToBismillahStep: CGFloat = 136
+    private static let headerToAyahStep: CGFloat = 148
+    private static let bismillahToAyahStep: CGFloat = 92
+    private static let ayahToAyahStepWithSpecialLines: CGFloat = 80.5
+    private static let ayahToAyahStepWithoutSpecialLines: CGFloat = 88
+    private static let ayahToHeaderStep: CGFloat = 147
+    private static let minimumContentHeight: CGFloat = 1_366
+    private static let bottomMargin: CGFloat = 32
+    private static let surahHeaderHeight: CGFloat = 126
+    private static let bismillahHeight: CGFloat = 78
+    private static let ayahLineHeight: CGFloat = 130
+
+    private let yPositionsByLineNumber: [Int: CGFloat]
+    let containsSpecialLines: Bool
+    let requiredContentHeight: CGFloat
+
+    init(lines: [MushafPageLine]) {
+        let sortedLines = lines.sorted { $0.lineNumber < $1.lineNumber }
+        containsSpecialLines = sortedLines.contains { $0.lineType == .surahName || $0.lineType == .basmallah }
+
+        var positions: [Int: CGFloat] = [:]
+        var previousLine: MushafPageLine?
+        var previousY: CGFloat?
+        var maximumLineBottom: CGFloat = 0
+        for line in sortedLines {
+            let y: CGFloat
+            if let previousLine, let previousY {
+                y = Self.yPosition(after: previousLine, previousY: previousY, before: line, containsSpecialLines: containsSpecialLines)
+            } else {
+                y = Self.firstLineY(for: line)
+            }
+
+            positions[line.lineNumber] = y
+            maximumLineBottom = max(maximumLineBottom, Self.bottomY(for: line, y: y))
+            previousLine = line
+            previousY = y
+        }
+        yPositionsByLineNumber = positions
+        requiredContentHeight = max(Self.minimumContentHeight, maximumLineBottom + Self.bottomMargin)
+    }
+
+    func yPosition(for line: MushafPageLine) -> CGFloat {
+        yPositionsByLineNumber[line.lineNumber] ?? Self.firstLineY(for: line)
+    }
+
+    private static func firstLineY(for line: MushafPageLine) -> CGFloat {
+        switch line.lineType {
+        case .surahName:
+            topHeaderY
+        case .basmallah:
+            topHeaderY + headerToBismillahStep
+        case .ayah, .unknown:
+            topAyahY
+        }
+    }
+
+    private static func bottomY(for line: MushafPageLine, y: CGFloat) -> CGFloat {
+        switch line.lineType {
+        case .surahName:
+            y + surahHeaderHeight
+        case .basmallah:
+            y + bismillahHeight
+        case .ayah, .unknown:
+            y + ayahLineHeight
+        }
+    }
+
+    private static func yPosition(
+        after previousLine: MushafPageLine,
+        previousY: CGFloat,
+        before line: MushafPageLine,
+        containsSpecialLines: Bool
+    ) -> CGFloat {
+        switch (previousLine.lineType, line.lineType) {
+        case (.surahName, .basmallah):
+            previousY + headerToBismillahStep
+        case (.surahName, .ayah), (.surahName, .unknown):
+            previousY + headerToAyahStep
+        case (.basmallah, .ayah), (.basmallah, .unknown):
+            previousY + bismillahToAyahStep
+        case (.ayah, .surahName), (.unknown, .surahName):
+            previousY + ayahToHeaderStep
+        case (.ayah, .ayah), (.ayah, .unknown), (.unknown, .ayah), (.unknown, .unknown):
+            previousY + (containsSpecialLines ? ayahToAyahStepWithSpecialLines : ayahToAyahStepWithoutSpecialLines)
+        default:
+            previousY + (containsSpecialLines ? ayahToAyahStepWithSpecialLines : ayahToAyahStepWithoutSpecialLines)
+        }
     }
 }
 

@@ -6,50 +6,59 @@ struct RecitationSidebarView: View {
     var persistSession: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Surah")
-                    .font(.headline)
-
+        VStack(alignment: .leading, spacing: 20) {
+            SidebarSection(title: "Recitation") {
                 Picker("Surah", selection: $viewModel.selectedSurah) {
                     ForEach(SurahCatalog.all) { surah in
                         Text("\(surah.number). \(surah.arabicName)  \(surah.englishName)")
                             .tag(surah.number)
                     }
                 }
-                .labelsHidden()
+                .frame(maxWidth: .infinity)
 
-                Stepper(value: $viewModel.startAyah, in: 1...viewModel.selectedSurahInfo.ayahCount) {
-                    Text("Start ayah \(viewModel.startAyah)")
+                HStack(spacing: 8) {
+                    Text("Start ayah")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text("\(viewModel.startAyah)")
                         .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 24, alignment: .trailing)
+                    Stepper(
+                        "Start ayah",
+                        value: $viewModel.startAyah,
+                        in: 1...viewModel.selectedSurahInfo.ayahCount
+                    )
+                    .labelsHidden()
                 }
             }
 
-            Divider()
-
-            VStack(alignment: .leading, spacing: 10) {
+            SidebarSection(title: "Session") {
                 HStack {
                     Circle()
                         .fill(statusColor)
-                        .frame(width: 10, height: 10)
+                        .frame(width: 8, height: 8)
 
                     Text(viewModel.statusText)
-                        .font(.headline)
+                        .font(.callout.weight(.semibold))
+                        .lineLimit(1)
                 }
 
                 Text("Page \(viewModel.pageNumber) · \(viewModel.selectedSurahInfo.englishName) \(viewModel.startAyah)")
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
 
                 if let message = viewModel.snapshot.message ?? viewModel.assetMessage {
                     Text(message)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 16)
 
             VStack(spacing: 10) {
                 Button {
@@ -63,8 +72,10 @@ struct RecitationSidebarView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .keyboardShortcut("r", modifiers: [.command])
+                .help(viewModel.isRecording ? "Stop Recitation (⌘R)" : "Start Recitation (⌘R)")
 
-                HStack {
+                HStack(spacing: 8) {
                     Button {
                         viewModel.advanceDemoProgress()
                     } label: {
@@ -81,9 +92,13 @@ struct RecitationSidebarView: View {
                     .disabled(!viewModel.isRecording)
                     .help("Simulate conservative correction-needed state")
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .labelStyle(.titleAndIcon)
             }
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 18)
     }
 
     private var statusColor: Color {
@@ -98,6 +113,24 @@ struct RecitationSidebarView: View {
             .red
         default:
             .secondary
+        }
+    }
+}
+
+private struct SidebarSection<Content: View>: View {
+    var title: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            VStack(alignment: .leading, spacing: 8) {
+                content
+            }
         }
     }
 }
