@@ -7,6 +7,7 @@ DerivedData/
 *.xcodeproj/xcuserdata/
 .agents/
 .codex/
+skills-lock.json
 artifacts/
 local audio/
 
