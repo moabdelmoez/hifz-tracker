@@ -18,6 +18,7 @@ final class RecitationViewModel {
     var wordProgress: [WordProgress] = []
     var mushafPage: MushafPage?
     var debugTranscript = ""
+    var audioLevel = 0.0
     var isRecording = false
     var assetMessage: String?
 
@@ -28,6 +29,7 @@ final class RecitationViewModel {
     private var sessionStartedAt: Date?
     private var liveASRService: LiveQuranTranscriptionService?
     private var liveSampleWindow = LiveASRSampleWindow()
+    private var audioLevelMeter = AudioLevelMeter()
     private var transcriptionTask: Task<Void, Never>?
     private var wordStatesByLocation: [String: WordProgressState] = [:]
 
@@ -67,6 +69,7 @@ final class RecitationViewModel {
     func startRecording() {
         let request = RecitationSessionRequest(surah: selectedSurah, startAyah: startAyah)
         reducer = RecitationStateReducer()
+        resetAudioLevel()
         snapshot = reducer.reduce(.startRequested(request))
         asrLogger.info("[DEBUG-asr73] start_requested surah=\(self.selectedSurah, privacy: .public) ayah=\(self.startAyah, privacy: .public)")
         Task {
@@ -93,6 +96,7 @@ final class RecitationViewModel {
                 asrLogger.error("[DEBUG-asr73] start_failed error=\(error.localizedDescription, privacy: .public)")
                 snapshot = reducer.reduce(.fail(error.localizedDescription))
                 isRecording = false
+                resetAudioLevel()
             }
         }
     }
@@ -128,6 +132,7 @@ final class RecitationViewModel {
         transcriptLocator.reset()
         snapshot = reducer.reduce(.stop)
         isRecording = false
+        resetAudioLevel()
     }
 
     func makeSessionRecord() -> SessionRecord? {
@@ -201,6 +206,7 @@ final class RecitationViewModel {
 
     private func handleMicrophoneSamples(_ samples: [Float]) {
         guard isRecording, let service = liveASRService else { return }
+        audioLevel = audioLevelMeter.update(with: samples)
         guard let windowSamples = liveSampleWindow.append(samples) else { return }
         guard transcriptionTask == nil else {
             asrLogger.info("[DEBUG-asr73] window_emit_skipped busy=true emittedSamples=\(windowSamples.count, privacy: .public)")
@@ -265,6 +271,12 @@ final class RecitationViewModel {
         snapshot = reducer.reduce(.fail(error.localizedDescription))
         microphone.stop()
         isRecording = false
+        resetAudioLevel()
+    }
+
+    private func resetAudioLevel() {
+        audioLevelMeter.reset()
+        audioLevel = audioLevelMeter.level
     }
 
     @discardableResult
