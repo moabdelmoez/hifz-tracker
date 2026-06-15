@@ -21,6 +21,9 @@ final class RecitationViewModel {
     var audioLevel = 0.0
     var isRecording = false
     var assetMessage: String?
+    var focusedAyah: Int {
+        focusedReference?.ayah ?? snapshot.currentAyah ?? startAyah
+    }
 
     private let repository: QuranRepository?
     private let microphone = MicrophoneCaptureService()
@@ -32,6 +35,8 @@ final class RecitationViewModel {
     private var audioLevelMeter = AudioLevelMeter()
     private var transcriptionTask: Task<Void, Never>?
     private var wordStatesByLocation: [String: WordProgressState] = [:]
+    private var displayedPageNumber = 73
+    private var focusedReference: RecitationWordReference?
 
     init(repository: QuranRepository? = AppQuranRepositoryFactory.makeRepository()) {
         self.repository = repository
@@ -59,7 +64,7 @@ final class RecitationViewModel {
     }
 
     var pageNumber: Int {
-        repository?.pageNumber(surah: selectedSurah, ayah: startAyah) ?? selectedSurah
+        displayedPageNumber
     }
 
     func toggleRecording() {
@@ -155,12 +160,15 @@ final class RecitationViewModel {
 
     private func loadSelectedAyah() {
         do {
+            let selectedPageNumber = repository?.pageNumber(surah: selectedSurah, ayah: startAyah) ?? selectedSurah
+            displayedPageNumber = selectedPageNumber
+            focusedReference = nil
             let words = try repository?.words(surah: selectedSurah, ayah: startAyah) ?? []
             wordProgress = words.map { WordProgress(wordIndex: $0.wordIndex, text: $0.text, state: .pending) }
             if !wordProgress.isEmpty {
                 wordProgress[0].state = .current
             }
-            mushafPage = try repository?.mushafPage(pageNumber: pageNumber)
+            mushafPage = try repository?.mushafPage(pageNumber: selectedPageNumber)
             resetDisplayedWordStates()
         } catch {
             snapshot = RecitationSnapshot(phase: .failed, message: error.localizedDescription)
@@ -263,7 +271,31 @@ final class RecitationViewModel {
             ayah: location.completedThrough.ayah,
             completedWordCount: location.completedThrough.wordIndex
         ))
-        applyProgress(through: location.completedThrough, references: expectedReferences)
+        applyLocatedProgress(through: location.completedThrough, references: expectedReferences)
+    }
+
+    func applyLocatedProgress(through completedWord: RecitationWordReference, references: [RecitationWordReference]) {
+        guard let completedOffset = references.firstIndex(where: {
+            $0.surah == completedWord.surah &&
+            $0.ayah == completedWord.ayah &&
+            $0.wordIndex == completedWord.wordIndex
+        }) else { return }
+
+        for reference in references.prefix(completedOffset + 1) {
+            wordStatesByLocation[reference.location] = .completed
+        }
+
+        let focusedReference: RecitationWordReference
+        if references.indices.contains(completedOffset + 1) {
+            focusedReference = references[completedOffset + 1]
+            wordStatesByLocation[focusedReference.location] = .current
+        } else {
+            focusedReference = completedWord
+        }
+
+        self.focusedReference = focusedReference
+        syncSelectedAyahWordProgress(through: completedWord)
+        autoFlipDisplayedPageIfNeeded(toFollow: focusedReference)
     }
 
     private func handleASRError(_ error: Error) {
@@ -333,22 +365,6 @@ final class RecitationViewModel {
         wordStatesByLocation = states
     }
 
-    private func applyProgress(through completedWord: RecitationWordReference, references: [RecitationWordReference]) {
-        guard let completedOffset = references.firstIndex(where: {
-            $0.surah == completedWord.surah &&
-            $0.ayah == completedWord.ayah &&
-            $0.wordIndex == completedWord.wordIndex
-        }) else { return }
-
-        for reference in references.prefix(completedOffset + 1) {
-            wordStatesByLocation[reference.location] = .completed
-        }
-        if references.indices.contains(completedOffset + 1) {
-            wordStatesByLocation[references[completedOffset + 1].location] = .current
-        }
-        syncSelectedAyahWordProgress(through: completedWord)
-    }
-
     private func syncSelectedAyahWordProgress(through completedWord: RecitationWordReference) {
         wordProgress = wordProgress.map { word in
             let state: WordProgressState
@@ -366,6 +382,25 @@ final class RecitationViewModel {
     private func syncSelectedAyahProgressToPageStates() {
         for word in wordProgress {
             wordStatesByLocation[wordLocation(surah: selectedSurah, ayah: startAyah, wordIndex: word.wordIndex)] = word.state
+        }
+    }
+
+    private func autoFlipDisplayedPageIfNeeded(toFollow reference: RecitationWordReference) {
+        guard isRecording, let repository else { return }
+        guard let targetPageNumber = repository.pageNumber(
+            surah: reference.surah,
+            ayah: reference.ayah,
+            wordIndex: reference.wordIndex
+        ) else { return }
+        guard targetPageNumber != displayedPageNumber else { return }
+        guard (1...604).contains(targetPageNumber) else { return }
+
+        do {
+            let page = try repository.mushafPage(pageNumber: targetPageNumber)
+            displayedPageNumber = targetPageNumber
+            mushafPage = page
+        } catch {
+            asrLogger.error("auto_page_flip_failed page=\(targetPageNumber, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
         }
     }
 

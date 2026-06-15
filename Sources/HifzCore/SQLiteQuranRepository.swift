@@ -5,7 +5,14 @@ public protocol QuranRepository {
     func words(surah: Int, ayah: Int) throws -> [QuranWord]
     func referenceText(surah: Int, ayah: Int) throws -> String
     func pageNumber(surah: Int, ayah: Int) -> Int
+    func pageNumber(surah: Int, ayah: Int, wordIndex: Int) -> Int?
     func mushafPage(pageNumber: Int) throws -> MushafPage
+}
+
+public extension QuranRepository {
+    func pageNumber(surah: Int, ayah: Int, wordIndex: Int) -> Int? {
+        nil
+    }
 }
 
 public enum QuranRepositoryError: Error, Equatable {
@@ -78,6 +85,10 @@ public final class SQLiteQuranRepository: QuranRepository {
 
     public func pageNumber(surah: Int, ayah: Int) -> Int {
         pageMapping.pageNumber(surah: surah, ayah: ayah)
+    }
+
+    public func pageNumber(surah: Int, ayah: Int, wordIndex: Int) -> Int? {
+        pageMapping.pageNumber(surah: surah, ayah: ayah, wordIndex: wordIndex)
     }
 
     public func mushafPage(pageNumber: Int) throws -> MushafPage {

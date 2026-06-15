@@ -10,6 +10,7 @@ extension PageMapping {
     public static func loadKFGQPCV4Layout(layoutDatabaseURL: URL, qpcDatabaseURL: URL) throws -> PageMapping {
         let wordKeys = try loadWordKeys(databaseURL: qpcDatabaseURL)
         var entries: [String: Int] = [:]
+        var wordEntries: [String: Int] = [:]
         var db: OpaquePointer?
         let result = sqlite3_open_v2(layoutDatabaseURL.path, &db, SQLITE_OPEN_READONLY, nil)
         guard result == SQLITE_OK else {
@@ -40,14 +41,15 @@ extension PageMapping {
             guard firstWordID <= lastWordID else { continue }
             for wordID in firstWordID...lastWordID {
                 guard let key = wordKeys[wordID] else { continue }
-                entries[key] = entries[key] ?? pageNumber
+                entries[key.ayah] = entries[key.ayah] ?? pageNumber
+                wordEntries[key.word] = pageNumber
             }
         }
 
-        return PageMapping(entries: entries)
+        return PageMapping(entries: entries, wordEntries: wordEntries)
     }
 
-    private static func loadWordKeys(databaseURL: URL) throws -> [Int: String] {
+    private static func loadWordKeys(databaseURL: URL) throws -> [Int: WordPageKey] {
         var db: OpaquePointer?
         let result = sqlite3_open_v2(databaseURL.path, &db, SQLITE_OPEN_READONLY, nil)
         guard result == SQLITE_OK else {
@@ -57,24 +59,33 @@ extension PageMapping {
         }
         defer { sqlite3_close(db) }
 
-        let sql = "select id, surah, ayah from words order by id"
+        let sql = "select id, surah, ayah, word from words order by id"
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
             throw PageMappingError.prepareStatement(errorMessage(db))
         }
         defer { sqlite3_finalize(statement) }
 
-        var keys: [Int: String] = [:]
+        var keys: [Int: WordPageKey] = [:]
         while sqlite3_step(statement) == SQLITE_ROW {
             let wordID = Int(sqlite3_column_int(statement, 0))
             let surah = Int(sqlite3_column_int(statement, 1))
             let ayah = Int(sqlite3_column_int(statement, 2))
-            keys[wordID] = "\(surah):\(ayah)"
+            let word = Int(sqlite3_column_int(statement, 3))
+            keys[wordID] = WordPageKey(
+                ayah: "\(surah):\(ayah)",
+                word: "\(surah):\(ayah):\(word)"
+            )
         }
         return keys
     }
 
     private static func errorMessage(_ db: OpaquePointer?) -> String {
         db.flatMap { sqlite3_errmsg($0) }.map { String(cString: $0) } ?? "unknown"
+    }
+
+    private struct WordPageKey {
+        var ayah: String
+        var word: String
     }
 }

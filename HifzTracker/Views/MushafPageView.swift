@@ -11,7 +11,7 @@ struct MushafPageView: View {
                 page: viewModel.mushafPage,
                 pageNumber: viewModel.pageNumber,
                 selectedSurah: viewModel.selectedSurah,
-                startAyah: viewModel.startAyah,
+                focusAyah: viewModel.focusedAyah,
                 wordProgress: viewModel.wordProgress
             ) { word in
                 viewModel.progressState(for: word)
@@ -29,7 +29,7 @@ private struct MushafContentView: View {
     var page: MushafPage?
     var pageNumber: Int
     var selectedSurah: Int
-    var startAyah: Int
+    var focusAyah: Int
     var wordProgress: [WordProgress]
     var state: (QuranWord) -> WordProgressState
 
@@ -40,9 +40,11 @@ private struct MushafContentView: View {
                     page: page,
                     pageNumber: pageNumber,
                     selectedSurah: selectedSurah,
-                    startAyah: startAyah,
+                    focusAyah: focusAyah,
                     state: state
                 )
+                .id(page.pageNumber)
+                .transition(.opacity)
             } else if wordProgress.isEmpty {
                 ContentUnavailableView(
                     "Mushaf Unavailable",
@@ -54,6 +56,7 @@ private struct MushafContentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(.easeInOut(duration: 0.18), value: pageNumber)
     }
 }
 
@@ -61,7 +64,7 @@ private struct MushafPageStage: View {
     var page: MushafPage
     var pageNumber: Int
     var selectedSurah: Int
-    var startAyah: Int
+    var focusAyah: Int
     var state: (QuranWord) -> WordProgressState
 
     var body: some View {
@@ -99,11 +102,11 @@ private struct MushafPageStage: View {
     }
 
     private var focusIdentity: String {
-        "\(page.pageNumber)-\(selectedSurah)-\(startAyah)"
+        "\(page.pageNumber)-\(selectedSurah)-\(focusAyah)"
     }
 
     private var focusCanonicalY: CGFloat? {
-        MushafPageRenderer.canonicalAyahCenterY(surah: selectedSurah, ayah: startAyah, in: page)
+        MushafPageRenderer.canonicalAyahCenterY(surah: selectedSurah, ayah: focusAyah, in: page)
     }
 
     private func scrollToFocusedAyah(_ scrollProxy: ScrollViewProxy) {

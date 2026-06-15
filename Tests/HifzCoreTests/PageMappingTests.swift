@@ -14,6 +14,18 @@ final class PageMappingTests: XCTestCase {
         XCTAssertEqual(mapping.pageNumber(surah: 73, ayah: 4), 574)
     }
 
+    func testLoadsExactWordPagesForAyahsSplitAcrossPages() throws {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let qpcURL = root.appending(path: "qpc-v4.db")
+        let layoutURL = try makeSplitAyahLayoutDatabase()
+
+        let mapping = try PageMapping.loadKFGQPCV4Layout(layoutDatabaseURL: layoutURL, qpcDatabaseURL: qpcURL)
+
+        XCTAssertEqual(mapping.pageNumber(surah: 1, ayah: 1), 1)
+        XCTAssertEqual(mapping.pageNumber(surah: 1, ayah: 1, wordIndex: 2), 1)
+        XCTAssertEqual(mapping.pageNumber(surah: 1, ayah: 1, wordIndex: 3), 2)
+    }
+
     func testLoadsDownloadedKFGQPCV4LayoutAssetWhenPresent() throws {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let qpcURL = root.appending(path: "qpc-v4.db")
@@ -29,6 +41,28 @@ final class PageMappingTests: XCTestCase {
     }
 
     private func makeLayoutDatabase() throws -> URL {
+        let url = try makeEmptyLayoutDatabase()
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open_v2(url.path, &db, SQLITE_OPEN_READWRITE, nil), SQLITE_OK)
+        defer { sqlite3_close(db) }
+
+        try execute("insert into pages values (1, 1, 'ayah', 0, 1, 4, 1);", db: db)
+        try execute("insert into pages values (574, 4, 'ayah', 0, 79572, 79578, 73);", db: db)
+        return url
+    }
+
+    private func makeSplitAyahLayoutDatabase() throws -> URL {
+        let url = try makeEmptyLayoutDatabase()
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open_v2(url.path, &db, SQLITE_OPEN_READWRITE, nil), SQLITE_OK)
+        defer { sqlite3_close(db) }
+
+        try execute("insert into pages values (1, 1, 'ayah', 0, 1, 2, 1);", db: db)
+        try execute("insert into pages values (2, 1, 'ayah', 0, 3, 5, 1);", db: db)
+        return url
+    }
+
+    private func makeEmptyLayoutDatabase() throws -> URL {
         let directory = FileManager.default.temporaryDirectory
             .appending(path: "HifzTrackerTests-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -52,8 +86,6 @@ final class PageMappingTests: XCTestCase {
             """,
             db: db
         )
-        try execute("insert into pages values (1, 1, 'ayah', 0, 1, 4, 1);", db: db)
-        try execute("insert into pages values (574, 4, 'ayah', 0, 79572, 79578, 73);", db: db)
         return url
     }
 

@@ -35,15 +35,21 @@ public struct SurahInfo: Equatable, Sendable, Identifiable {
 
 public struct PageMapping: Equatable, Sendable {
     public var entries: [String: Int]
+    public var wordEntries: [String: Int]
 
-    public init(entries: [String: Int]) {
+    public init(entries: [String: Int], wordEntries: [String: Int] = [:]) {
         self.entries = entries
+        self.wordEntries = wordEntries
     }
 
     public static let fallback = PageMapping(entries: [:])
 
     public func pageNumber(surah: Int, ayah: Int) -> Int {
         entries["\(surah):\(ayah)"] ?? max(1, min(604, surah))
+    }
+
+    public func pageNumber(surah: Int, ayah: Int, wordIndex: Int) -> Int? {
+        wordEntries["\(surah):\(ayah):\(wordIndex)"]
     }
 }
 
