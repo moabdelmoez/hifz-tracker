@@ -1,0 +1,90 @@
+{
+  "bundleIdentifier": "dev.mostafa.HifzTracker",
+  "minimumMacOS": "14.0",
+  "runtimeNetwork": false,
+  "assets": [
+    {
+      "name": "qpc-v4.db",
+      "kind": "quran-word-glyphs",
+      "source": "local workspace qpc-v4.db",
+      "bundledPath": "Resources/qpc-v4.db",
+      "sha256": "4bf9549dfcfd367d4d4b151bd58b51af63b677d1c980cf5e52541c2f981d7e6d"
+    },
+    {
+      "name": "quran-simple-clean.txt",
+      "kind": "normalized-reference-text",
+      "source": "Tanzil metadata in tanzil/quran-simple-clean.metadata.json",
+      "bundledPath": "Resources/quran-simple-clean.txt",
+      "sha256": "054b3d9f79c0c2e44df7f9ddf42561797b3b5cb4fbdafbf2e99c805ccf1a6b49"
+    },
+    {
+      "name": "model_fp32.onnx",
+      "kind": "asr-model",
+      "source": "local quran-stt-onnx/onnx/model_fp32.onnx or https://huggingface.co/Saboorhsn/quran-stt-onnx/resolve/main/onnx/model_fp32.onnx",
+      "bundledPath": "Resources/Models/model_fp32.onnx",
+      "sha256": "ba513908fad8172e7edf9ed479adee6ac2723455fdd3289f967aec26cabea93e",
+      "requiredForRealASR": true
+    },
+    {
+      "name": "tokenizer assets",
+      "kind": "asr-tokenizer",
+      "source": "https://huggingface.co/Saboorhsn/quran-stt-onnx",
+      "bundledPath": "Resources/Tokenizer/",
+      "files": [
+        "tokenizer.json",
+        "tokenizer.model",
+        "tokenizer_config.json",
+        "tokens.txt",
+        "model_config.yaml"
+      ],
+      "requiredForRealASR": true
+    },
+    {
+      "name": "onnxruntime-osx-arm64-1.26.0",
+      "kind": "native-runtime",
+      "source": "https://github.com/microsoft/onnxruntime/releases/download/v1.26.0/onnxruntime-osx-arm64-1.26.0.tgz",
+      "bundledPath": "Contents/Frameworks/libonnxruntime.1.dylib",
+      "archiveSha256": "7a1280bbb1701ea514f71828765237e7896e0f2e1cd332f1f70dbd5c3e33aca3",
+      "dylibSha256": "30afadcfc3c704f7671f8430d6252956651c1972373901d2be629da2e6a4d8ee",
+      "requiredForRealASR": true
+    },
+    {
+      "name": "QPC V4 Tajweed page fonts",
+      "kind": "quran-font",
+      "source": "https://qul.tarteel.ai/resources/font/240 and https://static-cdn.tarteel.ai/qul/fonts/quran_fonts/v4-tajweed/ttf/p{page}.ttf",
+      "bundledPath": "Resources/Fonts/p1.ttf ... Resources/Fonts/p604.ttf",
+      "fontNamePattern": "p{page}-v4-tajweed",
+      "requiredForProductionRendering": true
+    },
+    {
+      "name": "QUL Mushaf header fonts",
+      "kind": "quran-font",
+      "source": "https://qul.tarteel.ai/resources/mushaf-layout/19?page=574",
+      "bundledPath": "Resources/Fonts/quran-common.ttf, Resources/Fonts/surah-name-v4.ttf, Resources/Fonts/bismillah.ttf",
+      "files": [
+        {
+          "name": "quran-common.ttf",
+          "sha256": "63675d54764c3e0acd3875e191dc6f0af1339ddbd53a1df7fcebbaabebc918fa"
+        },
+        {
+          "name": "surah-name-v4.ttf",
+          "sha256": "026cfe8ac461531a7b1c8e4edd05ce3343f09e9c73447ff14c6bc93f3193d661"
+        },
+        {
+          "name": "bismillah.ttf",
+          "sha256": "ce8e4b2cf44ab8709fbe90189a9cb54b6a4dc31eb8ab7f6ae68a6403d58b9b69"
+        }
+      ],
+      "requiredForProductionRendering": true
+    },
+    {
+      "name": "KFGQPC V4 layout",
+      "kind": "mushaf-page-layout",
+      "source": "https://qul.tarteel.ai/resources/mushaf-layout/19",
+      "setupPath": "assets/layout/qpc-v4-tajweed-15-lines.db",
+      "bundledPath": "Resources/Layout/kfgqpc-v4-layout.sqlite",
+      "sha256": "4b3fb1cbe8dff749ab0173c4b86cb40fe3c48dd072f41d3c7e715654a9f843cd",
+      "requiredForExactPageGrouping": true
+    }
+  ]
+}
