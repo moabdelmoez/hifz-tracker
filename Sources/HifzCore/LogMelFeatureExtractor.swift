@@ -20,9 +20,10 @@ public struct LogMelFeatureExtractor: Sendable {
     public var featureCount: Int
 
     private let hannWindow: [Float]
-    private let cosineTable: [Float]
-    private let sineTable: [Float]
-    private let melFilterBank: [Float]
+    private let bitReversedIndices: [Int]
+    private let twiddleReal: [Float]
+    private let twiddleImaginary: [Float]
+    private let melFilters: [MelFilter]
 
     public init(
         sampleRate: Int = 16_000,
@@ -37,28 +38,38 @@ public struct LogMelFeatureExtractor: Sendable {
         self.fftSize = fftSize
         self.featureCount = featureCount
         self.hannWindow = Self.makeHannWindow(length: Int((Double(sampleRate) * windowSize).rounded()))
-        self.cosineTable = Self.makeCosineTable(fftSize: fftSize, sampleCount: Int((Double(sampleRate) * windowSize).rounded()))
-        self.sineTable = Self.makeSineTable(fftSize: fftSize, sampleCount: Int((Double(sampleRate) * windowSize).rounded()))
-        self.melFilterBank = Self.makeSlaneyMelFilterBank(sampleRate: sampleRate, fftSize: fftSize, featureCount: featureCount)
+        self.bitReversedIndices = Self.makeBitReversedIndices(size: fftSize)
+        self.twiddleReal = Self.makeTwiddleReal(size: fftSize)
+        self.twiddleImaginary = Self.makeTwiddleImaginary(size: fftSize)
+        self.melFilters = Self.makeSlaneyMelFilters(sampleRate: sampleRate, fftSize: fftSize, featureCount: featureCount)
     }
 
     public func extract(samples: [Float]) -> LogMelFeatures {
         let frameCount = max(1, 1 + max(0, samples.count - 1) / hopLength)
         let frequencyBinCount = fftSize / 2 + 1
+        let energyFloor = Float(pow(2.0, -24.0))
         var values = [Float](repeating: 0, count: featureCount * frameCount)
         var power = [Float](repeating: 0, count: frequencyBinCount)
+        var real = [Float](repeating: 0, count: fftSize)
+        var imaginary = [Float](repeating: 0, count: fftSize)
 
         for frameIndex in 0..<frameCount {
             let sampleOffset = frameIndex * hopLength
-            fillPowerSpectrum(samples: samples, sampleOffset: sampleOffset, power: &power)
+            fillPowerSpectrum(
+                samples: samples,
+                sampleOffset: sampleOffset,
+                real: &real,
+                imaginary: &imaginary,
+                power: &power
+            )
 
             for featureIndex in 0..<featureCount {
-                let filterOffset = featureIndex * frequencyBinCount
+                let filter = melFilters[featureIndex]
                 var melEnergy = Float(0)
-                for binIndex in 0..<frequencyBinCount {
-                    melEnergy += melFilterBank[filterOffset + binIndex] * power[binIndex]
+                for offset in filter.weights.indices {
+                    melEnergy += filter.weights[offset] * power[filter.startBin + offset]
                 }
-                values[featureIndex * frameCount + frameIndex] = log(melEnergy + pow(2.0, -24.0))
+                values[featureIndex * frameCount + frameIndex] = log(melEnergy + energyFloor)
             }
         }
 
@@ -66,20 +77,76 @@ public struct LogMelFeatureExtractor: Sendable {
         return LogMelFeatures(values: values, featureCount: featureCount, frameCount: frameCount)
     }
 
-    private func fillPowerSpectrum(samples: [Float], sampleOffset: Int, power: inout [Float]) {
-        let frequencyBinCount = fftSize / 2 + 1
+    private func fillPowerSpectrum(
+        samples: [Float],
+        sampleOffset: Int,
+        real: inout [Float],
+        imaginary: inout [Float],
+        power: inout [Float]
+    ) {
+        guard bitReversedIndices.count == fftSize else {
+            fillDirectPowerSpectrum(samples: samples, sampleOffset: sampleOffset, power: &power)
+            return
+        }
 
+        for index in 0..<fftSize {
+            let sourceIndex = bitReversedIndices[index]
+            if sourceIndex < windowLength {
+                let inputIndex = sampleOffset + sourceIndex
+                let sample = inputIndex < samples.count ? samples[inputIndex] : 0
+                real[index] = sample * hannWindow[sourceIndex]
+            } else {
+                real[index] = 0
+            }
+            imaginary[index] = 0
+        }
+
+        var length = 2
+        while length <= fftSize {
+            let halfLength = length / 2
+            let tableStep = fftSize / length
+
+            for start in stride(from: 0, to: fftSize, by: length) {
+                for offset in 0..<halfLength {
+                    let twiddleIndex = offset * tableStep
+                    let evenIndex = start + offset
+                    let oddIndex = evenIndex + halfLength
+                    let rotationReal = twiddleReal[twiddleIndex]
+                    let rotationImaginary = twiddleImaginary[twiddleIndex]
+                    let oddReal = real[oddIndex]
+                    let oddImaginary = imaginary[oddIndex]
+                    let transformedReal = rotationReal * oddReal - rotationImaginary * oddImaginary
+                    let transformedImaginary = rotationReal * oddImaginary + rotationImaginary * oddReal
+
+                    real[oddIndex] = real[evenIndex] - transformedReal
+                    imaginary[oddIndex] = imaginary[evenIndex] - transformedImaginary
+                    real[evenIndex] += transformedReal
+                    imaginary[evenIndex] += transformedImaginary
+                }
+            }
+
+            length *= 2
+        }
+
+        let frequencyBinCount = fftSize / 2 + 1
+        for binIndex in 0..<frequencyBinCount {
+            power[binIndex] = real[binIndex] * real[binIndex] + imaginary[binIndex] * imaginary[binIndex]
+        }
+    }
+
+    private func fillDirectPowerSpectrum(samples: [Float], sampleOffset: Int, power: inout [Float]) {
+        let frequencyBinCount = fftSize / 2 + 1
         for binIndex in 0..<frequencyBinCount {
             var real = Float(0)
             var imaginary = Float(0)
-            let tableOffset = binIndex * windowLength
 
             for windowIndex in 0..<windowLength {
                 let inputIndex = sampleOffset + windowIndex
                 let sample = inputIndex < samples.count ? samples[inputIndex] : 0
                 let windowedSample = sample * hannWindow[windowIndex]
-                real += windowedSample * cosineTable[tableOffset + windowIndex]
-                imaginary -= windowedSample * sineTable[tableOffset + windowIndex]
+                let angle = (2.0 * Double.pi * Double(binIndex) * Double(windowIndex)) / Double(fftSize)
+                real += windowedSample * Float(cos(angle))
+                imaginary -= windowedSample * Float(sin(angle))
             }
 
             power[binIndex] = real * real + imaginary * imaginary
@@ -118,31 +185,35 @@ public struct LogMelFeatureExtractor: Sendable {
         }
     }
 
-    private static func makeCosineTable(fftSize: Int, sampleCount: Int) -> [Float] {
-        let frequencyBinCount = fftSize / 2 + 1
-        var table = [Float](repeating: 0, count: frequencyBinCount * sampleCount)
-        for binIndex in 0..<frequencyBinCount {
-            for sampleIndex in 0..<sampleCount {
-                let angle = (2.0 * Double.pi * Double(binIndex) * Double(sampleIndex)) / Double(fftSize)
-                table[binIndex * sampleCount + sampleIndex] = Float(cos(angle))
+    private static func makeBitReversedIndices(size: Int) -> [Int] {
+        guard size > 0, size.nonzeroBitCount == 1 else { return [] }
+        let bitCount = Int(log2(Double(size)))
+        return (0..<size).map { index in
+            var value = index
+            var reversed = 0
+            for _ in 0..<bitCount {
+                reversed = (reversed << 1) | (value & 1)
+                value >>= 1
             }
+            return reversed
         }
-        return table
     }
 
-    private static func makeSineTable(fftSize: Int, sampleCount: Int) -> [Float] {
-        let frequencyBinCount = fftSize / 2 + 1
-        var table = [Float](repeating: 0, count: frequencyBinCount * sampleCount)
-        for binIndex in 0..<frequencyBinCount {
-            for sampleIndex in 0..<sampleCount {
-                let angle = (2.0 * Double.pi * Double(binIndex) * Double(sampleIndex)) / Double(fftSize)
-                table[binIndex * sampleCount + sampleIndex] = Float(sin(angle))
-            }
+    private static func makeTwiddleReal(size: Int) -> [Float] {
+        guard size > 0 else { return [] }
+        return (0..<size).map { index in
+            Float(cos((-2.0 * Double.pi * Double(index)) / Double(size)))
         }
-        return table
     }
 
-    private static func makeSlaneyMelFilterBank(sampleRate: Int, fftSize: Int, featureCount: Int) -> [Float] {
+    private static func makeTwiddleImaginary(size: Int) -> [Float] {
+        guard size > 0 else { return [] }
+        return (0..<size).map { index in
+            Float(sin((-2.0 * Double.pi * Double(index)) / Double(size)))
+        }
+    }
+
+    private static func makeSlaneyMelFilters(sampleRate: Int, fftSize: Int, featureCount: Int) -> [MelFilter] {
         let frequencyBinCount = fftSize / 2 + 1
         let melMinimum = hertzToSlaneyMel(0)
         let melMaximum = hertzToSlaneyMel(Double(sampleRate) / 2.0)
@@ -154,21 +225,30 @@ public struct LogMelFeatureExtractor: Sendable {
             (Double(sampleRate) / 2.0) * Double(index) / Double(frequencyBinCount - 1)
         }
 
-        var filterBank = [Float](repeating: 0, count: featureCount * frequencyBinCount)
-        for featureIndex in 0..<featureCount {
+        return (0..<featureCount).map { featureIndex in
             let low = hertzPoints[featureIndex]
             let center = hertzPoints[featureIndex + 1]
             let high = hertzPoints[featureIndex + 2]
             let enorm = 2.0 / (high - low + 1e-12)
+            var startBin: Int?
+            var weights: [Float] = []
 
             for binIndex in 0..<frequencyBinCount {
                 let frequency = binFrequencies[binIndex]
                 let left = (frequency - low) / (center - low + 1e-12)
                 let right = (high - frequency) / (high - center + 1e-12)
-                filterBank[featureIndex * frequencyBinCount + binIndex] = Float(max(0, min(left, right)) * enorm)
+                let weight = Float(max(0, min(left, right)) * enorm)
+                if weight > 0 {
+                    if startBin == nil {
+                        startBin = binIndex
+                    }
+                    weights.append(weight)
+                } else if startBin != nil {
+                    break
+                }
             }
+            return MelFilter(startBin: startBin ?? 0, weights: weights)
         }
-        return filterBank
     }
 
     private static func hertzToSlaneyMel(_ frequency: Double) -> Double {
@@ -193,4 +273,9 @@ public struct LogMelFeatureExtractor: Sendable {
         }
         return minimumLogHertz * exp(logStep * (mel - minimumLogMel))
     }
+}
+
+private struct MelFilter: Sendable {
+    var startBin: Int
+    var weights: [Float]
 }

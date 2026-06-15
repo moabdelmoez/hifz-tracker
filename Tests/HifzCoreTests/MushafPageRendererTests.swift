@@ -52,6 +52,41 @@ final class MushafPageRendererTests: XCTestCase {
         )
     }
 
+    func testRendersWordProgressHighlightsBehindQpcGlyphWords() throws {
+        let page = try makePage574()
+        let canvasSize = MushafPageRenderer.canonicalContentSize(for: page)
+        let unhighlighted = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 574,
+            fontDirectory: fontDirectory,
+            canvasSize: canvasSize,
+            stateProvider: Optional<((QuranWord) -> WordProgressState)>.none
+        )
+        let highlighted = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 574,
+            fontDirectory: fontDirectory,
+            canvasSize: canvasSize
+        ) { word in
+            if word.surah == 73, word.ayah == 1, word.wordIndex == 1 {
+                return .current
+            }
+            if word.surah == 73, word.ayah == 1, word.wordIndex == 2 {
+                return .completed
+            }
+            return .pending
+        }
+
+        let baseHighlightPixels = try paleProgressHighlightPixelCount(in: unhighlighted)
+        let progressHighlightPixels = try paleProgressHighlightPixelCount(in: highlighted)
+
+        XCTAssertGreaterThan(
+            progressHighlightPixels - baseHighlightPixels,
+            1_000,
+            "Word-progress states should produce visible overlay pixels behind QPC V4 glyph words."
+        )
+    }
+
     func testUsesQULDisplayTokensForSurahHeaderAndBismillah() throws {
         let page = try makePage574()
 
@@ -249,6 +284,26 @@ final class MushafPageRendererTests: XCTestCase {
             guard rect.contains(CGPoint(x: x, y: y)) else { return false }
             let darkness = 1 - min(color.redComponent, color.greenComponent, color.blueComponent)
             return color.alphaComponent > 0.1 && darkness > 0.45
+        }
+    }
+
+    private func paleProgressHighlightPixelCount(in image: NSImage) throws -> Int {
+        try pixelCount(in: image) { color in
+            guard color.alphaComponent > 0.1 else { return false }
+
+            let isPaleGreen = color.greenComponent > 0.92
+                && color.redComponent > 0.78
+                && color.blueComponent > 0.78
+                && color.greenComponent - color.redComponent > 0.035
+                && color.greenComponent - color.blueComponent > 0.035
+
+            let isPaleBlue = color.blueComponent > 0.92
+                && color.redComponent > 0.72
+                && color.greenComponent > 0.78
+                && color.blueComponent - color.redComponent > 0.055
+                && color.blueComponent - color.greenComponent > 0.025
+
+            return isPaleGreen || isPaleBlue
         }
     }
 

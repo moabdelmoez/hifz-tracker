@@ -27,4 +27,19 @@ final class LogMelFeatureExtractorTests: XCTestCase {
             XCTAssertEqual(sqrt(variance), 1, accuracy: 0.02)
         }
     }
+
+    func testExtractsEightSecondLiveWindowWithinRealtimeBudget() {
+        let extractor = LogMelFeatureExtractor()
+        let samples = (0..<(8 * extractor.sampleRate)).map { index in
+            Float(sin(2.0 * Double.pi * 440.0 * Double(index) / Double(extractor.sampleRate)))
+        }
+
+        let startedAt = DispatchTime.now().uptimeNanoseconds
+        let features = extractor.extract(samples: samples)
+        let elapsedMS = Double(DispatchTime.now().uptimeNanoseconds - startedAt) / 1_000_000.0
+
+        XCTAssertEqual(features.featureCount, 80)
+        XCTAssertEqual(features.frameCount, 800)
+        XCTAssertLessThan(elapsedMS, 1_000, "8-second live-window feature extraction took \(elapsedMS) ms")
+    }
 }

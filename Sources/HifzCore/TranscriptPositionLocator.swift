@@ -101,6 +101,92 @@ public struct TranscriptPositionLocator: Sendable {
     }
 }
 
+public struct ProgressiveTranscriptLocator: Sendable {
+    public var locator: TranscriptPositionLocator
+    public var minimumInitialMatchLength: Int
+    public var lookBehindWordCount: Int
+    public var lookAheadWordCount: Int
+
+    private var acceptedOffset: Int?
+
+    public init(
+        locator: TranscriptPositionLocator = TranscriptPositionLocator(minimumRunLength: 2),
+        minimumInitialMatchLength: Int = 4,
+        lookBehindWordCount: Int = 12,
+        lookAheadWordCount: Int = 96
+    ) {
+        self.locator = locator
+        self.minimumInitialMatchLength = max(locator.minimumRunLength, minimumInitialMatchLength)
+        self.lookBehindWordCount = max(0, lookBehindWordCount)
+        self.lookAheadWordCount = max(1, lookAheadWordCount)
+        self.acceptedOffset = nil
+    }
+
+    public mutating func reset() {
+        acceptedOffset = nil
+    }
+
+    public mutating func locate(
+        expected: [RecitationWordReference],
+        recognizedWords: [String]
+    ) -> TranscriptLocation? {
+        guard !expected.isEmpty else { return nil }
+
+        let searchRange = expectedSearchRange(totalCount: expected.count)
+        guard let scopedLocation = locator.locate(
+            expected: Array(expected[searchRange]),
+            recognizedWords: recognizedWords
+        ) else {
+            return nil
+        }
+
+        let adjustedLocation = TranscriptLocation(
+            completedThrough: scopedLocation.completedThrough,
+            matchedWordCount: scopedLocation.matchedWordCount,
+            expectedRange: (scopedLocation.expectedRange.lowerBound + searchRange.lowerBound)..<(scopedLocation.expectedRange.upperBound + searchRange.lowerBound),
+            recognizedRange: scopedLocation.recognizedRange
+        )
+        let completedOffset = adjustedLocation.expectedRange.upperBound - 1
+
+        if acceptedOffset == nil,
+           adjustedLocation.matchedWordCount < minimumInitialMatchLength,
+           !coversCompleteAyah(location: adjustedLocation, expected: expected) {
+            return nil
+        }
+
+        if let acceptedOffset, completedOffset <= acceptedOffset {
+            return nil
+        }
+
+        acceptedOffset = completedOffset
+        return adjustedLocation
+    }
+
+    private func expectedSearchRange(totalCount: Int) -> Range<Int> {
+        guard let acceptedOffset else {
+            return 0..<totalCount
+        }
+
+        let lowerBound = max(0, acceptedOffset - lookBehindWordCount)
+        let upperBound = min(totalCount, acceptedOffset + lookAheadWordCount + 1)
+        return lowerBound..<upperBound
+    }
+
+    private func coversCompleteAyah(location: TranscriptLocation, expected: [RecitationWordReference]) -> Bool {
+        let completed = location.completedThrough
+        let matchingIndices = expected.indices.filter { index in
+            expected[index].surah == completed.surah && expected[index].ayah == completed.ayah
+        }
+        guard let firstIndex = matchingIndices.first, let lastIndex = matchingIndices.last else {
+            return false
+        }
+
+        let ayahRange = firstIndex..<(lastIndex + 1)
+        return location.expectedRange.lowerBound <= ayahRange.lowerBound
+            && location.expectedRange.upperBound >= ayahRange.upperBound
+    }
+}
+
 private struct Candidate {
     var expectedStart: Int
     var recognizedStart: Int
@@ -119,8 +205,8 @@ private struct Candidate {
         if length != other.length {
             return length > other.length
         }
-        if expectedEnd != other.expectedEnd {
-            return expectedEnd > other.expectedEnd
+        if expectedStart != other.expectedStart {
+            return expectedStart < other.expectedStart
         }
         return recognizedEnd > other.recognizedEnd
     }

@@ -11,7 +11,7 @@ final class RecitationViewModel {
     var selectedSurah: Int = 73 {
         didSet { clampStartAyah(); loadSelectedAyah() }
     }
-    var startAyah: Int = 4 {
+    var startAyah: Int = 1 {
         didSet { loadSelectedAyah() }
     }
     var snapshot = RecitationSnapshot()
@@ -23,7 +23,7 @@ final class RecitationViewModel {
 
     private let repository: QuranRepository?
     private let microphone = MicrophoneCaptureService()
-    private let transcriptLocator = TranscriptPositionLocator(minimumRunLength: 2)
+    private var transcriptLocator = ProgressiveTranscriptLocator()
     private var reducer = RecitationStateReducer()
     private var sessionStartedAt: Date?
     private var liveASRService: LiveQuranTranscriptionService?
@@ -74,6 +74,7 @@ final class RecitationViewModel {
                 let service = try AppASRFactory.makeLiveService()
                 liveASRService = service
                 liveSampleWindow.reset()
+                transcriptLocator.reset()
                 transcriptionTask?.cancel()
                 transcriptionTask = nil
 
@@ -124,6 +125,7 @@ final class RecitationViewModel {
         transcriptionTask = nil
         liveASRService = nil
         liveSampleWindow.reset()
+        transcriptLocator.reset()
         snapshot = reducer.reduce(.stop)
         isRecording = false
     }
@@ -235,8 +237,8 @@ final class RecitationViewModel {
             .map(String.init)
         asrLogger.info("[DEBUG-asr73] transcript_words count=\(recognizedWords.count, privacy: .public) normalized=\(recognizedWords.joined(separator: " "), privacy: .public)")
         guard !recognizedWords.isEmpty else {
-            asrLogger.info("[DEBUG-asr73] transcript_empty finding_place=true")
-            snapshot = reducer.reduce(.findingPlace)
+            let findingPlaceUpdated = markFindingPlaceIfNeeded()
+            asrLogger.info("[DEBUG-asr73] transcript_empty findingPlaceUpdated=\(findingPlaceUpdated, privacy: .public) completed=\(self.snapshot.completedWordCount, privacy: .public)")
             return
         }
 
@@ -245,8 +247,8 @@ final class RecitationViewModel {
         guard !expectedReferences.isEmpty else { return }
 
         guard let location = transcriptLocator.locate(expected: expectedReferences, recognizedWords: recognizedWords) else {
-            asrLogger.info("[DEBUG-asr73] no_location_match finding_place=true")
-            snapshot = reducer.reduce(.findingPlace)
+            let findingPlaceUpdated = markFindingPlaceIfNeeded()
+            asrLogger.info("[DEBUG-asr73] no_location_match findingPlaceUpdated=\(findingPlaceUpdated, privacy: .public) completed=\(self.snapshot.completedWordCount, privacy: .public)")
             return
         }
 
@@ -263,6 +265,13 @@ final class RecitationViewModel {
         snapshot = reducer.reduce(.fail(error.localizedDescription))
         microphone.stop()
         isRecording = false
+    }
+
+    @discardableResult
+    private func markFindingPlaceIfNeeded() -> Bool {
+        guard snapshot.completedWordCount == 0 else { return false }
+        snapshot = reducer.reduce(.findingPlace)
+        return true
     }
 
     private func clearTranscriptionTask() {
