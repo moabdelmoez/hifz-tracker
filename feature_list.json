@@ -1,0 +1,42 @@
+{
+  "features": [
+    {
+      "id": "harness-001",
+      "name": "Agent Harness Baseline",
+      "description": "Install a minimal restartable harness with startup instructions, feature state, progress logging, verification, and handoff flow.",
+      "dependencies": [],
+      "status": "done",
+      "done_criteria": [
+        "AGENTS.md routes startup, scope, verification, and end-of-session behavior",
+        "feature_list.json has one active feature and concrete status/evidence fields",
+        "progress.md records current state, next step, risks, files, and verification evidence",
+        "AGENTS.md documents the lightweight SwiftPM verification gate without a startup script",
+        "session-handoff.md gives the next session a restartable path"
+      ],
+      "verification": [
+        "swift test",
+        "swift build",
+        "node .agents/skills/harness-creator/scripts/validate-harness.mjs --target ."
+      ],
+      "evidence": "Harness implemented without a startup script per user request. Structural validation: 88/100; bottleneck is verification because the bundled validator expects a startup script. feature_list.json is valid JSON. Direct SwiftPM verification is documented but could not be completed in the managed sandbox after escalation was rejected."
+    },
+    {
+      "id": "next-001",
+      "name": "Next User-Requested Feature",
+      "description": "Reserved slot for the next concrete product or engineering task. Replace this entry with the user's actual requested behavior before implementation.",
+      "dependencies": ["harness-001"],
+      "status": "blocked",
+      "done_criteria": [
+        "User-facing requirement is explicit",
+        "Scope and verification commands are named before coding",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test",
+        "swift build",
+        "Additional checks chosen for the specific feature"
+      ],
+      "evidence": "Blocked until a concrete next feature is requested."
+    }
+  ]
+}
