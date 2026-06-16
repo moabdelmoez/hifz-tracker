@@ -9,10 +9,17 @@ private let asrLogger = Logger(subsystem: "dev.mostafa.HifzTracker", category: "
 @Observable
 final class RecitationViewModel {
     var selectedSurah: Int = 73 {
-        didSet { clampStartAyah(); loadSelectedAyah() }
+        didSet {
+            invalidateReferenceScope()
+            clampStartAyah()
+            loadSelectedAyah()
+        }
     }
     var startAyah: Int = 1 {
-        didSet { loadSelectedAyah() }
+        didSet {
+            invalidateReferenceScope()
+            loadSelectedAyah()
+        }
     }
     var snapshot = RecitationSnapshot()
     var wordProgress: [WordProgress] = []
@@ -32,11 +39,13 @@ final class RecitationViewModel {
     private var sessionStartedAt: Date?
     private var liveASRService: LiveQuranTranscriptionService?
     private var liveSampleWindow = LiveASRSampleWindow()
+    private var liveASRRequestScheduler = LiveASRRequestScheduler()
     private var audioLevelMeter = AudioLevelMeter()
     private var transcriptionTask: Task<Void, Never>?
     private var wordStatesByLocation: [String: WordProgressState] = [:]
     private var displayedPageNumber = 73
     private var focusedReference: RecitationWordReference?
+    private var referenceScopeCache: ReferenceScopeCache?
 
     init(repository: QuranRepository? = AppQuranRepositoryFactory.makeRepository()) {
         self.repository = repository
@@ -76,13 +85,14 @@ final class RecitationViewModel {
         reducer = RecitationStateReducer()
         resetAudioLevel()
         snapshot = reducer.reduce(.startRequested(request))
-        asrLogger.info("[DEBUG-asr73] start_requested surah=\(self.selectedSurah, privacy: .public) ayah=\(self.startAyah, privacy: .public)")
         Task {
             do {
                 let service = try AppASRFactory.makeLiveService()
                 liveASRService = service
                 liveSampleWindow.reset()
+                liveASRRequestScheduler.reset()
                 transcriptLocator.reset()
+                _ = referenceIndexForSelectedSurah()
                 transcriptionTask?.cancel()
                 transcriptionTask = nil
 
@@ -96,9 +106,8 @@ final class RecitationViewModel {
                 isRecording = true
                 sessionStartedAt = Date()
                 debugTranscript = ""
-                asrLogger.info("[DEBUG-asr73] recording_started surah=\(self.selectedSurah, privacy: .public) ayah=\(self.startAyah, privacy: .public)")
             } catch {
-                asrLogger.error("[DEBUG-asr73] start_failed error=\(error.localizedDescription, privacy: .public)")
+                asrLogger.error("start_failed error=\(error.localizedDescription, privacy: .public)")
                 snapshot = reducer.reduce(.fail(error.localizedDescription))
                 isRecording = false
                 resetAudioLevel()
@@ -128,12 +137,12 @@ final class RecitationViewModel {
     }
 
     func stopRecording() {
-        asrLogger.info("[DEBUG-asr73] stop_requested phase=\(self.snapshot.phase.rawValue, privacy: .public) completed=\(self.snapshot.completedWordCount, privacy: .public)")
         microphone.stop()
         transcriptionTask?.cancel()
         transcriptionTask = nil
         liveASRService = nil
         liveSampleWindow.reset()
+        liveASRRequestScheduler.reset()
         transcriptLocator.reset()
         snapshot = reducer.reduce(.stop)
         isRecording = false
@@ -216,29 +225,36 @@ final class RecitationViewModel {
         guard isRecording, let service = liveASRService else { return }
         audioLevel = audioLevelMeter.update(with: samples)
         guard let windowSamples = liveSampleWindow.append(samples) else { return }
-        guard transcriptionTask == nil else {
-            asrLogger.info("[DEBUG-asr73] window_emit_skipped busy=true emittedSamples=\(windowSamples.count, privacy: .public)")
-            return
-        }
+        submitLiveASRWindow(windowSamples, service: service)
+    }
 
-        asrLogger.info("[DEBUG-asr73] window_emit samples=\(windowSamples.count, privacy: .public)")
-        transcriptionTask = Task { [weak self, service, windowSamples] in
+    private func submitLiveASRWindow(_ samples: [Float], service: LiveQuranTranscriptionService) {
+        guard let requestSamples = liveASRRequestScheduler.submit(samples) else { return }
+        startLiveASRTranscription(samples: requestSamples, service: service)
+    }
+
+    private func startLiveASRTranscription(samples: [Float], service: LiveQuranTranscriptionService) {
+        transcriptionTask = Task { [weak self, service, samples] in
             do {
-                let startedAt = ContinuousClock.now
-                asrLogger.info("[DEBUG-asr73] transcribe_start samples=\(windowSamples.count, privacy: .public)")
-                let transcript = try await service.transcribe(samples: windowSamples)
-                let elapsed = startedAt.duration(to: .now).components
-                let milliseconds = (elapsed.seconds * 1_000) + (elapsed.attoseconds / 1_000_000_000_000_000)
-                asrLogger.info("[DEBUG-asr73] transcribe_done ms=\(milliseconds, privacy: .public) tokenCount=\(transcript.tokenIDs.count, privacy: .public) text=\(transcript.text, privacy: .public)")
+                let transcript = try await service.transcribe(samples: samples)
                 self?.applyASRTranscript(transcript)
             } catch is CancellationError {
-                asrLogger.info("[DEBUG-asr73] transcribe_cancelled")
             } catch {
-                asrLogger.error("[DEBUG-asr73] transcribe_failed error=\(error.localizedDescription, privacy: .public)")
+                asrLogger.error("transcribe_failed error=\(error.localizedDescription, privacy: .public)")
                 self?.handleASRError(error)
             }
-            self?.clearTranscriptionTask()
+            self?.completeLiveASRTranscription()
         }
+    }
+
+    private func completeLiveASRTranscription() {
+        transcriptionTask = nil
+        guard isRecording, let service = liveASRService else {
+            liveASRRequestScheduler.reset()
+            return
+        }
+        guard let pendingSamples = liveASRRequestScheduler.completeActiveRequest() else { return }
+        startLiveASRTranscription(samples: pendingSamples, service: service)
     }
 
     private func applyASRTranscript(_ transcript: QuranSTTTranscript) {
@@ -249,24 +265,20 @@ final class RecitationViewModel {
             .asrComparable(transcript.text)
             .split(separator: " ")
             .map(String.init)
-        asrLogger.info("[DEBUG-asr73] transcript_words count=\(recognizedWords.count, privacy: .public) normalized=\(recognizedWords.joined(separator: " "), privacy: .public)")
         guard !recognizedWords.isEmpty else {
-            let findingPlaceUpdated = markFindingPlaceIfNeeded()
-            asrLogger.info("[DEBUG-asr73] transcript_empty findingPlaceUpdated=\(findingPlaceUpdated, privacy: .public) completed=\(self.snapshot.completedWordCount, privacy: .public)")
+            _ = markFindingPlaceIfNeeded()
             return
         }
 
-        let expectedReferences = referenceWordsForSelectedSurah()
-        asrLogger.info("[DEBUG-asr73] expected_scope count=\(expectedReferences.count, privacy: .public) first=\(expectedReferences.first?.location ?? "none", privacy: .public) last=\(expectedReferences.last?.location ?? "none", privacy: .public)")
+        guard let referenceIndex = referenceIndexForSelectedSurah() else { return }
+        let expectedReferences = referenceIndex.expected
         guard !expectedReferences.isEmpty else { return }
 
-        guard let location = transcriptLocator.locate(expected: expectedReferences, recognizedWords: recognizedWords) else {
-            let findingPlaceUpdated = markFindingPlaceIfNeeded()
-            asrLogger.info("[DEBUG-asr73] no_location_match findingPlaceUpdated=\(findingPlaceUpdated, privacy: .public) completed=\(self.snapshot.completedWordCount, privacy: .public)")
+        guard let location = transcriptLocator.locate(index: referenceIndex, recognizedWords: recognizedWords) else {
+            _ = markFindingPlaceIfNeeded()
             return
         }
 
-        asrLogger.info("[DEBUG-asr73] located ayah=\(location.completedThrough.ayah, privacy: .public) word=\(location.completedThrough.wordIndex, privacy: .public) matched=\(location.matchedWordCount, privacy: .public) recognizedRange=\(location.recognizedRange.lowerBound, privacy: .public)..<\(location.recognizedRange.upperBound, privacy: .public)")
         snapshot = reducer.reduce(.progressAdvanced(
             ayah: location.completedThrough.ayah,
             completedWordCount: location.completedThrough.wordIndex
@@ -318,15 +330,31 @@ final class RecitationViewModel {
         return true
     }
 
-    private func clearTranscriptionTask() {
-        transcriptionTask = nil
+    private func referenceIndexForSelectedSurah() -> TranscriptPositionIndex? {
+        let finalAyah = selectedSurahInfo.ayahCount
+        if let referenceScopeCache,
+           referenceScopeCache.surah == selectedSurah,
+           referenceScopeCache.startAyah == startAyah,
+           referenceScopeCache.finalAyah == finalAyah {
+            return referenceScopeCache.index
+        }
+
+        let references = referenceWordsForSelectedSurah(finalAyah: finalAyah)
+        let index = TranscriptPositionIndex(expected: references)
+        referenceScopeCache = ReferenceScopeCache(
+            surah: selectedSurah,
+            startAyah: startAyah,
+            finalAyah: finalAyah,
+            index: index
+        )
+        return index
     }
 
-    private func referenceWordsForSelectedSurah() -> [RecitationWordReference] {
+    private func referenceWordsForSelectedSurah(finalAyah: Int) -> [RecitationWordReference] {
         guard let repository else { return [] }
 
         var references: [RecitationWordReference] = []
-        for ayah in startAyah...selectedSurahInfo.ayahCount {
+        for ayah in startAyah...finalAyah {
             let text = (try? repository.referenceText(surah: selectedSurah, ayah: ayah)) ?? ""
             let referenceWords = QuranReferenceWords.wordsForAyah(text, surah: selectedSurah, ayah: ayah)
             guard !referenceWords.isEmpty else { continue }
@@ -343,6 +371,11 @@ final class RecitationViewModel {
             }
         }
         return references
+    }
+
+    private func invalidateReferenceScope() {
+        referenceScopeCache = nil
+        transcriptLocator.reset()
     }
 
     private func applyUncertain(wordIndex: Int) {
@@ -413,4 +446,11 @@ private extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
     }
+}
+
+private struct ReferenceScopeCache {
+    var surah: Int
+    var startAyah: Int
+    var finalAyah: Int
+    var index: TranscriptPositionIndex
 }

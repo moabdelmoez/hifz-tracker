@@ -12,9 +12,9 @@ public struct LiveASRSampleWindow: Sendable {
 
     public init(
         sampleRate: Int = 16_000,
-        minimumDuration: Double = 1.5,
+        minimumDuration: Double = 1.0,
         maximumDuration: Double = 8.0,
-        inferenceInterval: Double = 1.0
+        inferenceInterval: Double = 0.5
     ) {
         let clampedSampleRate = max(1, sampleRate)
         let minimumSamples = max(1, Int((Double(clampedSampleRate) * minimumDuration).rounded()))

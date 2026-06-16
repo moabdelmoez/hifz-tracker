@@ -2,6 +2,31 @@ import XCTest
 @testable import HifzCore
 
 final class LiveASRSampleWindowTests: XCTestCase {
+    func testDefaultCadenceEmitsAfterOneSecondAndThenHalfSecond() {
+        var window = LiveASRSampleWindow()
+
+        XCTAssertNil(window.append(Array(repeating: Float(0.1), count: 8_000)))
+
+        let firstEmission = window.append(Array(repeating: Float(0.2), count: 8_000))
+        XCTAssertEqual(firstEmission?.count, 16_000)
+
+        XCTAssertNil(window.append(Array(repeating: Float(0.3), count: 7_999)))
+
+        let secondEmission = window.append([0.4])
+        XCTAssertEqual(secondEmission?.count, 24_000)
+    }
+
+    func testDefaultCadenceKeepsEightSecondMaximumWindow() {
+        var window = LiveASRSampleWindow()
+        let eightSeconds = Array(repeating: Float(0.1), count: 128_000)
+
+        _ = window.append(eightSeconds)
+        let emission = window.append(Array(repeating: Float(0.2), count: 16_000))
+
+        XCTAssertEqual(emission?.count, 128_000)
+        XCTAssertEqual(window.bufferedSampleCount, 128_000)
+    }
+
     func testEmitsOnlyAfterMinimumWindowAndThenAtInferenceInterval() {
         var window = LiveASRSampleWindow(
             sampleRate: 16_000,

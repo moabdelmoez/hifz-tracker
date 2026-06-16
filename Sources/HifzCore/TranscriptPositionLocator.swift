@@ -41,6 +41,27 @@ public struct TranscriptLocation: Equatable, Sendable {
     }
 }
 
+public struct TranscriptPositionIndex: Sendable {
+    public let expected: [RecitationWordReference]
+    fileprivate let normalizedExpected: [String]
+    fileprivate let expectedPositionsByWord: [String: [Int]]
+
+    public init(expected: [RecitationWordReference]) {
+        self.expected = expected
+        self.normalizedExpected = expected.map(\.normalizedText)
+
+        var positions: [String: [Int]] = [:]
+        for (index, word) in normalizedExpected.enumerated() where !word.isEmpty {
+            positions[word, default: []].append(index)
+        }
+        self.expectedPositionsByWord = positions
+    }
+
+    public var count: Int {
+        expected.count
+    }
+}
+
 public struct TranscriptPositionLocator: Sendable {
     public var minimumRunLength: Int
 
@@ -49,17 +70,47 @@ public struct TranscriptPositionLocator: Sendable {
     }
 
     public func locate(expected: [RecitationWordReference], recognizedWords: [String]) -> TranscriptLocation? {
-        let normalizedExpected = expected.map(\.normalizedText)
+        locate(index: TranscriptPositionIndex(expected: expected), recognizedWords: recognizedWords)
+    }
+
+    public func locate(
+        index: TranscriptPositionIndex,
+        recognizedWords: [String],
+        expectedRange: Range<Int>? = nil
+    ) -> TranscriptLocation? {
+        guard !index.expected.isEmpty, !recognizedWords.isEmpty else { return nil }
+
+        let searchRange = expectedRange ?? 0..<index.count
+        guard searchRange.lowerBound >= 0,
+              searchRange.upperBound <= index.count,
+              !searchRange.isEmpty else {
+            return nil
+        }
+
         let normalizedRecognized = recognizedWords.map(QuranTextNormalizer.asrComparable)
         var best: Candidate?
 
-        for expectedStart in normalizedExpected.indices {
-            for recognizedStart in normalizedRecognized.indices {
+        for recognizedStart in normalizedRecognized.indices {
+            let recognizedWord = normalizedRecognized[recognizedStart]
+            guard !recognizedWord.isEmpty,
+                  let expectedStarts = index.expectedPositionsByWord[recognizedWord] else {
+                continue
+            }
+
+            for expectedStart in expectedStarts {
+                if expectedStart < searchRange.lowerBound {
+                    continue
+                }
+                if expectedStart >= searchRange.upperBound {
+                    break
+                }
+
                 let length = matchingRunLength(
-                    expected: normalizedExpected,
+                    expected: index.normalizedExpected,
                     recognized: normalizedRecognized,
                     expectedStart: expectedStart,
-                    recognizedStart: recognizedStart
+                    recognizedStart: recognizedStart,
+                    expectedUpperBound: searchRange.upperBound
                 )
                 guard length >= minimumRunLength else { continue }
 
@@ -78,7 +129,7 @@ public struct TranscriptPositionLocator: Sendable {
         let expectedEnd = best.expectedStart + best.length
         let recognizedEnd = best.recognizedStart + best.length
         return TranscriptLocation(
-            completedThrough: expected[expectedEnd - 1],
+            completedThrough: index.expected[expectedEnd - 1],
             matchedWordCount: best.length,
             expectedRange: best.expectedStart..<expectedEnd,
             recognizedRange: best.recognizedStart..<recognizedEnd
@@ -89,10 +140,11 @@ public struct TranscriptPositionLocator: Sendable {
         expected: [String],
         recognized: [String],
         expectedStart: Int,
-        recognizedStart: Int
+        recognizedStart: Int,
+        expectedUpperBound: Int
     ) -> Int {
         var length = 0
-        while expectedStart + length < expected.count,
+        while expectedStart + length < expectedUpperBound,
               recognizedStart + length < recognized.count,
               expected[expectedStart + length] == recognized[recognizedStart + length] {
             length += 1
@@ -130,27 +182,29 @@ public struct ProgressiveTranscriptLocator: Sendable {
         expected: [RecitationWordReference],
         recognizedWords: [String]
     ) -> TranscriptLocation? {
-        guard !expected.isEmpty else { return nil }
+        locate(index: TranscriptPositionIndex(expected: expected), recognizedWords: recognizedWords)
+    }
 
-        let searchRange = expectedSearchRange(totalCount: expected.count)
-        guard let scopedLocation = locator.locate(
-            expected: Array(expected[searchRange]),
-            recognizedWords: recognizedWords
+    public mutating func locate(
+        index: TranscriptPositionIndex,
+        recognizedWords: [String]
+    ) -> TranscriptLocation? {
+        guard index.count > 0 else { return nil }
+
+        let searchRange = expectedSearchRange(totalCount: index.count)
+        guard let location = locator.locate(
+            index: index,
+            recognizedWords: recognizedWords,
+            expectedRange: searchRange
         ) else {
             return nil
         }
 
-        let adjustedLocation = TranscriptLocation(
-            completedThrough: scopedLocation.completedThrough,
-            matchedWordCount: scopedLocation.matchedWordCount,
-            expectedRange: (scopedLocation.expectedRange.lowerBound + searchRange.lowerBound)..<(scopedLocation.expectedRange.upperBound + searchRange.lowerBound),
-            recognizedRange: scopedLocation.recognizedRange
-        )
-        let completedOffset = adjustedLocation.expectedRange.upperBound - 1
+        let completedOffset = location.expectedRange.upperBound - 1
 
         if acceptedOffset == nil,
-           adjustedLocation.matchedWordCount < minimumInitialMatchLength,
-           !coversCompleteAyah(location: adjustedLocation, expected: expected) {
+           location.matchedWordCount < minimumInitialMatchLength,
+           !coversCompleteAyah(location: location, expected: index.expected) {
             return nil
         }
 
@@ -159,7 +213,7 @@ public struct ProgressiveTranscriptLocator: Sendable {
         }
 
         acceptedOffset = completedOffset
-        return adjustedLocation
+        return location
     }
 
     private func expectedSearchRange(totalCount: Int) -> Range<Int> {

@@ -95,11 +95,53 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         XCTAssertEqual(location.completedThrough.location, "5:1:4")
     }
 
+    func testPreparedIndexKeepsRepeatedLiveLocatesFast() throws {
+        var locator = ProgressiveTranscriptLocator(
+            minimumInitialMatchLength: 4,
+            lookBehindWordCount: 12,
+            lookAheadWordCount: 96
+        )
+        let expected = longRepeatedReferences(wordCount: 6_000)
+        let index = TranscriptPositionIndex(expected: expected)
+        let firstChunk = Array(expected[2_400..<2_416].map(\.text))
+        let liveChunks = (0..<360).map { iteration in
+            let start = 2_404 + (iteration % 72)
+            return Array(expected[start..<(start + 16)].map(\.text))
+        }
+
+        let firstLocation = try XCTUnwrap(locator.locate(index: index, recognizedWords: firstChunk))
+        XCTAssertEqual(firstLocation.completedThrough.location, "2:5:8")
+        XCTAssertEqual(firstLocation.matchedWordCount, 16)
+
+        let startedAt = ContinuousClock.now
+        for chunk in liveChunks {
+            _ = locator.locate(index: index, recognizedWords: chunk)
+        }
+        let elapsed = startedAt.duration(to: .now)
+        let milliseconds = Double(elapsed.components.seconds * 1_000)
+            + Double(elapsed.components.attoseconds) / 1_000_000_000_000_000
+
+        XCTAssertLessThan(milliseconds, 120, "Prepared live locates took \(milliseconds)ms")
+    }
+
     private func references(_ ayahs: [(Int, [String])], surah: Int = 59) -> [RecitationWordReference] {
         ayahs.flatMap { ayah, words in
             words.enumerated().map { offset, word in
                 RecitationWordReference(surah: surah, ayah: ayah, wordIndex: offset + 1, text: word)
             }
+        }
+    }
+
+    private func longRepeatedReferences(wordCount: Int) -> [RecitationWordReference] {
+        precondition(wordCount > 0)
+        let uniqueWords = (0..<64).map { "كلمة\($0)" }
+        return (0..<wordCount).map { offset in
+            RecitationWordReference(
+                surah: 2,
+                ayah: (offset / 10) + 1,
+                wordIndex: (offset % 10) + 1,
+                text: uniqueWords[offset % uniqueWords.count]
+            )
         }
     }
 }
