@@ -10,6 +10,7 @@ DerivedData/
 skills-lock.json
 artifacts/
 local audio/
+/.worktrees/
 
 # Local source/downloaded assets
 /qpc-v4.db
