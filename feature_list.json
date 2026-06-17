@@ -239,6 +239,28 @@
         "swift build"
       ],
       "evidence": "Implemented on 2026-06-17 on main. Baseline checks before edits: `swift test` passed 119 tests with 1 expected skip and 0 failures; `swift build` completed successfully. Focused check after edits: `swift test --filter MushafPageCanvasViewTests` passed 6 tests with 0 failures. Final and pre-push checks: `swift test` passed 120 tests with 1 expected skip and 0 failures; `swift build` completed successfully."
+    },
+    {
+      "id": "guarded-short-ayah-initial-lock-001",
+      "name": "Guarded Short Ayah Initial Lock",
+      "description": "Prevent initial live ASR locking from jumping to a later short ayah and preserve visible ayah marker glyphs while Hide Ayah suppresses unrecited words.",
+      "dependencies": ["hide-ayah-polish-001"],
+      "status": "done",
+      "done_criteria": [
+        "A later complete short ayah cannot initial-lock before the locator has accepted the selected start neighborhood",
+        "Nearby complete short ayahs near the selected start remain accepted",
+        "Existing guarded 3-word initial lock and post-lock advancing behavior remain covered",
+        "Hide-mode Mushaf rendering clips a full-line draw to visible word slots so hidden text is suppressed without per-word glyph redraws",
+        "Hide-mode Mushaf renderer coverage confirms a revealed ayah retains visible marker ink when following words are hidden",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter ProgressiveTranscriptLocatorTests/testRejectsLaterCompleteShortAyahBeforeInitialLock",
+        "swift test --filter 'ProgressiveTranscriptLocatorTests|MushafPageRendererTests/testVisibilityProviderKeepsAyahMarkerAfterRevealedAyah|MushafPageRendererTests/testVisibilityProviderSuppressesHiddenWordsWithoutChangingPageSize'",
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Diagnosed on 2026-06-17 after a manual Hide Ayah test showed missing ayah numbers and a jump to later ayahs. Red check: `swift test --filter ProgressiveTranscriptLocatorTests/testRejectsLaterCompleteShortAyahBeforeInitialLock` failed because a confused Al-Ghashiyah transcript (`وجوه يومئذ ناعمة`) initial-locked ayah 88:8 at expected range 28..<31. Fixes: the complete-short-ayah initial-lock exception is now limited to the near-start neighborhood, and hidden QPC text now draws the full line once clipped to visible word slots so ayah marker glyph behavior is preserved without leaking hidden target text. The marker regression now asserts ornamental medallion pixels on a mixed visible/hidden Al-Ghashiyah line. Focused green check passed 12 locator tests plus 2 hide-renderer tests. Rebuilt and relaunched `dist/HifzTracker.app` with `./script/build_and_run.sh --verify`; display screenshot capture failed in this environment, so app-window visual confirmation is left to the user. Final checks: `swift test` passed 123 tests with 1 expected local-audio skip and 0 failures; `swift build` completed successfully."
     }
   ]
 }

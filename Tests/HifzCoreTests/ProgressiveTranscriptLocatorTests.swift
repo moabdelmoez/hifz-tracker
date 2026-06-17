@@ -36,6 +36,54 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         XCTAssertEqual(location.completedThrough.location, "108:1:3")
     }
 
+    func testRejectsLaterCompleteShortAyahBeforeInitialLock() {
+        var locator = ProgressiveTranscriptLocator(
+            minimumInitialMatchLength: 4,
+            lookBehindWordCount: 4,
+            lookAheadWordCount: 24
+        )
+        let expected = references([
+            (1, ["هل", "اتاك", "حديث", "الغاشية"]),
+            (2, ["وجوه", "يومئذ", "خاشعة"]),
+            (3, ["عاملة", "ناصبة"]),
+            (4, ["تصلى", "نارا", "حامية"]),
+            (5, ["تسقى", "من", "عين", "انية"]),
+            (6, ["ليس", "لهم", "طعام", "الا", "من", "ضريع"]),
+            (7, ["لا", "يسمن", "ولا", "يغني", "من", "جوع"]),
+            (8, ["وجوه", "يومئذ", "ناعمة"])
+        ], surah: 88)
+
+        let location = locator.locate(
+            expected: expected,
+            recognizedWords: ["وجوه", "يومئذ", "ناعمة"]
+        )
+
+        XCTAssertNil(
+            location,
+            "A complete short ayah later in the selected scope should not initial-lock when it can be an ASR confusion of the near-start ayah."
+        )
+    }
+
+    func testAcceptsNearbyCompleteShortAyahBeforeInitialLock() throws {
+        var locator = ProgressiveTranscriptLocator(
+            minimumInitialMatchLength: 4,
+            lookBehindWordCount: 4,
+            lookAheadWordCount: 24
+        )
+        let expected = references([
+            (1, ["هل", "اتاك", "حديث", "الغاشية"]),
+            (2, ["وجوه", "يومئذ", "خاشعة"]),
+            (3, ["عاملة", "ناصبة"])
+        ], surah: 88)
+
+        let location = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["وجوه", "يومئذ", "خاشعة"]
+        ))
+
+        XCTAssertEqual(location.completedThrough.location, "88:2:3")
+    }
+
     func testAcceptsUniqueThreeWordInitialMatchNearStart() throws {
         var locator = ProgressiveTranscriptLocator(
             minimumInitialMatchLength: 4,

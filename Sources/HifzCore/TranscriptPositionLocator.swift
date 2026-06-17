@@ -315,6 +315,7 @@ public enum ProgressiveTranscriptLocatorOutcome: Equatable, Sendable {
 public struct ProgressiveTranscriptLocator: Sendable {
     private static let relaxedInitialMatchLength = 3
     private static let relaxedInitialStartLimit = 32
+    private static let completeShortAyahInitialStartLimit = 16
 
     public var locator: TranscriptPositionLocator
     public var minimumInitialMatchLength: Int
@@ -391,13 +392,11 @@ public struct ProgressiveTranscriptLocator: Sendable {
 
         if acceptedOffset == nil,
            location.matchedWordCount < minimumInitialMatchLength,
-           !coversCompleteAyah(location: location, expected: index.expected) {
-            guard isGuardedRelaxedInitialMatch(location: location, index: index) else {
-                return .initialMatchTooShort(
-                    matchedWordCount: location.matchedWordCount,
-                    requiredWordCount: minimumInitialMatchLength
-                )
-            }
+           !isAllowedShortInitialMatch(location: location, index: index) {
+            return .initialMatchTooShort(
+                matchedWordCount: location.matchedWordCount,
+                requiredWordCount: minimumInitialMatchLength
+            )
         }
 
         if let acceptedOffset, completedOffset <= acceptedOffset {
@@ -406,6 +405,17 @@ public struct ProgressiveTranscriptLocator: Sendable {
 
         acceptedOffset = completedOffset
         return .located(location)
+    }
+
+    private func isAllowedShortInitialMatch(
+        location: TranscriptLocation,
+        index: TranscriptPositionIndex
+    ) -> Bool {
+        if coversCompleteAyah(location: location, expected: index.expected) {
+            return location.expectedRange.lowerBound < Self.completeShortAyahInitialStartLimit
+        }
+
+        return isGuardedRelaxedInitialMatch(location: location, index: index)
     }
 
     private func expectedSearchRange(totalCount: Int) -> Range<Int> {

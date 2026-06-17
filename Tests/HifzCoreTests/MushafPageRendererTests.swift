@@ -144,6 +144,48 @@ final class MushafPageRendererTests: XCTestCase {
         )
     }
 
+    func testVisibilityProviderKeepsAyahMarkerAfterRevealedAyah() throws {
+        let page = try makePage(592)
+        let canvasSize = MushafPageRenderer.canonicalContentSize(for: page)
+        let firstGhashiyahLineRect = CGRect(x: 52, y: 662.5, width: 920, height: 130)
+
+        let visible = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 592,
+            fontDirectory: fontDirectory,
+            canvasSize: canvasSize,
+            stateProvider: Optional<((QuranWord) -> WordProgressState)>.none
+        )
+        let onlyFirstAyahVisible = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 592,
+            fontDirectory: fontDirectory,
+            canvasSize: canvasSize,
+            stateProvider: { word in
+                word.surah == 88 && word.ayah == 1 ? .completed : .pending
+            },
+            visibilityProvider: { word in
+                word.surah != 88 || word.ayah == 1
+            }
+        )
+
+        let firstAyahMarkerRect = CGRect(x: 550, y: 704, width: 56, height: 70)
+        let visibleInk = try darkPixelCount(in: visible, rect: firstGhashiyahLineRect)
+        let firstAyahInk = try darkPixelCount(in: onlyFirstAyahVisible, rect: firstGhashiyahLineRect)
+        let markerInk = try ornamentalAyahMarkerPixelCount(in: onlyFirstAyahVisible, rect: firstAyahMarkerRect)
+
+        XCTAssertGreaterThan(
+            firstAyahInk,
+            visibleInk / 3,
+            "The revealed ayah should retain its shaped glyphs and ayah marker even when following target words are hidden."
+        )
+        XCTAssertGreaterThan(
+            markerInk,
+            60,
+            "A revealed ayah on a mixed visible/hidden line should retain the ornamental ayah marker medallion."
+        )
+    }
+
     func testUsesQULDisplayTokensForSurahHeaderAndBismillah() throws {
         let page = try makePage574()
 
@@ -353,6 +395,23 @@ final class MushafPageRendererTests: XCTestCase {
                 abs(1 - color.blueComponent)
             )
             return color.alphaComponent > 0.1 && distanceFromWhite > 0.08
+        }
+    }
+
+    private func ornamentalAyahMarkerPixelCount(in image: NSImage, rect: CGRect) throws -> Int {
+        try pixelCount(in: image) { color, x, y, _, _ in
+            guard rect.contains(CGPoint(x: x, y: y)) else { return false }
+
+            let isMagentaOrnament = color.redComponent > 0.65
+                && color.blueComponent > 0.25
+                && color.greenComponent < 0.35
+                && color.redComponent - color.greenComponent > 0.35
+            let isGreenOrnament = color.greenComponent > 0.45
+                && color.redComponent < 0.35
+                && color.blueComponent < 0.35
+                && color.greenComponent - color.redComponent > 0.25
+
+            return color.alphaComponent > 0.1 && (isMagentaOrnament || isGreenOrnament)
         }
     }
 

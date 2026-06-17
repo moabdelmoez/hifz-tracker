@@ -210,12 +210,7 @@ public enum MushafPageRenderer {
             visibilityProvider: visibilityProvider
         )
 
-        if hasHiddenWords(in: line, visibilityProvider: visibilityProvider) {
-            drawVisibleWords(for: line, in: rect, attributes: attributes, visibilityProvider: visibilityProvider)
-        } else {
-            let text = glyphText(for: line)
-            NSAttributedString(string: text, attributes: attributes).draw(in: rect)
-        }
+        drawGlyphText(for: line, in: rect, attributes: attributes, visibilityProvider: visibilityProvider)
     }
 
     public static func pageFont(pageNumber: Int, fontDirectory: URL, size: CGFloat) throws -> NSFont {
@@ -276,29 +271,45 @@ public enum MushafPageRenderer {
         }
     }
 
-    private static func drawVisibleWords(
+    private static func drawGlyphText(
         for line: MushafPageLine,
         in rect: CGRect,
         attributes: [NSAttributedString.Key: Any],
         visibilityProvider: ((QuranWord) -> Bool)?
     ) {
+        let text = glyphText(for: line)
+        let attributedText = NSAttributedString(string: text, attributes: attributes)
+
+        guard hasHiddenWords(in: line, visibilityProvider: visibilityProvider) else {
+            attributedText.draw(in: rect)
+            return
+        }
+
+        let clipPath = NSBezierPath()
+        var hasVisibleWord = false
         var rightEdge = rect.maxX
         for word in line.words {
             let wordWidth = (word.text as NSString).size(withAttributes: attributes).width
             defer { rightEdge -= wordWidth }
 
-            guard isTextVisible(for: word, visibilityProvider: visibilityProvider) else {
-                continue
-            }
+            guard isTextVisible(for: word, visibilityProvider: visibilityProvider) else { continue }
 
-            let wordRect = CGRect(
-                x: rightEdge - wordWidth,
+            hasVisibleWord = true
+            let horizontalBleed: CGFloat = 2
+            clipPath.appendRect(CGRect(
+                x: rightEdge - wordWidth - horizontalBleed,
                 y: rect.minY,
-                width: wordWidth,
+                width: wordWidth + horizontalBleed * 2,
                 height: rect.height
-            )
-            NSAttributedString(string: word.text, attributes: attributes).draw(in: wordRect)
+            ))
         }
+
+        guard hasVisibleWord else { return }
+
+        NSGraphicsContext.saveGraphicsState()
+        clipPath.addClip()
+        attributedText.draw(in: rect)
+        NSGraphicsContext.restoreGraphicsState()
     }
 
     private static func hasHiddenWords(

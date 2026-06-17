@@ -2,11 +2,11 @@
 
 ## Current Objective
 
-- Goal: Polish the Hide Ayah UI by renaming the toggle row and rendering the Mushaf page footer number with Arabic-Indic digits.
-- Current status: Implemented on `main`; final verification passed.
-- Worktree: not used for this small follow-up.
+- Goal: Prevent Hide Ayah live ASR from jumping to later short ayahs before the locator has locked, and keep visible ayah marker glyphs intact while text is hidden.
+- Current status: Locator and hide-renderer fixes verified on `main`; rebuilt app bundle is open for user smoke testing.
+- Worktree: not used for this bugfix.
 - Branch: `main`.
-- Commit status: Uncommitted polish changes are present.
+- Commit status: Uncommitted verified bugfix and regression tests are present.
 
 ## Completed This Session
 
@@ -31,6 +31,13 @@
 - [x] Styled the page footer number with the QPC page font path.
 - [x] Added focused formatter coverage.
 - [x] Added `hide-ayah-polish-001` to `feature_list.json`.
+- [x] Reproduced the locator jump with a failing Al-Ghashiyah regression.
+- [x] Guarded complete-short-ayah initial locks to the near-start neighborhood.
+- [x] Added focused locator regressions and a hide-renderer marker guard.
+- [x] Changed hide-mode QPC rendering to draw the full line once through visible-word clips instead of redrawing each visible word separately.
+- [x] Tightened the marker guard to assert ornamental ayah-marker medallion pixels on a mixed visible/hidden Al-Ghashiyah line.
+- [x] Rebuilt, signed, and relaunched `dist/HifzTracker.app` with `./script/build_and_run.sh --verify`.
+- [x] Added `guarded-short-ayah-initial-lock-001` to `feature_list.json`.
 
 ## Verification Evidence
 
@@ -52,12 +59,22 @@
 | Final polish build | same `swift build` command | Passed | Debug build completed successfully. |
 | Pre-push test | same full `swift test` command | Passed | 120 tests, 1 expected skip, 0 failures. |
 | Pre-push build | same `swift build` command | Passed | Debug build completed successfully. |
+| Red locator repro | `swift test --filter ProgressiveTranscriptLocatorTests/testRejectsLaterCompleteShortAyahBeforeInitialLock` | Failed as expected | Accepted ayah 88:8 at range 28..<31 before the fix. |
+| Focused marker check | `swift test --filter MushafPageRendererTests/testVisibilityProviderKeepsAyahMarkerAfterRevealedAyah` | Passed | 1 test, 0 failures after the assertion was tightened to count marker medallion ornament pixels. |
+| Focused locator/render check | `swift test --filter 'ProgressiveTranscriptLocatorTests|MushafPageRendererTests/testVisibilityProviderKeepsAyahMarkerAfterRevealedAyah|MushafPageRendererTests/testVisibilityProviderSuppressesHiddenWordsWithoutChangingPageSize'` | Passed | 14 tests, 0 failures after hidden QPC lines changed to clipped full-line rendering. |
+| App bundle rebuild | `./script/build_and_run.sh --verify` | Passed | Rebuilt, signed, relaunched, and verified `dist/HifzTracker.app`. |
+| Final locator-fix test | same full `swift test` command | Passed | 123 tests, 1 expected local-audio skip, 0 failures. |
+| Final locator-fix build | same full `swift build` command | Passed | Debug build completed successfully. |
 
 ## Files Changed
 
 - `HifzTracker/Views/RecitationSidebarView.swift`
 - `HifzTracker/Views/MushafPageView.swift`
 - `Tests/HifzTrackerTests/MushafPageCanvasViewTests.swift`
+- `Sources/HifzCore/TranscriptPositionLocator.swift`
+- `Sources/HifzCore/MushafPageRenderer.swift`
+- `Tests/HifzCoreTests/ProgressiveTranscriptLocatorTests.swift`
+- `Tests/HifzCoreTests/MushafPageRendererTests.swift`
 - `feature_list.json`
 - `progress.md`
 - `session-handoff.md`
@@ -66,9 +83,9 @@
 
 1. `cd /Users/mostafa/Downloads/Coding_Projects/hifz-tracker`
 2. Confirm branch `main`.
-3. Run the cache-safe `swift test` and `swift build` commands from `AGENTS.md`.
+3. Use the relaunched app window to smoke-test Hide Ayah on Al-Ghashiyah before committing.
 
 ## Risks
 
-- Manual app-window smoke testing is still optional and has not been run.
+- The app bundle was rebuilt and relaunched, but Codex could not capture the live display (`screencapture` failed with "could not create image from display"), so user visual confirmation is still needed.
 - Release checks are skipped because this is not a release, signing, asset, packaging, or distribution change.
