@@ -284,6 +284,31 @@
         "./script/build_and_run.sh --verify"
       ],
       "evidence": "Implemented on 2026-06-17 on main after screenshots showed missing ayah numbers, a Surah 98 jump to ayah 6, and a Surah 110 final-word concern. Database check showed QPC rows include extra marker rows such as `88:1:5` and `110:3:8`, while normalized reference text has 4 and 7 real words respectively. Red checks: `testRejectsFarRepeatedStrongMatchBeforeInitialLock` initially accepted Surah 98 ayah 6 at expected range 48..<56; `testHideRecitationTextRevealsCompletedAyahMarkerRows` initially kept the marker hidden. The Surah 110 locator checks passed for both initial-lock and post-lock trailing transcripts ending at `110:3:7` (`توابا`), so the deterministic core matcher does not drop that word. Fixes: QPC marker rows inherit the final real word's visible feedback state, and first live ASR lock rejects matches starting at expected offset 32 or later before any accepted progress. Focused regression check passed 4 tests; full `swift test` passed 128 tests with 1 expected local-audio skip and 0 failures; `swift build` completed successfully; `./script/build_and_run.sh --verify` exited 0 after rebuilding, signing, and relaunching `dist/HifzTracker.app`."
+    },
+    {
+      "id": "post-lock-single-substitution-bridge-001",
+      "name": "Post-Lock Single Substitution Bridge",
+      "description": "Allow live ASR progress to finish a short ayah after the locator is already locked when one ASR word is substituted in the middle but the accepted prefix and trailing suffix match.",
+      "dependencies": ["hide-ayah-marker-state-order-001"],
+      "status": "done",
+      "done_criteria": [
+        "Live locator logs for the screenshot are diagnosed and recorded",
+        "A focused failing regression reproduces Surah 96:8 stalling after `إن إلى` when ASR returns `إن إلى ربه الرجعى`",
+        "Post-lock locating can bridge exactly one substituted word immediately after the accepted offset when at least two accepted prefix words repeat and at least one suffix word matches",
+        "The bridge is constrained to the same ayah and does not run before initial lock",
+        "The bridge does not run when the repeated accepted prefix is absent",
+        "Existing first-lock jump protections and post-lock advancing tests remain green",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "log show --last 2h --info --predicate process/subsystem live_asr_locator",
+        "swift test --filter ProgressiveTranscriptLocatorTests/testPostLockCompletesShortAyahAcrossSingleASRSubstitutionWithMatchedSuffix",
+        "swift test --filter ProgressiveTranscriptLocatorTests",
+        "swift test",
+        "swift build",
+        "./script/build_and_run.sh --verify"
+      ],
+      "evidence": "Implemented on 2026-06-17 on main after Surah 96 / Al-Alaq page 597 showed Debug Transcript `إن إلى ربه الرجعى` while Mushaf Hide Ayah revealed only `إن إلى`. Logs showed the exact stall: window 165 `progress_applied` to `completed_surah=96 completed_ayah=8 completed_word=2`, followed by windows 166+ returning `not_advancing` with `completed_offset=62 accepted_offset=62`. Red check: `testPostLockCompletesShortAyahAcrossSingleASRSubstitutionWithMatchedSuffix` initially returned nil for `إن إلى ربه الرجعى`; green check completes `96:8:4`. Added a safety test proving the bridge does not fire without the repeated accepted prefix. Focused locator suite passed 17 tests; full `swift test` passed 130 tests with 1 expected local-audio skip and 0 failures; `swift build` completed successfully; `./script/build_and_run.sh --verify` exited 0 after rebuilding, signing, and relaunching `dist/HifzTracker.app`."
     }
   ]
 }

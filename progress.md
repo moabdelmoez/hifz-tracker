@@ -2,82 +2,79 @@
 
 ## Current State
 
-**Last Updated:** 2026-06-17 23:20 EEST
-**Session ID:** hide-ayah-marker-state-order-2026-06-17
-**Active Feature:** `hide-ayah-marker-state-order-001` - residual Hide Ayah marker-state and first-lock ordering fixes are implemented, verified, and relaunched locally.
+**Last Updated:** 2026-06-17 23:51 EEST
+**Session ID:** post-lock-single-substitution-bridge-2026-06-17
+**Active Feature:** `post-lock-single-substitution-bridge-001` - Surah 96:8 post-lock Hide Ayah stall diagnosed from logs, fixed, verified, and relaunched locally.
 
 ## Status
 
 ### What's Done
 
 - [x] Confirmed repo root with `pwd`.
-- [x] Read `AGENTS.md`, `feature_list.json`, `progress.md`, and the active `session-handoff.md`.
-- [x] Reviewed `git status --short` and recent commits before editing.
-- [x] Used the diagnose workflow: built focused failing tests before changing production code.
-- [x] Verified the real ayah-number cause in the QPC data:
-  - QPC Surah 88:1 has rows `88:1:1` through `88:1:5`, while the normalized recitation reference has 4 real words after non-Fatihah basmallah removal.
-  - QPC Surah 110:3 has rows `110:3:1` through `110:3:8`, while the normalized recitation reference has 7 real words.
-  - The extra QPC row is the ayah marker; it was staying `.pending`, so Hide Ayah hid it.
-- [x] Added `RecitationViewModel` marker-state inheritance so marker rows reveal when the final real word in the ayah is completed, provisional, uncertain, or correction-needed.
-- [x] Reproduced the Surah 98 jump with a failing locator test: the first lock accepted a far repeated phrase at expected range `48..<56`.
-- [x] Added an `initial_match_too_far` locator outcome and rejected first locks starting at expected offset 32 or later before progress has been established.
-- [x] Added live outcome probe metrics coverage for `initial_match_too_far`.
-- [x] Added Surah 110 locator regressions proving deterministic initial-lock and post-lock transcripts ending with `توابا` complete `110:3:7`.
-- [x] Added renderer coverage that hiding only the Surah 110 marker does not clip the final visible words.
-- [x] Updated `feature_list.json` with `hide-ayah-marker-state-order-001` and corrected the previous stale marker diagnosis.
+- [x] Read `AGENTS.md`, `feature_list.json`, `progress.md`, and `session-handoff.md`.
+- [x] Reviewed clean `main` state and recent commits; latest pushed commit before this work was `f92935b Fix hide ayah marker visibility and initial lock`.
+- [x] Used the diagnose workflow and inspected the screenshot plus macOS unified logs.
+- [x] Confirmed the prior marker fix is visually improved from the user's report.
+- [x] Queried Hifz ASR logs with `/usr/bin/log show --last 2h --info`.
+- [x] Found the live locator stall:
+  - Window 165: `progress_applied`, `completed_surah=96`, `completed_ayah=8`, `completed_word=2`.
+  - Windows 166 and later: `not_advancing`, `completed_offset=62`, `accepted_offset=62`.
+- [x] Matched the log to the screenshot: Hide Ayah revealed only `إن إلى` in Surah 96:8 while the debug transcript showed `إن إلى ربه الرجعى`.
+- [x] Confirmed the canonical reference is `96|8|إن إلى ربك الرجعى`, so the ASR had a one-word substitution (`ربه` for `ربك`) between a matched accepted prefix and matched suffix.
+- [x] Added a failing regression in `ProgressiveTranscriptLocatorTests` for the exact post-lock pattern.
+- [x] Added a narrow post-lock single-substitution bridge:
+  - only after the locator has an accepted offset,
+  - requires at least two repeated accepted prefix words,
+  - bridges exactly one next-word substitution,
+  - requires at least one matched suffix word that advances,
+  - stays within the same ayah.
+- [x] Added a safety regression proving the bridge does not fire without the repeated accepted prefix.
+- [x] Updated `feature_list.json` with `post-lock-single-substitution-bridge-001`.
 - [x] Rebuilt, signed, and relaunched `dist/HifzTracker.app` with `./script/build_and_run.sh --verify`.
 
 ### What's In Progress
 
-- [ ] User smoke test in the relaunched app window for Hide Ayah on Surah 88, Surah 98, and Surah 110.
+- [ ] User smoke test for Surah 96:8 in Hide Ayah mode.
 
 ### What's Next
 
-1. User smoke-tests the relaunched app:
-   - Surah 88 / Al-Ghashiyah: completed ayahs should show their ayah number medallions.
-   - Surah 98 / Al-Bayyinah from ayah 1: reciting the ayah 6 phrase should not move the locator to ayah 6 before earlier progress is established.
-   - Surah 110 / An-Nasr: trailing transcript through `توابا` should reveal the final real word; if it still does not, capture live locator logs because the deterministic core tests now cover and pass that transcript.
-2. Commit and push the current changes if the user asks.
+1. User smoke-tests Surah 96 / Al-Alaq page 597:
+   - Recite through `إن إلى ربك الرجعى`.
+   - If ASR displays the same one-word substitution pattern, the Mushaf should now reveal through `الرجعى`.
+2. Commit and push only if requested.
 
 ## Blockers / Risks
 
-- [ ] No automated UI-level microphone run was captured; the app bundle was relaunched, but final visual confirmation remains a manual app-window smoke test.
-- [ ] If Surah 110 still hides the actual word `توابا` after this patch, the next likely area is live-window transcript timing/state application, not the deterministic core locator. The test suite proves both first-lock and post-lock trailing transcripts can complete `110:3:7`.
-- [ ] Release checks are skipped because this change does not touch release assets, signing configuration, packaging, or distribution behavior.
+- [ ] No automated live microphone UI replay exists; final UI confirmation is manual.
+- [ ] The bridge intentionally tolerates one ASR substitution after accepted progress. It is constrained to a repeated accepted prefix and same-ayah suffix, but it can still reveal the bridged word as completed rather than uncertain.
+- [ ] Release checks are skipped because this is not a release, packaging, signing-config, or asset-distribution change.
+- [ ] A plain `swift build` without temp module-cache env failed under sandbox cache permissions; the documented env-correct `swift build` passed.
 
 ## Decisions Made
 
-- **Marker interpretation:** QPC rows beyond the normalized reference word count are treated as marker rows for visibility inheritance.
-- **Marker reveal rule:** A marker row reveals only when the final real word of the same ayah is already visible by feedback state.
-- **Initial lock guard:** Before any accepted progress, strong matches starting at expected offset 32 or later are rejected. The offset is relative to the selected start scope, so selecting a later ayah still allows that ayah to lock at offset 0.
-- **Surah 110 conclusion:** The core locator does not reject `توابا` for the supplied trailing transcript. A remaining live-only failure would need live ASR locator logs.
+- **Not renderer:** The screenshot and logs align at `96:8:2`; rendering showed what the locator state allowed.
+- **Not ayah-marker:** Ayah markers are visible now; this is a locator advancement issue.
+- **Root cause:** The locator needed a contiguous advancing run. After accepted word 2, `إن إلى ربه الرجعى` has only a one-word suffix match (`الرجعى`) after the substitution, so it stalled.
+- **Fix scope:** Add only a post-lock bridge across one substituted word with strong local context instead of globally fuzzy-matching Arabic words.
 
 ## Files Modified This Session
 
-- `Sources/HifzCore/TranscriptPositionLocator.swift` - Added `initialMatchTooFar` outcome and first-lock far-match rejection.
-- `HifzTracker/Services/LiveASRLocatorOutcomeProbe.swift` - Added metrics mapping for `initial_match_too_far`.
-- `HifzTracker/Services/RecitationViewModel.swift` - Added QPC ayah-marker state inheritance from the final real word.
-- `Tests/HifzCoreTests/ProgressiveTranscriptLocatorTests.swift` - Added Surah 98 far-lock regression and Surah 110 final-word regressions.
-- `Tests/HifzTrackerTests/LiveASRLocatorOutcomeProbeTests.swift` - Added `initial_match_too_far` metrics coverage.
-- `Tests/HifzTrackerTests/RecitationViewModelTests.swift` - Added marker-row reveal regression.
-- `Tests/HifzCoreTests/MushafPageRendererTests.swift` - Added guard that hiding a marker does not clip final visible words.
-- `feature_list.json` - Added current feature and corrected the stale previous marker evidence.
+- `Sources/HifzCore/TranscriptPositionLocator.swift` - Added post-lock single-gap bridge constrained to accepted prefix, one substituted word, suffix match, and same ayah.
+- `Tests/HifzCoreTests/ProgressiveTranscriptLocatorTests.swift` - Added red/green Surah 96:8 regression and safety coverage.
+- `feature_list.json` - Added `post-lock-single-substitution-bridge-001`.
 - `progress.md` - Recorded current diagnosis and verification evidence.
 - `session-handoff.md` - Updated restart notes for this fix.
 
 ## Evidence of Completion
 
-- [x] Red locator repro: focused test initially failed because Surah 98 phrase `إن الذين كفروا من أهل الكتاب والمشركين في` was accepted at `98:6:8`, expected range `48..<56`, before any accepted progress.
-- [x] Red marker repro: `RecitationViewModelTests/testHideRecitationTextRevealsCompletedAyahMarkerRows` initially failed because marker row `88:1:5` remained hidden after real word `88:1:4` completed.
-- [x] Focused regression check passed 4 tests:
-  - `ProgressiveTranscriptLocatorTests/testInitialLockCompletesSurahNasrFinalWordFromTrailingTranscript`
-  - `ProgressiveTranscriptLocatorTests/testPostLockCompletesSurahNasrFinalWordFromTrailingTranscript`
-  - `ProgressiveTranscriptLocatorTests/testRejectsFarRepeatedStrongMatchBeforeInitialLock`
-  - `RecitationViewModelTests/testHideRecitationTextRevealsCompletedAyahMarkerRows`
-- [x] Full `swift test` passed 128 tests with 1 expected local-audio skip and 0 failures.
-- [x] Full `swift build` completed successfully.
+- [x] Log evidence: window 165 progressed to `96:8:2`; windows 166+ stayed `not_advancing` with `completed_offset=62 accepted_offset=62`.
+- [x] Red check: `swift test --filter ProgressiveTranscriptLocatorTests/testPostLockCompletesShortAyahAcrossSingleASRSubstitutionWithMatchedSuffix` failed because the second locate returned nil for `إن إلى ربه الرجعى`.
+- [x] Green check: the same focused test passed after the bridge.
+- [x] Locator suite: `swift test --filter ProgressiveTranscriptLocatorTests` passed 17 tests with 0 failures.
+- [x] Full `swift test` passed 130 tests with 1 expected local-audio skip and 0 failures.
+- [x] Full env-correct `swift build` completed successfully.
 - [x] App bundle verification: `./script/build_and_run.sh --verify` exited 0 after rebuilding, signing, and relaunching `dist/HifzTracker.app`.
 
 ## Notes for Next Session
 
-Start in `/Users/mostafa/Downloads/Coding_Projects/hifz-tracker` on `main`. The current changes are verified but uncommitted. Do not claim a live microphone/UI behavior is visually confirmed until the user smoke-tests the relaunched app or a UI automation/log replay is added.
+Start in `/Users/mostafa/Downloads/Coding_Projects/hifz-tracker` on `main`. The current changes are verified, uncommitted, and the local app bundle has been relaunched for manual smoke testing.

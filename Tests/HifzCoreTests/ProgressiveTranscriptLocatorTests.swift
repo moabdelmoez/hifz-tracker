@@ -134,6 +134,54 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         XCTAssertEqual(location.completedThrough.location, "110:3:7")
     }
 
+    func testPostLockCompletesShortAyahAcrossSingleASRSubstitutionWithMatchedSuffix() throws {
+        var locator = ProgressiveTranscriptLocator(
+            minimumInitialMatchLength: 4,
+            lookBehindWordCount: 4,
+            lookAheadWordCount: 24
+        )
+        let expected = references([
+            (6, ["كلا", "ان", "الانسان", "ليطغى"]),
+            (7, ["ان", "راه", "استغنى"]),
+            (8, ["ان", "الى", "ربك", "الرجعى"])
+        ], surah: 96)
+
+        _ = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["كلا", "ان", "الانسان", "ليطغى", "ان", "راه", "استغنى", "ان", "الى"]
+        ))
+        let location = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["ان", "الى", "ربه", "الرجعى"]
+        ))
+
+        XCTAssertEqual(location.completedThrough.location, "96:8:4")
+    }
+
+    func testPostLockDoesNotBridgeSingleASRSubstitutionWithoutAcceptedPrefix() throws {
+        var locator = ProgressiveTranscriptLocator(
+            minimumInitialMatchLength: 4,
+            lookBehindWordCount: 4,
+            lookAheadWordCount: 24
+        )
+        let expected = references([
+            (6, ["كلا", "ان", "الانسان", "ليطغى"]),
+            (7, ["ان", "راه", "استغنى"]),
+            (8, ["ان", "الى", "ربك", "الرجعى"])
+        ], surah: 96)
+
+        _ = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["كلا", "ان", "الانسان", "ليطغى", "ان", "راه", "استغنى", "ان", "الى"]
+        ))
+        let location = locator.locate(
+            expected: expected,
+            recognizedWords: ["ربه", "الرجعى"]
+        )
+
+        XCTAssertNil(location)
+    }
+
     func testAcceptsNearbyCompleteShortAyahBeforeInitialLock() throws {
         var locator = ProgressiveTranscriptLocator(
             minimumInitialMatchLength: 4,

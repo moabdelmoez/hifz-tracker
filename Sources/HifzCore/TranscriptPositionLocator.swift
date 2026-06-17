@@ -383,6 +383,17 @@ public struct ProgressiveTranscriptLocator: Sendable {
             return .located(advancingLocation)
         }
 
+        if let acceptedOffset,
+           let gappedLocation = locateAdvancingAcrossSingleGap(
+            index: index,
+            recognizedWords: recognizedWords,
+            searchRange: searchRange,
+            acceptedOffset: acceptedOffset
+           ) {
+            self.acceptedOffset = gappedLocation.expectedRange.upperBound - 1
+            return .located(gappedLocation)
+        }
+
         guard let location = locator.locate(
             index: index,
             recognizedWords: recognizedWords,
@@ -438,6 +449,132 @@ public struct ProgressiveTranscriptLocator: Sendable {
         let lowerBound = max(0, acceptedOffset - lookBehindWordCount)
         let upperBound = min(totalCount, acceptedOffset + lookAheadWordCount + 1)
         return lowerBound..<upperBound
+    }
+
+    private func locateAdvancingAcrossSingleGap(
+        index: TranscriptPositionIndex,
+        recognizedWords: [String],
+        searchRange: Range<Int>,
+        acceptedOffset: Int
+    ) -> TranscriptLocation? {
+        let normalizedRecognized = recognizedWords.map(QuranTextNormalizer.asrComparable)
+        var best: GappedCandidate?
+
+        for recognizedStart in normalizedRecognized.indices {
+            let recognizedWord = normalizedRecognized[recognizedStart]
+            guard !recognizedWord.isEmpty,
+                  let expectedStarts = index.expectedPositionsByWord[recognizedWord] else {
+                continue
+            }
+
+            for expectedStart in expectedStarts {
+                if expectedStart < searchRange.lowerBound {
+                    continue
+                }
+                if expectedStart >= searchRange.upperBound {
+                    break
+                }
+
+                let prefixLength = matchingRunLength(
+                    expected: index.normalizedExpected,
+                    recognized: normalizedRecognized,
+                    expectedStart: expectedStart,
+                    recognizedStart: recognizedStart,
+                    expectedUpperBound: searchRange.upperBound
+                )
+                guard prefixLength >= locator.minimumRunLength else { continue }
+
+                let expectedGap = expectedStart + prefixLength
+                let recognizedGap = recognizedStart + prefixLength
+                guard expectedGap == acceptedOffset + 1,
+                      expectedGap < searchRange.upperBound,
+                      recognizedGap < normalizedRecognized.count else {
+                    continue
+                }
+
+                let suffixExpectedStart = expectedGap + 1
+                let suffixRecognizedStart = recognizedGap + 1
+                guard suffixExpectedStart < searchRange.upperBound,
+                      suffixRecognizedStart < normalizedRecognized.count else {
+                    continue
+                }
+
+                let suffixLength = matchingRunLength(
+                    expected: index.normalizedExpected,
+                    recognized: normalizedRecognized,
+                    expectedStart: suffixExpectedStart,
+                    recognizedStart: suffixRecognizedStart,
+                    expectedUpperBound: searchRange.upperBound
+                )
+                guard suffixLength > 0 else { continue }
+
+                let expectedEnd = suffixExpectedStart + suffixLength
+                guard isSingleGapWithinSameAyah(
+                    index: index,
+                    gapOffset: expectedGap,
+                    completedOffset: expectedEnd - 1,
+                    acceptedOffset: acceptedOffset
+                ) else {
+                    continue
+                }
+
+                let candidate = GappedCandidate(
+                    expectedStart: expectedStart,
+                    recognizedStart: recognizedStart,
+                    expectedEnd: expectedEnd,
+                    recognizedEnd: suffixRecognizedStart + suffixLength,
+                    matchedWordCount: prefixLength + suffixLength
+                )
+                if candidate.isBetter(than: best) {
+                    best = candidate
+                }
+            }
+        }
+
+        guard let best else { return nil }
+        return TranscriptLocation(
+            completedThrough: index.expected[best.expectedEnd - 1],
+            matchedWordCount: best.matchedWordCount,
+            expectedRange: best.expectedStart..<best.expectedEnd,
+            recognizedRange: best.recognizedStart..<best.recognizedEnd
+        )
+    }
+
+    private func matchingRunLength(
+        expected: [String],
+        recognized: [String],
+        expectedStart: Int,
+        recognizedStart: Int,
+        expectedUpperBound: Int
+    ) -> Int {
+        var length = 0
+        while expectedStart + length < expectedUpperBound,
+              recognizedStart + length < recognized.count,
+              expected[expectedStart + length] == recognized[recognizedStart + length] {
+            length += 1
+        }
+        return length
+    }
+
+    private func isSingleGapWithinSameAyah(
+        index: TranscriptPositionIndex,
+        gapOffset: Int,
+        completedOffset: Int,
+        acceptedOffset: Int
+    ) -> Bool {
+        guard index.expected.indices.contains(acceptedOffset),
+              index.expected.indices.contains(gapOffset),
+              index.expected.indices.contains(completedOffset) else {
+            return false
+        }
+
+        let accepted = index.expected[acceptedOffset]
+        let gap = index.expected[gapOffset]
+        let completed = index.expected[completedOffset]
+        return accepted.surah == gap.surah
+            && accepted.ayah == gap.ayah
+            && gap.surah == completed.surah
+            && gap.ayah == completed.ayah
     }
 
     private func coversCompleteAyah(location: TranscriptLocation, expected: [RecitationWordReference]) -> Bool {
@@ -505,6 +642,28 @@ private struct Candidate {
         guard let other else { return true }
         if length != other.length {
             return length > other.length
+        }
+        if expectedStart != other.expectedStart {
+            return expectedStart < other.expectedStart
+        }
+        return recognizedEnd > other.recognizedEnd
+    }
+}
+
+private struct GappedCandidate {
+    var expectedStart: Int
+    var recognizedStart: Int
+    var expectedEnd: Int
+    var recognizedEnd: Int
+    var matchedWordCount: Int
+
+    func isBetter(than other: GappedCandidate?) -> Bool {
+        guard let other else { return true }
+        if expectedEnd != other.expectedEnd {
+            return expectedEnd > other.expectedEnd
+        }
+        if matchedWordCount != other.matchedWordCount {
+            return matchedWordCount > other.matchedWordCount
         }
         if expectedStart != other.expectedStart {
             return expectedStart < other.expectedStart
