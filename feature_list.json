@@ -260,7 +260,30 @@
         "swift test",
         "swift build"
       ],
-      "evidence": "Diagnosed on 2026-06-17 after a manual Hide Ayah test showed missing ayah numbers and a jump to later ayahs. Red check: `swift test --filter ProgressiveTranscriptLocatorTests/testRejectsLaterCompleteShortAyahBeforeInitialLock` failed because a confused Al-Ghashiyah transcript (`وجوه يومئذ ناعمة`) initial-locked ayah 88:8 at expected range 28..<31. Fixes: the complete-short-ayah initial-lock exception is now limited to the near-start neighborhood, and hidden QPC text now draws the full line once clipped to visible word slots so ayah marker glyph behavior is preserved without leaking hidden target text. The marker regression now asserts ornamental medallion pixels on a mixed visible/hidden Al-Ghashiyah line. Focused green check passed 12 locator tests plus 2 hide-renderer tests. Rebuilt and relaunched `dist/HifzTracker.app` with `./script/build_and_run.sh --verify`; display screenshot capture failed in this environment, so app-window visual confirmation is left to the user. Final checks: `swift test` passed 123 tests with 1 expected local-audio skip and 0 failures; `swift build` completed successfully."
+      "evidence": "Diagnosed on 2026-06-17 after a manual Hide Ayah test showed missing ayah numbers and a jump to later ayahs. Red check: `swift test --filter ProgressiveTranscriptLocatorTests/testRejectsLaterCompleteShortAyahBeforeInitialLock` failed because a confused Al-Ghashiyah transcript (`وجوه يومئذ ناعمة`) initial-locked ayah 88:8 at expected range 28..<31. Fixes: the complete-short-ayah initial-lock exception is now limited to the near-start neighborhood, and hidden QPC text now draws the full line once clipped to visible word slots so ayah marker glyph behavior is preserved without leaking hidden target text. Focused checks and full SwiftPM verification passed, then the fix was committed and pushed. Follow-up manual testing showed this did not fix every marker disappearance because QPC ayah-number rows can remain pending in view-model state; see `hide-ayah-marker-state-order-001`."
+    },
+    {
+      "id": "hide-ayah-marker-state-order-001",
+      "name": "Hide Ayah Marker State and Ordered Initial Lock",
+      "description": "Fix residual Hide Ayah failures where QPC ayah-number marker rows stayed hidden after an ayah completed and initial live ASR could lock to a far repeated phrase instead of following the selected ayah order.",
+      "dependencies": ["guarded-short-ayah-initial-lock-001"],
+      "status": "done",
+      "done_criteria": [
+        "QPC ayah-number marker rows reveal when the final real word of their ayah is completed, provisional, uncertain, or correction-needed",
+        "Pending/current QPC marker rows remain hidden with their ayah in Hide Ayah mode",
+        "Initial live ASR locks cannot jump to far repeated phrases before progress from the selected start neighborhood is established",
+        "Starting from a later selected ayah still works because the guarded offset is relative to the selected reference scope",
+        "Surah 110 trailing transcripts ending with `توابا` complete the final real word in deterministic locator coverage",
+        "Locator outcome diagnostics report `initial_match_too_far` for rejected far initial locks",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter 'ProgressiveTranscriptLocatorTests/testInitialLockCompletesSurahNasrFinalWordFromTrailingTranscript|ProgressiveTranscriptLocatorTests/testPostLockCompletesSurahNasrFinalWordFromTrailingTranscript|ProgressiveTranscriptLocatorTests/testRejectsFarRepeatedStrongMatchBeforeInitialLock|RecitationViewModelTests/testHideRecitationTextRevealsCompletedAyahMarkerRows'",
+        "swift test",
+        "swift build",
+        "./script/build_and_run.sh --verify"
+      ],
+      "evidence": "Implemented on 2026-06-17 on main after screenshots showed missing ayah numbers, a Surah 98 jump to ayah 6, and a Surah 110 final-word concern. Database check showed QPC rows include extra marker rows such as `88:1:5` and `110:3:8`, while normalized reference text has 4 and 7 real words respectively. Red checks: `testRejectsFarRepeatedStrongMatchBeforeInitialLock` initially accepted Surah 98 ayah 6 at expected range 48..<56; `testHideRecitationTextRevealsCompletedAyahMarkerRows` initially kept the marker hidden. The Surah 110 locator checks passed for both initial-lock and post-lock trailing transcripts ending at `110:3:7` (`توابا`), so the deterministic core matcher does not drop that word. Fixes: QPC marker rows inherit the final real word's visible feedback state, and first live ASR lock rejects matches starting at expected offset 32 or later before any accepted progress. Focused regression check passed 4 tests; full `swift test` passed 128 tests with 1 expected local-audio skip and 0 failures; `swift build` completed successfully; `./script/build_and_run.sh --verify` exited 0 after rebuilding, signing, and relaunching `dist/HifzTracker.app`."
     }
   ]
 }

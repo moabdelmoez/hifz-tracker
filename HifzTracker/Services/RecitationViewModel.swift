@@ -52,6 +52,7 @@ final class RecitationViewModel {
     private var audioLevelMeter = AudioLevelMeter()
     private var transcriptionTask: Task<Void, Never>?
     private var wordStatesByLocation: [String: WordProgressState] = [:]
+    private var referenceWordCountByAyah: [String: Int] = [:]
     private var displayedPageNumber = 73
     private var focusedReference: RecitationWordReference?
     private var lastCompletedReference: RecitationWordReference?
@@ -183,7 +184,12 @@ final class RecitationViewModel {
     }
 
     func progressState(for word: QuranWord) -> WordProgressState {
-        wordStatesByLocation[wordLocation(surah: word.surah, ayah: word.ayah, wordIndex: word.wordIndex)] ?? .pending
+        let state = wordStatesByLocation[wordLocation(surah: word.surah, ayah: word.ayah, wordIndex: word.wordIndex)] ?? .pending
+        guard state == .pending,
+              let markerState = inheritedAyahMarkerState(for: word) else {
+            return state
+        }
+        return markerState
     }
 
     func isMushafTextVisible(for word: QuranWord) -> Bool {
@@ -805,6 +811,40 @@ final class RecitationViewModel {
         case .pending, .current:
             return false
         }
+    }
+
+    private func inheritedAyahMarkerState(for word: QuranWord) -> WordProgressState? {
+        guard let realWordCount = referenceWordCount(surah: word.surah, ayah: word.ayah),
+              realWordCount > 0,
+              word.wordIndex > realWordCount else {
+            return nil
+        }
+
+        let finalRealWordState = wordStatesByLocation[
+            wordLocation(surah: word.surah, ayah: word.ayah, wordIndex: realWordCount)
+        ] ?? .pending
+
+        switch finalRealWordState {
+        case .completed, .provisional, .uncertain, .correctionNeeded:
+            return finalRealWordState
+        case .pending, .current:
+            return nil
+        }
+    }
+
+    private func referenceWordCount(surah: Int, ayah: Int) -> Int? {
+        let key = "\(surah):\(ayah)"
+        if let cached = referenceWordCountByAyah[key] {
+            return cached
+        }
+
+        guard let text = try? repository?.referenceText(surah: surah, ayah: ayah) else {
+            return nil
+        }
+
+        let count = QuranReferenceWords.wordsForAyah(text, surah: surah, ayah: ayah).count
+        referenceWordCountByAyah[key] = count
+        return count
     }
 
     private func isInHiddenRecitationScope(surah: Int, ayah: Int) -> Bool {

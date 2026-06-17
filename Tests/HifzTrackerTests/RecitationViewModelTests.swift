@@ -74,6 +74,29 @@ final class RecitationViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testHideRecitationTextRevealsCompletedAyahMarkerRows() {
+        let repository = MarkerQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 88
+        viewModel.startAyah = 1
+        viewModel.hideRecitationText = true
+        let references = [
+            RecitationWordReference(surah: 88, ayah: 1, wordIndex: 1, text: "هل"),
+            RecitationWordReference(surah: 88, ayah: 1, wordIndex: 2, text: "اتاك"),
+            RecitationWordReference(surah: 88, ayah: 1, wordIndex: 3, text: "حديث"),
+            RecitationWordReference(surah: 88, ayah: 1, wordIndex: 4, text: "الغاشية")
+        ]
+
+        viewModel.applyLocatedProgress(through: references[3], references: references)
+
+        XCTAssertTrue(viewModel.isMushafTextVisible(for: repository.word(surah: 88, ayah: 1, wordIndex: 4)))
+        XCTAssertTrue(
+            viewModel.isMushafTextVisible(for: repository.word(surah: 88, ayah: 1, wordIndex: 5)),
+            "The QPC ayah marker row should reveal when the final real word in that ayah is completed."
+        )
+    }
+
+    @MainActor
     func testHideRecitationTextContinuesAcrossNextSurah() {
         let repository = InMemoryQuranRepository()
         let viewModel = RecitationViewModel(repository: repository)
@@ -468,5 +491,53 @@ private final class InMemoryQuranRepository: QuranRepository {
                 )
             ]
         )
+    }
+}
+
+private final class MarkerQuranRepository: QuranRepository {
+    private let words: [QuranWord] = [
+        QuranWord(id: 1, location: "88:1:1", surah: 88, ayah: 1, wordIndex: 1, text: "ﱭ"),
+        QuranWord(id: 2, location: "88:1:2", surah: 88, ayah: 1, wordIndex: 2, text: "ﱮ"),
+        QuranWord(id: 3, location: "88:1:3", surah: 88, ayah: 1, wordIndex: 3, text: "ﱯ"),
+        QuranWord(id: 4, location: "88:1:4", surah: 88, ayah: 1, wordIndex: 4, text: "ﱰ"),
+        QuranWord(id: 5, location: "88:1:5", surah: 88, ayah: 1, wordIndex: 5, text: "ﱱ")
+    ]
+
+    func words(surah: Int, ayah: Int) throws -> [QuranWord] {
+        words.filter { $0.surah == surah && $0.ayah == ayah }
+    }
+
+    func referenceText(surah: Int, ayah: Int) throws -> String {
+        "هل أتاك حديث الغاشية"
+    }
+
+    func pageNumber(surah: Int, ayah: Int) -> Int {
+        592
+    }
+
+    func pageNumber(surah: Int, ayah: Int, wordIndex: Int) -> Int? {
+        592
+    }
+
+    func mushafPage(pageNumber: Int) throws -> MushafPage {
+        MushafPage(
+            pageNumber: pageNumber,
+            lines: [
+                MushafPageLine(
+                    pageNumber: pageNumber,
+                    lineNumber: 1,
+                    lineType: .ayah,
+                    isCentered: false,
+                    firstWordID: words.first?.id,
+                    lastWordID: words.last?.id,
+                    surahNumber: 88,
+                    words: words
+                )
+            ]
+        )
+    }
+
+    func word(surah: Int, ayah: Int, wordIndex: Int) -> QuranWord {
+        words.first { $0.surah == surah && $0.ayah == ayah && $0.wordIndex == wordIndex }!
     }
 }

@@ -294,6 +294,7 @@ public enum ProgressiveTranscriptLocatorOutcome: Equatable, Sendable {
     case emptyReference
     case noMatch
     case initialMatchTooShort(matchedWordCount: Int, requiredWordCount: Int)
+    case initialMatchTooFar(matchedWordCount: Int, startOffset: Int, allowedStartOffset: Int)
     case notAdvancing(completedOffset: Int, acceptedOffset: Int)
 
     public var reason: String {
@@ -302,6 +303,7 @@ public enum ProgressiveTranscriptLocatorOutcome: Equatable, Sendable {
         case .emptyReference: "empty_reference"
         case .noMatch: "no_match"
         case .initialMatchTooShort: "initial_match_too_short"
+        case .initialMatchTooFar: "initial_match_too_far"
         case .notAdvancing: "not_advancing"
         }
     }
@@ -316,6 +318,7 @@ public struct ProgressiveTranscriptLocator: Sendable {
     private static let relaxedInitialMatchLength = 3
     private static let relaxedInitialStartLimit = 32
     private static let completeShortAyahInitialStartLimit = 16
+    private static let initialMatchStartLimit = 32
 
     public var locator: TranscriptPositionLocator
     public var minimumInitialMatchLength: Int
@@ -389,6 +392,15 @@ public struct ProgressiveTranscriptLocator: Sendable {
         }
 
         let completedOffset = location.expectedRange.upperBound - 1
+
+        if acceptedOffset == nil,
+           location.expectedRange.lowerBound >= Self.initialMatchStartLimit {
+            return .initialMatchTooFar(
+                matchedWordCount: location.matchedWordCount,
+                startOffset: location.expectedRange.lowerBound,
+                allowedStartOffset: Self.initialMatchStartLimit - 1
+            )
+        }
 
         if acceptedOffset == nil,
            location.matchedWordCount < minimumInitialMatchLength,

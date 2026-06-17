@@ -186,6 +186,41 @@ final class MushafPageRendererTests: XCTestCase {
         )
     }
 
+    func testVisibilityProviderDoesNotClipVisibleWordsBeforeHiddenMarker() throws {
+        let page = try makePage(603)
+        let canvasSize = MushafPageRenderer.canonicalContentSize(for: page)
+        let nasrFinalLineRect = CGRect(x: 52, y: 943, width: 920, height: 130)
+
+        let visible = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 603,
+            fontDirectory: fontDirectory,
+            canvasSize: canvasSize,
+            stateProvider: Optional<((QuranWord) -> WordProgressState)>.none
+        )
+        let hiddenMarker = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 603,
+            fontDirectory: fontDirectory,
+            canvasSize: canvasSize,
+            stateProvider: { word in
+                word.surah == 110 ? .completed : .pending
+            },
+            visibilityProvider: { word in
+                !(word.surah == 110 && word.ayah == 3 && word.wordIndex == 8)
+            }
+        )
+
+        let visibleInk = try visibleInkPixelCount(in: visible, rect: nasrFinalLineRect)
+        let hiddenMarkerInk = try visibleInkPixelCount(in: hiddenMarker, rect: nasrFinalLineRect)
+
+        XCTAssertGreaterThan(
+            hiddenMarkerInk,
+            visibleInk * 3 / 4,
+            "Hiding only the ayah marker must not clip the final visible words. visible=\(visibleInk) hiddenMarker=\(hiddenMarkerInk)"
+        )
+    }
+
     func testUsesQULDisplayTokensForSurahHeaderAndBismillah() throws {
         let page = try makePage574()
 

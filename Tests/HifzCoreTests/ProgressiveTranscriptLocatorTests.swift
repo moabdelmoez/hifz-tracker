@@ -64,6 +64,76 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         )
     }
 
+    func testRejectsFarRepeatedStrongMatchBeforeInitialLock() {
+        var locator = ProgressiveTranscriptLocator(
+            minimumInitialMatchLength: 4,
+            lookBehindWordCount: 4,
+            lookAheadWordCount: 24
+        )
+        let expected = references([
+            (1, ["لم", "يكن", "الذين", "كفروا", "من", "اهل", "الكتاب", "والمشركين", "منفكين", "حتى", "تاتيهم", "البينة"]),
+            (2, ["رسول", "من", "الله", "يتلو", "صحفا", "مطهرة"]),
+            (3, ["فيها", "كتب", "قيمة"]),
+            (4, ["وما", "تفرق", "الذين", "اوتوا", "الكتاب", "الا", "من", "بعد", "ما", "جاءتهم", "البينة"]),
+            (5, ["وما", "امروا", "الا", "ليعبدوا", "الله", "مخلصين", "له", "الدين", "حنفاء", "ويقيموا", "الصلاة", "ويؤتوا", "الزكاة", "وذلك", "دين", "القيمة"]),
+            (6, ["ان", "الذين", "كفروا", "من", "اهل", "الكتاب", "والمشركين", "في", "نار", "جهنم"])
+        ], surah: 98)
+
+        let location = locator.locate(
+            expected: expected,
+            recognizedWords: ["ان", "الذين", "كفروا", "من", "اهل", "الكتاب", "والمشركين", "في"]
+        )
+
+        XCTAssertNil(
+            location,
+            "The first live lock should not jump to a far repeated phrase before progress from the selected start is established."
+        )
+    }
+
+    func testPostLockCompletesSurahNasrFinalWordFromTrailingTranscript() throws {
+        var locator = ProgressiveTranscriptLocator(
+            minimumInitialMatchLength: 4,
+            lookBehindWordCount: 4,
+            lookAheadWordCount: 24
+        )
+        let expected = references([
+            (1, ["اذا", "جاء", "نصر", "الله", "والفتح"]),
+            (2, ["ورايت", "الناس", "يدخلون", "في", "دين", "الله", "افواجا"]),
+            (3, ["فسبح", "بحمد", "ربك", "واستغفره", "انه", "كان", "توابا"])
+        ], surah: 110)
+
+        _ = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["اذا", "جاء", "نصر", "الله", "والفتح"]
+        ))
+        let location = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["يدخلون", "في", "دين", "الله", "افواجا", "فسبح", "بحمد", "ربك", "واستغفره", "انه", "كان", "توابا"]
+        ))
+
+        XCTAssertEqual(location.completedThrough.location, "110:3:7")
+    }
+
+    func testInitialLockCompletesSurahNasrFinalWordFromTrailingTranscript() throws {
+        var locator = ProgressiveTranscriptLocator(
+            minimumInitialMatchLength: 4,
+            lookBehindWordCount: 4,
+            lookAheadWordCount: 24
+        )
+        let expected = references([
+            (1, ["اذا", "جاء", "نصر", "الله", "والفتح"]),
+            (2, ["ورايت", "الناس", "يدخلون", "في", "دين", "الله", "افواجا"]),
+            (3, ["فسبح", "بحمد", "ربك", "واستغفره", "انه", "كان", "توابا"])
+        ], surah: 110)
+
+        let location = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["يدخلون", "في", "دين", "الله", "افواجا", "فسبح", "بحمد", "ربك", "واستغفره", "انه", "كان", "توابا"]
+        ))
+
+        XCTAssertEqual(location.completedThrough.location, "110:3:7")
+    }
+
     func testAcceptsNearbyCompleteShortAyahBeforeInitialLock() throws {
         var locator = ProgressiveTranscriptLocator(
             minimumInitialMatchLength: 4,
@@ -233,14 +303,14 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         )
         let expected = longRepeatedReferences(wordCount: 6_000)
         let index = TranscriptPositionIndex(expected: expected)
-        let firstChunk = Array(expected[2_400..<2_416].map(\.text))
+        let firstChunk = Array(expected[0..<16].map(\.text))
         let liveChunks = (0..<360).map { iteration in
-            let start = 2_404 + (iteration % 72)
+            let start = 4 + (iteration % 72)
             return Array(expected[start..<(start + 16)].map(\.text))
         }
 
         let firstLocation = try XCTUnwrap(locator.locate(index: index, recognizedWords: firstChunk))
-        XCTAssertEqual(firstLocation.completedThrough.location, "2:5:8")
+        XCTAssertEqual(firstLocation.completedThrough.location, "2:2:6")
         XCTAssertEqual(firstLocation.matchedWordCount, 16)
 
         let startedAt = ContinuousClock.now

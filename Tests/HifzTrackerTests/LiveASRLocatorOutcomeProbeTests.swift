@@ -51,6 +51,13 @@ final class LiveASRLocatorOutcomeProbeTests: XCTestCase {
             completedWordCountBefore: 4,
             outcome: .notAdvancing(completedOffset: 3, acceptedOffset: 3)
         )
+        let far = probe.metrics(
+            windowID: 5,
+            recognizedWordCount: 8,
+            expectedReferenceCount: 120,
+            completedWordCountBefore: 0,
+            outcome: .initialMatchTooFar(matchedWordCount: 8, startOffset: 48, allowedStartOffset: 31)
+        )
 
         XCTAssertEqual(short.reason, "initial_match_too_short")
         XCTAssertEqual(short.matchedWordCount, 2)
@@ -58,6 +65,10 @@ final class LiveASRLocatorOutcomeProbeTests: XCTestCase {
         XCTAssertEqual(repeated.reason, "not_advancing")
         XCTAssertEqual(repeated.completedOffset, 3)
         XCTAssertEqual(repeated.acceptedOffset, 3)
+        XCTAssertEqual(far.reason, "initial_match_too_far")
+        XCTAssertEqual(far.matchedWordCount, 8)
+        XCTAssertEqual(far.completedOffset, 48)
+        XCTAssertEqual(far.acceptedOffset, 31)
     }
 
     func testBuildsMetricsForViewModelFailureReasons() {

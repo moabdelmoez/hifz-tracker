@@ -68,6 +68,21 @@ struct LiveASRLocatorOutcomeProbe {
                 completedAyah: nil,
                 completedWord: nil
             )
+        case .initialMatchTooFar(let matchedWordCount, let startOffset, let allowedStartOffset):
+            return Metrics(
+                windowID: windowID,
+                reason: outcome.reason,
+                recognizedWordCount: recognizedWordCount,
+                expectedReferenceCount: expectedReferenceCount,
+                completedWordCountBefore: completedWordCountBefore,
+                matchedWordCount: matchedWordCount,
+                requiredWordCount: nil,
+                completedOffset: startOffset,
+                acceptedOffset: allowedStartOffset,
+                completedSurah: nil,
+                completedAyah: nil,
+                completedWord: nil
+            )
         case .notAdvancing(let completedOffset, let acceptedOffset):
             return Metrics(
                 windowID: windowID,
