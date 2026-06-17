@@ -309,6 +309,29 @@
         "./script/build_and_run.sh --verify"
       ],
       "evidence": "Implemented on 2026-06-17 on main after Surah 96 / Al-Alaq page 597 showed Debug Transcript `إن إلى ربه الرجعى` while Mushaf Hide Ayah revealed only `إن إلى`. Logs showed the exact stall: window 165 `progress_applied` to `completed_surah=96 completed_ayah=8 completed_word=2`, followed by windows 166+ returning `not_advancing` with `completed_offset=62 accepted_offset=62`. Red check: `testPostLockCompletesShortAyahAcrossSingleASRSubstitutionWithMatchedSuffix` initially returned nil for `إن إلى ربه الرجعى`; green check completes `96:8:4`. Added a safety test proving the bridge does not fire without the repeated accepted prefix. Focused locator suite passed 17 tests; full `swift test` passed 130 tests with 1 expected local-audio skip and 0 failures; `swift build` completed successfully; `./script/build_and_run.sh --verify` exited 0 after rebuilding, signing, and relaunching `dist/HifzTracker.app`."
+    },
+    {
+      "id": "github-pages-site-001",
+      "name": "GitHub Pages Distribution Site",
+      "description": "Add a static GitHub Pages project site under docs/ for sharing the macOS app and linking downloads to GitHub Releases.",
+      "dependencies": ["post-lock-single-substitution-bridge-001"],
+      "status": "blocked",
+      "done_criteria": [
+        "docs/ contains a static GitHub Pages entry page and stylesheet",
+        "The page includes app name, purpose, macOS requirements, privacy/offline note, visual product presentation, and GitHub Release download links",
+        "The page renders without horizontal overflow on desktop and mobile",
+        "Project baseline checks pass after the website changes",
+        "Release packaging and GitHub Pages activation are either completed or blocked with exact credential/authentication evidence",
+        "Completion or blocker evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test",
+        "swift build",
+        "local browser render at 1280x720 and 390x844",
+        "./script/release_checks.sh release",
+        "gh auth status"
+      ],
+      "evidence": "Repo-side Pages site implemented on 2026-06-18 with `docs/index.html`, `docs/styles.css`, `docs/.nojekyll`, and `docs/assets/hifz-tracker-icon.png`. Baseline and final checks passed: `swift test` executed 130 tests with 1 expected skip and 0 failures; `swift build` completed successfully. Browser verification served `docs/` locally and confirmed desktop 1280x720 and mobile 390x844 render with images loaded, stable latest-release download URL, visible next-section hint, and no horizontal overflow. `./script/release_checks.sh release` passed tests/builds/staged bundle signing checks but exited 1 at release-only signing assessment; `security find-identity -p codesigning -v` reported 0 valid identities and `spctl -a -vv dist/HifzTracker.app` returned `internal error in Code Signing subsystem`. `gh auth status` reported the moabdelmoez token is invalid, so GitHub Release upload and Pages settings activation remain externally blocked."
     }
   ]
 }

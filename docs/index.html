@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Hifz Tracker is a private, offline macOS app for tracking Quran memorization and recitation progress."
+    >
+    <meta property="og:title" content="Hifz Tracker for macOS">
+    <meta
+      property="og:description"
+      content="Track Quran memorization locally with live recitation progress, Mushaf pages, and private on-device sessions."
+    >
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://moabdelmoez.github.io/hifz-tracker/">
+    <meta property="og:image" content="https://moabdelmoez.github.io/hifz-tracker/assets/hifz-tracker-icon.png">
+    <title>Hifz Tracker for macOS</title>
+    <link rel="icon" href="assets/hifz-tracker-icon.png">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="site-header" aria-label="Primary">
+      <a class="brand" href="./" aria-label="Hifz Tracker home">
+        <img src="assets/hifz-tracker-icon.png" alt="" width="40" height="40">
+        <span>Hifz Tracker</span>
+      </a>
+      <nav aria-label="Website">
+        <a href="#privacy">Privacy</a>
+        <a href="#requirements">Requirements</a>
+        <a href="https://github.com/moabdelmoez/hifz-tracker/releases">Releases</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-background" aria-hidden="true">
+          <img src="assets/hifz-tracker-icon.png" alt="">
+        </div>
+        <div class="hero-content">
+          <p class="eyebrow">Private Quran memorization tracking for Mac</p>
+          <h1 id="hero-title">Hifz Tracker</h1>
+          <p class="lede">
+            Practice Quran recitation with local progress tracking, live Mushaf highlights,
+            and session history that stays on your Mac.
+          </p>
+          <div class="actions" aria-label="Download links">
+            <a
+              class="button primary"
+              href="https://github.com/moabdelmoez/hifz-tracker/releases/latest/download/HifzTracker-0.1.0-arm64.dmg"
+            >
+              Download for macOS
+            </a>
+            <a class="button secondary" href="https://github.com/moabdelmoez/hifz-tracker/releases">
+              View releases
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="product-band" aria-labelledby="experience-title">
+        <div class="section-grid">
+          <div>
+            <p class="section-label">Experience</p>
+            <h2 id="experience-title">Built for focused hifz sessions.</h2>
+            <p>
+              Choose a surah and start ayah, recite, and watch the Mushaf view keep pace
+              with your progress. A dashboard summarizes saved recitation progress across
+              all 114 surahs.
+            </p>
+          </div>
+          <figure class="app-preview" aria-label="Preview of the Hifz Tracker app interface">
+            <div class="window-bar" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="preview-body">
+              <aside>
+                <strong>Session</strong>
+                <span>Surah 96</span>
+                <span>Start ayah 1</span>
+                <span class="recording">Recording</span>
+              </aside>
+              <div class="mushaf-preview" lang="ar" dir="rtl">
+                <p>اقرأ باسم ربك الذي خلق</p>
+                <p>خلق الإنسان من علق</p>
+                <p>اقرأ وربك الأكرم</p>
+                <div class="highlight-row" aria-hidden="true">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            </div>
+          </figure>
+        </div>
+      </section>
+
+      <section class="details" aria-label="App details">
+        <article id="privacy">
+          <h2>Private by default</h2>
+          <p>
+            Hifz Tracker is designed for offline runtime use after installation.
+            It does not persist user audio.
+          </p>
+        </article>
+        <article id="requirements">
+          <h2>Mac requirements</h2>
+          <p>
+            Requires macOS 14 or later on Apple Silicon. Download the signed DMG
+            from GitHub Releases.
+          </p>
+        </article>
+        <article>
+          <h2>Release notes</h2>
+          <p>
+            Each public build is published as a GitHub Release with version notes
+            and the macOS download asset.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <span>Hifz Tracker</span>
+      <a href="https://github.com/moabdelmoez/hifz-tracker">GitHub repository</a>
+    </footer>
+  </body>
+</html>
