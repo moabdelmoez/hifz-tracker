@@ -222,6 +222,7 @@ public struct SessionRecord: Codable, Equatable, Sendable, Identifiable {
     public var endedAt: Date?
     public var surah: Int
     public var startAyah: Int
+    public var lastSurah: Int
     public var lastAyah: Int
     public var lastWord: Int
     public var completedWordCount: Int
@@ -233,6 +234,7 @@ public struct SessionRecord: Codable, Equatable, Sendable, Identifiable {
         endedAt: Date?,
         surah: Int,
         startAyah: Int,
+        lastSurah: Int? = nil,
         lastAyah: Int,
         lastWord: Int,
         completedWordCount: Int,
@@ -243,9 +245,51 @@ public struct SessionRecord: Codable, Equatable, Sendable, Identifiable {
         self.endedAt = endedAt
         self.surah = surah
         self.startAyah = startAyah
+        self.lastSurah = lastSurah ?? surah
         self.lastAyah = lastAyah
         self.lastWord = lastWord
         self.completedWordCount = completedWordCount
         self.correctionEvents = correctionEvents
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case startedAt
+        case endedAt
+        case surah
+        case startAyah
+        case lastSurah
+        case lastAyah
+        case lastWord
+        case completedWordCount
+        case correctionEvents
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(UUID.self, forKey: .id)
+        self.startedAt = try container.decode(Date.self, forKey: .startedAt)
+        self.endedAt = try container.decodeIfPresent(Date.self, forKey: .endedAt)
+        self.surah = try container.decode(Int.self, forKey: .surah)
+        self.startAyah = try container.decode(Int.self, forKey: .startAyah)
+        self.lastSurah = try container.decodeIfPresent(Int.self, forKey: .lastSurah) ?? surah
+        self.lastAyah = try container.decode(Int.self, forKey: .lastAyah)
+        self.lastWord = try container.decode(Int.self, forKey: .lastWord)
+        self.completedWordCount = try container.decode(Int.self, forKey: .completedWordCount)
+        self.correctionEvents = try container.decode([CorrectionEvent].self, forKey: .correctionEvents)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(startedAt, forKey: .startedAt)
+        try container.encodeIfPresent(endedAt, forKey: .endedAt)
+        try container.encode(surah, forKey: .surah)
+        try container.encode(startAyah, forKey: .startAyah)
+        try container.encode(lastSurah, forKey: .lastSurah)
+        try container.encode(lastAyah, forKey: .lastAyah)
+        try container.encode(lastWord, forKey: .lastWord)
+        try container.encode(completedWordCount, forKey: .completedWordCount)
+        try container.encode(correctionEvents, forKey: .correctionEvents)
     }
 }

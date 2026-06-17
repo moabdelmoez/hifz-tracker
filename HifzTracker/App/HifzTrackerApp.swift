@@ -20,8 +20,8 @@ struct HifzTrackerApp: App {
             HifzTrackerCommands()
         }
 
-        Window("History", id: "history") {
-            HistoryWindowView()
+        Window("Dashboard", id: "dashboard") {
+            DashboardWindowView()
                 .modelContainer(for: StoredSessionRecord.self)
                 .frame(minWidth: 620, minHeight: 420)
         }
@@ -45,10 +45,10 @@ struct HifzTrackerCommands: Commands {
 
     var body: some Commands {
         CommandMenu("Recitation") {
-            Button("Open History") {
-                openWindow(id: "history")
+            Button("Open Dashboard") {
+                openWindow(id: "dashboard")
             }
-            .keyboardShortcut("h", modifiers: [.command, .shift])
+            .keyboardShortcut("d", modifiers: [.command, .shift])
         }
     }
 }

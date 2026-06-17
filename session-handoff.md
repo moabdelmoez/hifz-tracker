@@ -2,35 +2,49 @@
 
 ## Current Objective
 
-- Goal: Fix live recitation highlights at a surah boundary, specifically finishing surah 100 and continuing into surah 101.
-- Current status: Implementation complete and automated verification passed.
+- Goal: Replace the user-facing History surface with a Dashboard that lists all Quran surahs and shows saved word-based recitation progress.
+- Current status: Implementation complete, merged into `main`, and automated verification passed.
 - Branch: `main`.
-- Commit status: Included in the requested main-branch boundary-fix commit.
-- Remaining optional step: Live microphone smoke test from surah 100 ayah 11 into surah 101 ayah 1.
+- Commit status: Merged locally.
+- Remaining optional step: Manual app-window smoke test of Dashboard.
 
 ## Completed This Session
 
-- [x] Added a view-model regression test for live ASR crossing from surah 100 to surah 101.
-- [x] Opened `RecitationViewModel.applyASRTranscript` to module-internal so tests can exercise the live transcript path.
-- [x] Extended the live reference scope to include the selected surah from `startAyah` and the immediate next surah.
-- [x] Kept selected-ayah word progress coherent when authoritative progress has moved to a later surah.
-- [x] Verified next-surah page flip and completed/current word states with the regression fixture.
+- [x] Renamed History window, command, toolbar label, help text, and window id to Dashboard.
+- [x] Replaced the old session-history list/export/reset UI with a 114-surah Dashboard list.
+- [x] Added row UI with surah number, Arabic name, English name, percent label, and green progress bar.
+- [x] Added `DashboardProgressCalculator` to derive word-based progress from saved sessions and local Quran reference words.
+- [x] Added `SessionRecord.lastSurah` with backward-compatible decoding/defaulting.
+- [x] Added `StoredSessionRecord.lastSurah` with fallback to the starting surah for older stored records.
+- [x] Updated `RecitationViewModel` to persist the actual final surah/ayah/word after cross-surah progress.
+- [x] Added focused tests for empty, partial, farthest-position, cross-surah, and legacy progress cases.
+- [x] Added storage and view-model tests for `lastSurah` persistence.
 - [x] Updated `feature_list.json` and `progress.md`.
+- [x] Committed the feature branch and merged it locally into `main`.
 
 ## Verification Evidence
 
 | Check | Command | Result | Notes |
 |---|---|---|---|
-| Red compile check | `swift test --filter RecitationViewModelTests/testLiveASRHighlightsNextSurahAfterCompletingSelectedSurah` | Failed | `applyASRTranscript` was private. |
-| Red behavior check | `swift test --filter RecitationViewModelTests/testLiveASRHighlightsNextSurahAfterCompletingSelectedSurah` | Failed | Surah 101 transcript returned false, page stayed at 100, highlights stayed pending. |
-| Boundary regression | `swift test --filter RecitationViewModelTests/testLiveASRHighlightsNextSurahAfterCompletingSelectedSurah` | Passed | 1 test, 0 failures. |
-| View-model suite | `swift test --filter RecitationViewModelTests` | Passed | 13 tests, 0 failures. |
-| Full test suite | `swift test` | Passed | 104 tests, 1 expected local-audio audit skipped, 0 failures. |
+| Red calculator check | `swift test --filter DashboardProgressCalculatorTests` | Failed | `DashboardProgressCalculator` missing; `SessionRecord` had no `lastSurah` argument. |
+| Calculator suite | `swift test --filter DashboardProgressCalculatorTests` | Passed | 5 tests, 0 failures. |
+| Red storage/session check | `swift test --filter 'RecitationViewModelTests/testSessionRecordStoresLastSurahAfterCrossSurahProgress|StoredSessionRecordTests'` | Failed | `StoredSessionRecord.lastSurah` missing; `sessionStartedAt` private. |
+| Storage/session suite | same command | Passed | 3 tests, 0 failures. |
+| Focused combined check | `swift test --filter 'DashboardProgressCalculatorTests|StoredSessionRecordTests|RecitationViewModelTests/testSessionRecordStoresLastSurahAfterCrossSurahProgress'` | Passed | 8 tests, 0 failures. |
+| Full test suite | `swift test` | Passed | 112 tests, 1 expected local-audio audit skipped, 0 failures. |
 | Build | `swift build` | Passed | Debug build completed successfully. |
 
 ## Files Changed
 
+- `Sources/HifzCore/Models.swift`
+- `HifzTracker/Models/StoredSessionRecord.swift`
 - `HifzTracker/Services/RecitationViewModel.swift`
+- `HifzTracker/Services/DashboardProgressCalculator.swift`
+- `HifzTracker/Views/DashboardWindowView.swift`
+- `HifzTracker/App/HifzTrackerApp.swift`
+- `HifzTracker/Views/RecitationRootView.swift`
+- `Tests/HifzTrackerTests/DashboardProgressCalculatorTests.swift`
+- `Tests/HifzTrackerTests/StoredSessionRecordTests.swift`
 - `Tests/HifzTrackerTests/RecitationViewModelTests.swift`
 - `feature_list.json`
 - `progress.md`
@@ -39,11 +53,13 @@
 ## Existing Context
 
 - Release checks were skipped because this was not a release, signing, asset, packaging, or distribution change.
-- The previous provisional-initial-highlight handoff noted pending on-device log verification; that remains separate from this boundary fix.
+- Manual UI smoke testing was not run; SwiftUI compilation and focused behavioral tests passed.
+- Feature branch `codex/dashboard-surah-progress` was merged into `main`.
+- The old `SessionHistoryExporter` remains in core for JSON export compatibility, but the Dashboard v1 UI no longer exposes export/reset controls.
 
 ## Next Session Startup
 
 1. Read `AGENTS.md`.
 2. Read `feature_list.json`, `progress.md`, and this file.
 3. Run `git status --short`.
-4. If extra confidence is needed, run the app and recite from surah 100 ayah 11 into surah 101 ayah 1, confirming the Mushaf flips to page 101 and highlights continue.
+4. If desired, run the app, open Dashboard, and verify the full 114-surah progress list visually.

@@ -173,6 +173,29 @@
         "swift build"
       ],
       "evidence": "Implemented on 2026-06-17. Red check: `swift test --filter RecitationViewModelTests/testLiveASRHighlightsNextSurahAfterCompletingSelectedSurah` first failed because the live transcript method was private, then failed behaviorally because the surah 101 transcript returned false, page stayed at 100, and surah 101 word states stayed pending. Extended `RecitationViewModel` live reference scope to the immediate next surah and updated selected-ayah sync for later-surah completions. Final checks: focused boundary regression passed 1 test; RecitationViewModelTests passed 13 tests; `swift test` passed 104 tests with 1 expected local-audio audit skipped and 0 failures; `swift build` completed successfully."
+    },
+    {
+      "id": "dashboard-surah-progress-001",
+      "name": "Dashboard Surah Progress",
+      "description": "Replace the user-facing History surface with a Dashboard that lists all Quran surahs and displays word-based saved recitation progress bars.",
+      "dependencies": ["surah-boundary-live-highlights-001"],
+      "status": "done",
+      "done_criteria": [
+        "History entrypoints are renamed to Dashboard in the window, toolbar, and command menu",
+        "Dashboard lists all 114 surahs with Quran number, Arabic name, English name, percent label, and a green progress bar",
+        "Progress summaries are derived from saved session records using local Quran reference words",
+        "Cross-surah saved sessions persist and use lastSurah so dashboard progress can continue into the next surah",
+        "Existing records without a stored lastSurah fall back to their starting surah",
+        "Focused calculator, storage, and view-model tests cover the progress rules",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter DashboardProgressCalculatorTests",
+        "swift test --filter 'RecitationViewModelTests/testSessionRecordStoresLastSurahAfterCrossSurahProgress|StoredSessionRecordTests'",
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Implemented on 2026-06-17 on branch `codex/dashboard-surah-progress`. Red check: `swift test --filter DashboardProgressCalculatorTests` failed because `DashboardProgressCalculator` did not exist and `SessionRecord` had no `lastSurah` argument. Red check: focused storage/session test failed because `StoredSessionRecord.lastSurah` was missing and `sessionStartedAt` was private. Final focused checks passed 8 dashboard/storage/session tests. Full `swift test` passed 112 tests with 1 expected local-audio audit skipped and 0 failures. `swift build` completed successfully."
     }
   ]
 }

@@ -46,11 +46,11 @@ struct RecitationRootView: View {
 
                     ToolbarItemGroup(placement: .primaryAction) {
                         Button {
-                            openWindow(id: "history")
+                            openWindow(id: "dashboard")
                         } label: {
-                            Label("History", systemImage: "clock.arrow.circlepath")
+                            Label("Dashboard", systemImage: "chart.bar.xaxis")
                         }
-                        .help("Open History")
+                        .help("Open Dashboard")
 
                         Button {
                             openSettings()
