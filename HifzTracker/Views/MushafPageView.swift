@@ -138,6 +138,10 @@ private struct MushafPageCanvasStack: View {
                 .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
                 .shadow(color: Color.black.opacity(0.10), radius: 14, y: 4)
 
+            MushafPageNumberFooter(pageNumber: page.pageNumber, pageSize: pageSize)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+
             if let focusY {
                 VStack(spacing: 0) {
                     Color.clear
@@ -152,6 +156,25 @@ private struct MushafPageCanvasStack: View {
                 .accessibilityHidden(true)
             }
         }
+    }
+}
+
+private struct MushafPageNumberFooter: View {
+    var pageNumber: Int
+    var pageSize: CGSize
+
+    var body: some View {
+        VStack {
+            Spacer()
+
+            Text("\(pageNumber)")
+                .font(.system(size: max(10, pageSize.width * 0.032), weight: .regular, design: .serif))
+                .foregroundStyle(Color.black.opacity(0.62))
+                .monospacedDigit()
+                .lineLimit(1)
+                .padding(.bottom, max(8, pageSize.height * 0.012))
+        }
+        .frame(width: pageSize.width, height: pageSize.height)
     }
 }
 

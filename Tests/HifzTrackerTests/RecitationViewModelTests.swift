@@ -67,6 +67,26 @@ final class RecitationViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testDisplayedAyahFollowsNextTrackedAyahDuringRecitation() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 1
+        viewModel.startAyah = 1
+        viewModel.isRecording = true
+
+        let references = [
+            RecitationWordReference(surah: 1, ayah: 1, wordIndex: 1, text: "one"),
+            RecitationWordReference(surah: 1, ayah: 1, wordIndex: 2, text: "two"),
+            RecitationWordReference(surah: 1, ayah: 1, wordIndex: 3, text: "three"),
+            RecitationWordReference(surah: 1, ayah: 2, wordIndex: 1, text: "four")
+        ]
+
+        viewModel.applyLocatedProgress(through: references[2], references: references)
+
+        XCTAssertEqual(viewModel.displayedAyah, 2)
+    }
+
+    @MainActor
     func testDoesNotAutoFlipWhenLocatedProgressIsAppliedOutsideActiveRecitation() {
         let repository = InMemoryQuranRepository()
         let viewModel = RecitationViewModel(repository: repository)

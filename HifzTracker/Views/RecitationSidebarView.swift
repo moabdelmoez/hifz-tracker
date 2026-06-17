@@ -80,7 +80,12 @@ private struct SessionSummarySection: View {
     }
 
     var body: some View {
-        SidebarSection(title: "Session") {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Session")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     RecitationStatusPill(text: viewModel.statusText, visualState: visualState)
@@ -98,13 +103,13 @@ private struct SessionSummarySection: View {
                         .font(.callout.weight(.medium))
                         .lineLimit(1)
 
-                    Text("Ayah \(viewModel.startAyah)")
+                    Text("Ayah \(viewModel.displayedAyah)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
 
-                RecitationWaveformView(visualState: visualState, level: viewModel.audioLevel)
+                VoiceActivityIndicator(isActive: viewModel.isRecording)
 
                 if let message = viewModel.snapshot.message ?? viewModel.assetMessage {
                     Divider()
@@ -116,7 +121,69 @@ private struct SessionSummarySection: View {
                         .textSelection(.enabled)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
         }
+    }
+}
+
+struct VoiceActivityIndicatorMetrics {
+    static let circleCount = 4
+    static let circleSize: CGFloat = 58
+    static let circleSpacing: CGFloat = 16
+    static let frameHeight: CGFloat = 86
+    static let activeScale: CGFloat = 1.06
+    static let stepIntervalNanoseconds: UInt64 = 320_000_000
+
+    static func nextIndex(after index: Int) -> Int {
+        (index + 1) % circleCount
+    }
+}
+
+private struct VoiceActivityIndicator: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let isActive: Bool
+    @State private var highlightedIndex = 0
+
+    var body: some View {
+        let shouldAnimate = isActive && !reduceMotion
+
+        HStack(spacing: VoiceActivityIndicatorMetrics.circleSpacing) {
+            ForEach(0..<VoiceActivityIndicatorMetrics.circleCount, id: \.self) { index in
+                Circle()
+                    .fill(color(for: index))
+                    .frame(
+                        width: VoiceActivityIndicatorMetrics.circleSize,
+                        height: VoiceActivityIndicatorMetrics.circleSize
+                    )
+                    .scaleEffect(isActive && index == highlightedIndex ? VoiceActivityIndicatorMetrics.activeScale : 1.0)
+                    .animation(.easeInOut(duration: 0.22), value: highlightedIndex)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: VoiceActivityIndicatorMetrics.frameHeight)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(isActive ? "Listening to recitation" : "Recitation idle")
+        .task(id: shouldAnimate) {
+            highlightedIndex = 0
+            guard shouldAnimate else { return }
+
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: VoiceActivityIndicatorMetrics.stepIntervalNanoseconds)
+                guard !Task.isCancelled else { return }
+
+                highlightedIndex = VoiceActivityIndicatorMetrics.nextIndex(after: highlightedIndex)
+            }
+        }
+    }
+
+    private func color(for index: Int) -> Color {
+        guard isActive, index == highlightedIndex else {
+            return Color(nsColor: .separatorColor).opacity(0.78)
+        }
+
+        return Color(red: 0.77, green: 0.86, blue: 0.89)
     }
 }
 

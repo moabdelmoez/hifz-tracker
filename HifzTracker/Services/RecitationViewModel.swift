@@ -31,6 +31,9 @@ final class RecitationViewModel {
     var focusedAyah: Int {
         focusedReference?.ayah ?? snapshot.currentAyah ?? startAyah
     }
+    var displayedAyah: Int {
+        focusedAyah
+    }
 
     private let repository: QuranRepository?
     private let microphone = MicrophoneCaptureService()

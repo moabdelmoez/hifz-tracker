@@ -21,22 +21,23 @@
       "evidence": "Harness implemented without a startup script per user request. Structural validation: 88/100; bottleneck is verification because the bundled validator expects a startup script. feature_list.json is valid JSON. Direct SwiftPM verification is documented but could not be completed in the managed sandbox after escalation was rejected."
     },
     {
-      "id": "next-001",
-      "name": "Next User-Requested Feature",
-      "description": "Reserved slot for the next concrete product or engineering task. Replace this entry with the user's actual requested behavior before implementation.",
+      "id": "voice-wave-001",
+      "name": "Session Voice Activity Indicator UI",
+      "description": "Add a four-circle macOS-soft voice activity indicator to the Session panel, remove the gray Session card, keep the live session ayah aligned with recitation progress, and show the Mushaf page number at the page bottom.",
       "dependencies": ["harness-001"],
-      "status": "blocked",
+      "status": "done",
       "done_criteria": [
-        "User-facing requirement is explicit",
-        "Scope and verification commands are named before coding",
+        "Session summary renders without the gray material card while preserving metadata alignment",
+        "Voice activity view is a four-circle macOS-soft indicator that steps only while recording",
+        "Session ayah label follows the reciter's current focused ayah",
+        "Mushaf page shows a centered page number at the bottom without changing scroll or page metrics",
         "Completion evidence is captured in progress.md"
       ],
       "verification": [
         "swift test",
-        "swift build",
-        "Additional checks chosen for the specific feature"
+        "swift build"
       ],
-      "evidence": "Blocked until a concrete next feature is requested."
+      "evidence": "Implemented on 2026-06-16 and refined on 2026-06-17. Red check: `swift test --filter RecitationViewModelTests/testDisplayedAyahFollowsNextTrackedAyahDuringRecitation` initially failed because `displayedAyah` did not exist. Follow-up replacement red check: `swift test --filter VoiceActivityIndicatorTests` failed because `VoiceActivityIndicatorMetrics` did not exist. Removed the custom blob layout and wired a private four-circle macOS-soft indicator to `viewModel.isRecording`; final checks: `swift test` passed 77 tests with 1 existing opt-in local audio audit skipped; `swift build` completed successfully; cleanup search found no `RecitationVoiceBlobLayout` or `RecitationWaveformView(` matches in HifzTracker/Tests."
     }
   ]
 }
