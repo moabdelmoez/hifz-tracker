@@ -226,6 +226,26 @@ final class RecitationViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 5)), .current)
     }
 
+    @MainActor
+    func testSessionRecordStoresLastSurahAfterCrossSurahProgress() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 100
+        viewModel.startAyah = 11
+        viewModel.isRecording = true
+        viewModel.sessionStartedAt = Date(timeIntervalSince1970: 1_700_000_000)
+
+        XCTAssertTrue(viewModel.applyASRTranscript(Self.transcript("hundred final one two"), windowID: 1))
+        XCTAssertTrue(viewModel.applyASRTranscript(Self.transcript("next surah one two"), windowID: 2))
+
+        let record = viewModel.makeSessionRecord()
+
+        XCTAssertEqual(record?.surah, 100)
+        XCTAssertEqual(record?.lastSurah, 101)
+        XCTAssertEqual(record?.lastAyah, 1)
+        XCTAssertEqual(record?.lastWord, 4)
+    }
+
     private static func references() -> [RecitationWordReference] {
         [
             RecitationWordReference(surah: 1, ayah: 1, wordIndex: 1, text: "one"),

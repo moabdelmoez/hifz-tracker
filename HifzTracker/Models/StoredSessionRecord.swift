@@ -9,6 +9,7 @@ final class StoredSessionRecord {
     var endedAt: Date?
     var surah: Int
     var startAyah: Int
+    var lastSurah: Int = 0
     var lastAyah: Int
     var lastWord: Int
     var completedWordCount: Int
@@ -20,6 +21,7 @@ final class StoredSessionRecord {
         self.endedAt = record.endedAt
         self.surah = record.surah
         self.startAyah = record.startAyah
+        self.lastSurah = record.lastSurah
         self.lastAyah = record.lastAyah
         self.lastWord = record.lastWord
         self.completedWordCount = record.completedWordCount
@@ -33,11 +35,16 @@ final class StoredSessionRecord {
             endedAt: endedAt,
             surah: surah,
             startAyah: startAyah,
+            lastSurah: resolvedLastSurah,
             lastAyah: lastAyah,
             lastWord: lastWord,
             completedWordCount: completedWordCount,
             correctionEvents: Self.decode(json: correctionEventsJSON)
         )
+    }
+
+    private var resolvedLastSurah: Int {
+        lastSurah == 0 ? surah : lastSurah
     }
 
     private static func encode(events: [CorrectionEvent]) -> String {

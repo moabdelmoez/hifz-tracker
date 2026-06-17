@@ -39,7 +39,7 @@ final class RecitationViewModel {
     private let microphone = MicrophoneCaptureService()
     private var transcriptLocator = ProgressiveTranscriptLocator()
     private var reducer = RecitationStateReducer()
-    private var sessionStartedAt: Date?
+    var sessionStartedAt: Date?
     private var liveASRService: LiveQuranTranscriptionService?
     private var liveSampleWindow = LiveASRSampleWindow()
     private var liveASRRequestScheduler = LiveASRRequestScheduler()
@@ -53,6 +53,7 @@ final class RecitationViewModel {
     private var wordStatesByLocation: [String: WordProgressState] = [:]
     private var displayedPageNumber = 73
     private var focusedReference: RecitationWordReference?
+    private var lastCompletedReference: RecitationWordReference?
     private var referenceScopeCache: ReferenceScopeCache?
 
     init(repository: QuranRepository? = AppQuranRepositoryFactory.makeRepository()) {
@@ -114,6 +115,7 @@ final class RecitationViewModel {
                 snapshot = reducer.reduce(.placeLocked(ayah: startAyah, word: 1))
                 isRecording = true
                 sessionStartedAt = Date()
+                lastCompletedReference = nil
                 debugTranscript = ""
                 liveASRTimingProbe.recordingStarted(atNanoseconds: nowNanoseconds())
                 asrLogger.info("live_asr_timing event=recording_started")
@@ -160,6 +162,7 @@ final class RecitationViewModel {
         clearAndResetProvisionalInitialHighlightState()
         snapshot = reducer.reduce(.stop)
         isRecording = false
+        lastCompletedReference = nil
         resetAudioLevel()
     }
 
@@ -170,8 +173,9 @@ final class RecitationViewModel {
             endedAt: Date(),
             surah: selectedSurah,
             startAyah: startAyah,
+            lastSurah: lastCompletedReference?.surah ?? selectedSurah,
             lastAyah: snapshot.currentAyah ?? startAyah,
-            lastWord: max(1, min(wordProgress.count, snapshot.completedWordCount)),
+            lastWord: lastCompletedReference?.wordIndex ?? max(1, min(wordProgress.count, snapshot.completedWordCount)),
             completedWordCount: snapshot.completedWordCount,
             correctionEvents: snapshot.correctionEvents
         )
@@ -186,6 +190,7 @@ final class RecitationViewModel {
             let selectedPageNumber = repository?.pageNumber(surah: selectedSurah, ayah: startAyah) ?? selectedSurah
             displayedPageNumber = selectedPageNumber
             focusedReference = nil
+            lastCompletedReference = nil
             let words = try repository?.words(surah: selectedSurah, ayah: startAyah) ?? []
             wordProgress = words.map { WordProgress(wordIndex: $0.wordIndex, text: $0.text, state: .pending) }
             if !wordProgress.isEmpty {
@@ -496,6 +501,7 @@ final class RecitationViewModel {
         for reference in references.prefix(completedOffset + 1) {
             wordStatesByLocation[reference.location] = .completed
         }
+        lastCompletedReference = completedWord
 
         let focusedReference: RecitationWordReference
         if references.indices.contains(completedOffset + 1) {
