@@ -353,6 +353,26 @@
         "jq empty feature_list.json"
       ],
       "evidence": "Implemented on 2026-06-18. Added root `README.md` with the app intro, logo image, Page URL, latest release link, feature list, tech stack, repository layout, local development commands, and privacy notes. Baseline checks before README edits passed: `swift test` executed 130 tests with 1 expected skip and 0 failures; `swift build` completed successfully. Final checks after edits passed: `jq empty feature_list.json`; `swift test` executed 130 tests with 1 expected skip and 0 failures; `swift build` completed successfully."
+    },
+    {
+      "id": "readme-demo-gif-001",
+      "name": "README Feature Demo GIF",
+      "description": "Add the provided Hifz Tracker animated demo GIF under the README features section.",
+      "dependencies": ["readme-github-001"],
+      "status": "done",
+      "done_criteria": [
+        "The provided GIF is copied into a tracked repository asset path",
+        "README.md renders the GIF directly under the Features heading",
+        "The GIF has descriptive alternate text",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "test -f docs/assets/hifztracker-demo.gif",
+        "jq empty feature_list.json",
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Implemented on 2026-06-18. Copied the provided 5.5 MB GIF to `docs/assets/hifztracker-demo.gif` and added a centered README image under the `## Features` heading with descriptive alt text. Final validation and SwiftPM checks are recorded in progress.md."
     }
   ]
 }

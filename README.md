@@ -12,6 +12,10 @@ Hifz Tracker is a private, offline-first macOS app for Quran memorization practi
 
 ## Features
 
+<p align="center">
+  <img src="docs/assets/hifztracker-demo.gif" alt="Hifz Tracker recitation session demo" width="860">
+</p>
+
 - Live recitation sessions with surah selection, start-ayah control, recording controls, and session status.
 - QPC V4 Tajweed Mushaf page rendering with automatic page movement as recitation advances.
 - Local ASR-backed progress highlighting through `HifzCore`, Quran reference words, and ONNX Runtime.
