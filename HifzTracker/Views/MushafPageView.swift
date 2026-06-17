@@ -186,14 +186,41 @@ private struct MushafPageNumberFooter: View {
         VStack {
             Spacer()
 
-            Text("\(pageNumber)")
-                .font(.system(size: max(10, pageSize.width * 0.032), weight: .regular, design: .serif))
+            Text(MushafPageNumberFormatter.string(for: pageNumber))
+                .font(.custom(
+                    MushafFontResolver.qpcV4Tajweed.fontName(pageNumber: pageNumber),
+                    size: max(10, pageSize.width * 0.032),
+                    relativeTo: .caption
+                ))
                 .foregroundStyle(Color.black.opacity(0.62))
-                .monospacedDigit()
                 .lineLimit(1)
                 .padding(.bottom, max(8, pageSize.height * 0.012))
         }
         .frame(width: pageSize.width, height: pageSize.height)
+    }
+}
+
+enum MushafPageNumberFormatter {
+    private static let arabicIndicDigits: [Character: Character] = [
+        "0": "٠",
+        "1": "١",
+        "2": "٢",
+        "3": "٣",
+        "4": "٤",
+        "5": "٥",
+        "6": "٦",
+        "7": "٧",
+        "8": "٨",
+        "9": "٩"
+    ]
+
+    static func string(for pageNumber: Int) -> String {
+        String(pageNumber).map { digit in
+            arabicIndicDigits[digit] ?? digit
+        }
+        .reduce(into: "") { result, digit in
+            result.append(digit)
+        }
     }
 }
 

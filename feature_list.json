@@ -219,6 +219,26 @@
         "swift build"
       ],
       "evidence": "Implemented on 2026-06-17 in worktree `.worktrees/hide-ayah-toggle` on branch `codex-hide-ayah-toggle` after `codex/hide-ayah-toggle` branch creation was blocked by local Git ref permissions. Red check: focused hide-mode test filter failed because `RecitationViewModel.hideRecitationText`, `isMushafTextVisible`, `MushafWordGlyphPresentation`, and `MushafPageRenderer.visibilityProvider` did not exist. Green focused check passed 7 hide-mode tests. Final post-artifact checks: `swift test` passed 119 tests with 2 expected skips and 0 failures; `swift build` completed successfully. Local merge checks on `main`: `swift test` passed 119 tests with 1 expected skip and 0 failures; `swift build` completed successfully."
+    },
+    {
+      "id": "hide-ayah-polish-001",
+      "name": "Hide Ayah UI Polish",
+      "description": "Rename the Hide toggle label to Hide Ayah and render the Mushaf page footer number with Arabic-Indic digits in the Quran page font.",
+      "dependencies": ["hide-ayah-toggle-001"],
+      "status": "done",
+      "done_criteria": [
+        "The recitation setup row label reads Hide Ayah",
+        "The Mushaf page footer renders Arabic-Indic numerals instead of Latin digits",
+        "The page footer uses the same QPC page font family path as Mushaf glyph text",
+        "Focused formatter coverage verifies Arabic-Indic digit conversion",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter MushafPageCanvasViewTests",
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Implemented on 2026-06-17 on main. Baseline checks before edits: `swift test` passed 119 tests with 1 expected skip and 0 failures; `swift build` completed successfully. Focused check after edits: `swift test --filter MushafPageCanvasViewTests` passed 6 tests with 0 failures. Final and pre-push checks: `swift test` passed 120 tests with 1 expected skip and 0 failures; `swift build` completed successfully."
     }
   ]
 }

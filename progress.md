@@ -2,9 +2,9 @@
 
 ## Current State
 
-**Last Updated:** 2026-06-17 21:18 EEST
-**Session ID:** hide-ayah-toggle-2026-06-17
-**Active Feature:** `hide-ayah-toggle-001` - merged locally to `main` and verified.
+**Last Updated:** 2026-06-17 21:49 EEST
+**Session ID:** hide-ayah-polish-2026-06-17
+**Active Feature:** `hide-ayah-polish-001` - implemented on `main`; final verification passed.
 
 ## Status
 
@@ -27,6 +27,11 @@
 - [x] Committed feature branch as `7e57eed Add hide ayah toggle`.
 - [x] Fast-forward merged `codex-hide-ayah-toggle` into `main`.
 - [x] Removed `.worktrees/hide-ayah-toggle` and deleted the merged local feature branch.
+- [x] Renamed the setup row label from `Hide` to `Hide Ayah`.
+- [x] Added `MushafPageNumberFormatter` to render Arabic-Indic page footer digits.
+- [x] Applied the QPC page font path to the Mushaf page footer number.
+- [x] Added focused formatter coverage in `MushafPageCanvasViewTests`.
+- [x] Added `hide-ayah-polish-001` to `feature_list.json`.
 
 ### What's In Progress
 
@@ -34,7 +39,7 @@
 
 ### What's Next
 
-1. Optionally launch the app and visually smoke-test Hide mode with real Mushaf pages.
+1. Optionally launch the app and visually smoke-test the Hide Ayah row and Arabic page number.
 
 ## Blockers / Risks
 
@@ -51,20 +56,16 @@
 - **Practical markers:** Surah headers and basmallah remain visible; embedded ayah markers reveal with their carrying glyph.
 - **Worktree branch:** The intended `codex/hide-ayah-toggle` branch name could not be created here, so the feature branch is `codex-hide-ayah-toggle`.
 - **Local merge:** `codex-hide-ayah-toggle` was merged to `main` as a fast-forward and then deleted.
+- **Page footer digits:** The footer remains a plain page number, now formatted with Arabic-Indic digits and the QPC page font instead of adding a decorative circle.
 
 ## Files Modified This Session
 
-- `HifzTracker/Services/RecitationViewModel.swift` - Added session-only hide flag and text visibility helpers.
-- `HifzTracker/Views/RecitationSidebarView.swift` - Added the Hide toggle under Start ayah.
-- `HifzTracker/Views/MushafPageView.swift` - Threaded visibility into Mushaf/fallback rendering and added fallback presentation helper.
-- `HifzTracker/Views/MushafPageCanvasView.swift` - Passed text visibility into the AppKit drawing view.
-- `Sources/HifzCore/MushafPageRenderer.swift` - Added defaulted `visibilityProvider` support and hidden-word drawing.
-- `Tests/HifzTrackerTests/RecitationViewModelTests.swift` - Added hide-mode visibility tests.
-- `Tests/HifzCoreTests/MushafPageRendererTests.swift` - Added renderer hidden-word pixel test.
-- `Tests/HifzTrackerTests/MushafWordGlyphPresentationTests.swift` - Added fallback no-leak tests.
-- `feature_list.json` - Added `hide-ayah-toggle-001`.
+- `HifzTracker/Views/RecitationSidebarView.swift` - Renamed the Hide row label to Hide Ayah.
+- `HifzTracker/Views/MushafPageView.swift` - Added Arabic-Indic page-number formatting and QPC font styling for the footer.
+- `Tests/HifzTrackerTests/MushafPageCanvasViewTests.swift` - Added page-number formatter coverage.
+- `feature_list.json` - Added `hide-ayah-polish-001`.
 - `progress.md` - Recorded current state and evidence.
-- `session-handoff.md` - Updated restart notes for this worktree.
+- `session-handoff.md` - Updated restart notes for this polish.
 
 ## Evidence of Completion
 
@@ -77,7 +78,14 @@
 - [x] Final post-artifact `swift build` completed successfully.
 - [x] Merged `main` verification: `swift test` passed 119 tests with 1 expected skip and 0 failures.
 - [x] Merged `main` verification: `swift build` completed successfully.
+- [x] Polish baseline `swift test` passed 119 tests with 1 expected skip and 0 failures.
+- [x] Polish baseline `swift build` completed successfully.
+- [x] Focused polish check: `swift test --filter MushafPageCanvasViewTests` passed 6 tests with 0 failures.
+- [x] Final polish `swift test` passed 120 tests with 1 expected skip and 0 failures.
+- [x] Final polish `swift build` completed successfully.
+- [x] Pre-push `swift test` passed 120 tests with 1 expected skip and 0 failures.
+- [x] Pre-push `swift build` completed successfully.
 
 ## Notes for Next Session
 
-Start in `/Users/mostafa/Downloads/Coding_Projects/hifz-tracker` on `main`. The hide ayah toggle feature is merged locally; the temporary feature worktree and branch have been removed.
+Start in `/Users/mostafa/Downloads/Coding_Projects/hifz-tracker` on `main`. The hide ayah polish changes are currently uncommitted until the final verification pass completes.

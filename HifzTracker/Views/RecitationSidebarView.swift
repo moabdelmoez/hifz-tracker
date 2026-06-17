@@ -71,7 +71,7 @@ private struct RecitationSetupSection: View {
                 Divider()
 
                 HStack(spacing: 8) {
-                    Text("Hide")
+                    Text("Hide Ayah")
                         .foregroundStyle(.primary)
                     Spacer(minLength: 8)
                     Toggle("Hide recitation text", isOn: $viewModel.hideRecitationText)

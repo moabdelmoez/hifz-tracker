@@ -3,6 +3,11 @@ import XCTest
 @testable import HifzTracker
 
 final class MushafPageCanvasViewTests: XCTestCase {
+    func testMushafPageNumberUsesArabicIndicDigits() {
+        XCTAssertEqual(MushafPageNumberFormatter.string(for: 574), "٥٧٤")
+        XCTAssertEqual(MushafPageNumberFormatter.string(for: 3), "٣")
+    }
+
     @MainActor
     func testDrawingViewLetsSwiftUIFrameControlCanvasSize() {
         let view = MushafPageDrawingView()

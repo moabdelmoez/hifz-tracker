@@ -2,11 +2,11 @@
 
 ## Current Objective
 
-- Goal: Add a session-only Hide toggle under Start ayah that hides recitation text from the selected start ayah onward until words are recited or flagged.
-- Current status: Merged locally to `main`, verified, and cleaned up.
-- Worktree: removed after merge.
-- Branch: `codex-hide-ayah-toggle` deleted after merge.
-- Commit status: `main` contains `7e57eed Add hide ayah toggle`.
+- Goal: Polish the Hide Ayah UI by renaming the toggle row and rendering the Mushaf page footer number with Arabic-Indic digits.
+- Current status: Implemented on `main`; final verification passed.
+- Worktree: not used for this small follow-up.
+- Branch: `main`.
+- Commit status: Uncommitted polish changes are present.
 
 ## Completed This Session
 
@@ -26,6 +26,11 @@
 - [x] Committed the feature branch as `7e57eed Add hide ayah toggle`.
 - [x] Fast-forward merged the feature branch into `main`.
 - [x] Removed `.worktrees/hide-ayah-toggle` and deleted `codex-hide-ayah-toggle`.
+- [x] Renamed the setup row label from `Hide` to `Hide Ayah`.
+- [x] Added Arabic-Indic page-number formatting for the Mushaf footer.
+- [x] Styled the page footer number with the QPC page font path.
+- [x] Added focused formatter coverage.
+- [x] Added `hide-ayah-polish-001` to `feature_list.json`.
 
 ## Verification Evidence
 
@@ -40,17 +45,19 @@
 | Final post-artifact build | same `swift build` command | Passed | Debug build completed successfully. |
 | Merged main test | same full `swift test` command | Passed | 119 tests, 1 expected skip, 0 failures. |
 | Merged main build | same `swift build` command | Passed | Debug build completed successfully. |
+| Polish baseline test | same full `swift test` command | Passed | 119 tests, 1 expected skip, 0 failures. |
+| Polish baseline build | same `swift build` command | Passed | Debug build completed successfully. |
+| Focused polish test | `swift test --filter MushafPageCanvasViewTests` | Passed | 6 tests, 0 failures. |
+| Final polish test | same full `swift test` command | Passed | 120 tests, 1 expected skip, 0 failures. |
+| Final polish build | same `swift build` command | Passed | Debug build completed successfully. |
+| Pre-push test | same full `swift test` command | Passed | 120 tests, 1 expected skip, 0 failures. |
+| Pre-push build | same `swift build` command | Passed | Debug build completed successfully. |
 
 ## Files Changed
 
-- `HifzTracker/Services/RecitationViewModel.swift`
 - `HifzTracker/Views/RecitationSidebarView.swift`
 - `HifzTracker/Views/MushafPageView.swift`
-- `HifzTracker/Views/MushafPageCanvasView.swift`
-- `Sources/HifzCore/MushafPageRenderer.swift`
-- `Tests/HifzTrackerTests/RecitationViewModelTests.swift`
-- `Tests/HifzCoreTests/MushafPageRendererTests.swift`
-- `Tests/HifzTrackerTests/MushafWordGlyphPresentationTests.swift`
+- `Tests/HifzTrackerTests/MushafPageCanvasViewTests.swift`
 - `feature_list.json`
 - `progress.md`
 - `session-handoff.md`
