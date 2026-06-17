@@ -2,61 +2,61 @@
 
 ## Current Objective
 
-- Goal: Implement the Session Voice Activity Indicator UI.
-- Current status: Complete and verified; rejected custom blob code was replaced with a four-circle macOS-soft recording indicator.
+- Goal: Add on-device timing instrumentation for the live ASR/highlighting path.
+- Current status: Complete and verified; timing logs are emitted without changing ASR model, locator, repository, or Mushaf rendering behavior.
 - Branch / commit: `main`, no commit made in this session.
 
 ## Completed This Session
 
-- [x] Replaced `next-001` with `voice-wave-001` in `feature_list.json`.
-- [x] Replaced the rejected custom voice blob with a four-circle macOS-soft activity indicator under the Session metadata.
-- [x] Wired activity to `viewModel.isRecording`, with Reduce Motion pausing the stepping animation.
-- [x] Removed `RecitationWaveformView`, `RecitationVoiceBlobLayout`, and the lobe geometry tests.
-- [x] Added `VoiceActivityIndicatorTests` for circle count, highlight wraparound, and the 320 ms step interval.
-- [x] Removed the gray Session summary material card while preserving metadata alignment.
-- [x] Changed the Session ayah label to follow the view model's focused ayah.
-- [x] Added a centered page number overlay at the bottom of the Mushaf page.
-- [x] Added a regression test for displayed ayah advancing to the next tracked ayah.
-- [x] Updated `progress.md` with evidence and current state.
+- [x] Added `live-asr-timing-001` to `feature_list.json`.
+- [x] Added `LiveASRTimingProbe` with deterministic timestamp inputs and reset behavior.
+- [x] Wired recording lifecycle timing reset/start markers into `RecitationViewModel`.
+- [x] Logged ASR window starts and finishes, including processing duration.
+- [x] Logged one-time first transcript latency per recording.
+- [x] Logged transcript interval and running average interval after multiple transcript completions.
+- [x] Logged pending-window storage while transcription is busy.
+- [x] Logged pending-window handoff starts when the scheduler immediately starts the newest pending window.
+- [x] Logged highlight application after a transcript advances located progress.
+- [x] Added focused unit tests for the timing probe.
+- [x] Updated `progress.md` with evidence and next measurement steps.
 
 ## Verification Evidence
 
 | Check | Command | Result | Notes |
 |---|---|---|---|
-| Red test | `swift test --filter RecitationViewModelTests/testDisplayedAyahFollowsNextTrackedAyahDuringRecitation` | Failed as expected | `displayedAyah` was missing before production edits. |
-| Focused test | `swift test --filter RecitationViewModelTests/testDisplayedAyahFollowsNextTrackedAyahDuringRecitation` | Passed | Confirms displayed ayah follows the next tracked ayah. |
-| Indicator red check | `swift test --filter VoiceActivityIndicatorTests` | Failed as expected | `VoiceActivityIndicatorMetrics` did not exist before production edits. |
-| Indicator regression | `swift test --filter VoiceActivityIndicatorTests` | Passed | 3 indicator tests cover circle count, wraparound, and 320 ms cadence. |
-| Standard verification | `swift test` | Passed | 77 tests passed; 1 existing local audio audit skipped by opt-in flag. |
-| Standard verification | `swift build` | Passed | Debug build completed successfully. |
-| Cleanup check | `rg "RecitationVoiceBlobLayout|RecitationWaveformView\\(" HifzTracker Tests` | Passed | No matches. |
-| Static checks | `python3 -m json.tool feature_list.json`; `git diff --check` | Passed | JSON valid and no whitespace errors. |
+| Red test | `swift test --filter LiveASRTimingProbeTests` | Failed as expected | `LiveASRTimingProbe` did not exist before production edits. |
+| Focused regression | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift test --filter LiveASRTimingProbeTests` | Passed | 3 timing-probe tests, 0 failures. |
+| Standard verification | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift test` | Passed | 80 tests passed; 1 existing local audio audit skipped by opt-in flag. |
+| Standard verification | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift build` | Passed | Debug build completed successfully. |
 
 ## Files Changed
 
+- `HifzTracker/Services/LiveASRTimingProbe.swift`
 - `HifzTracker/Services/RecitationViewModel.swift`
-- `HifzTracker/Views/RecitationSidebarView.swift`
-- `HifzTracker/Views/RecitationWaveformView.swift`
-- `HifzTracker/Views/MushafPageView.swift`
-- `Tests/HifzTrackerTests/VoiceActivityIndicatorTests.swift`
-- `Tests/HifzTrackerTests/RecitationViewModelTests.swift`
+- `Tests/HifzTrackerTests/LiveASRTimingProbeTests.swift`
 - `feature_list.json`
 - `progress.md`
 - `session-handoff.md`
 
 ## Decisions Made
 
-- Keep the change UI-scoped in `HifzTracker`; no `HifzCore` public API changes.
-- Use a private `VoiceActivityIndicator` in the Session summary rather than a reusable waveform/blob component.
-- Keep `audioLevel` in the view model for capture/metering internals, but do not use it for this indicator.
-- Use local macOS-soft indicator colors because `AppTheme` does not exist in this repo.
-- Put the Mushaf page number in the SwiftUI canvas stack overlay to avoid changing renderer layout metrics.
-- Skip release checks because this did not touch release assets, signing, packaging, or distribution flow.
+- Keep this pass instrumentation-only: no model, locator, repository, Mushaf rendering, cadence, or scheduler behavior changes.
+- Use the existing ASR OSLog subsystem/category with `live_asr_timing` in every timing event.
+- Emit `-1` for timing fields that do not apply yet, such as first latency after the first transcript or interval before a second transcript.
+- Separate `pending_window_stored` from `pending_window_handoff_started` so logs can show both queue pressure and actual handoff starts.
+- Keep timing tests unit-level and deterministic by injecting nanosecond timestamps.
+
+## Useful Log Filter
+
+```bash
+log show --last 10m --style compact --predicate 'subsystem == "dev.mostafa.HifzTracker" && category == "ASR" && eventMessage CONTAINS "live_asr_timing"'
+```
 
 ## Blockers / Risks
 
 - No blockers.
-- Runtime visual inspection was not performed; the code path is covered by build and tests.
+- On-device timing data still needs to be captured in a real recitation session before picking the next optimization.
+- Release checks were skipped because this did not touch release assets, signing, packaging, or distribution flow.
 
 ## Next Session Startup
 
@@ -66,4 +66,4 @@
 
 ## Recommended Next Step
 
-- Visually inspect the app window if additional polish is desired.
+- Run the app on-device, recite a short passage, collect `live_asr_timing` logs, and compare first transcript latency, average transcript interval, pending handoffs, and ASR processing time per window.

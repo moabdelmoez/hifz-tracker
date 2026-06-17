@@ -38,6 +38,28 @@
         "swift build"
       ],
       "evidence": "Implemented on 2026-06-16 and refined on 2026-06-17. Red check: `swift test --filter RecitationViewModelTests/testDisplayedAyahFollowsNextTrackedAyahDuringRecitation` initially failed because `displayedAyah` did not exist. Follow-up replacement red check: `swift test --filter VoiceActivityIndicatorTests` failed because `VoiceActivityIndicatorMetrics` did not exist. Removed the custom blob layout and wired a private four-circle macOS-soft indicator to `viewModel.isRecording`; final checks: `swift test` passed 77 tests with 1 existing opt-in local audio audit skipped; `swift build` completed successfully; cleanup search found no `RecitationVoiceBlobLayout` or `RecitationWaveformView(` matches in HifzTracker/Tests."
+    },
+    {
+      "id": "live-asr-timing-001",
+      "name": "Live ASR Timing Instrumentation",
+      "description": "Add lightweight on-device timing logs for the live ASR path so first transcript latency, transcript cadence, pending-window handoffs, and ASR processing time can be measured before choosing the next optimization.",
+      "dependencies": ["voice-wave-001"],
+      "status": "done",
+      "done_criteria": [
+        "Recording start emits a live ASR timing marker",
+        "Each ASR window logs start and finish timing with processing duration",
+        "First transcript latency is reported once per recording session",
+        "Transcript interval and average interval are reported after multiple transcripts",
+        "Pending-window storage and pending handoff starts are logged separately",
+        "Timing math is covered by focused unit tests",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter LiveASRTimingProbeTests",
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Implemented on 2026-06-17. Added `LiveASRTimingProbe`, wired `RecitationViewModel` to emit `live_asr_timing` OSLog events for recording start, transcription start/finish, pending-window storage, pending-window handoff start, and highlight application. Final checks: `swift test --filter LiveASRTimingProbeTests` passed 3 tests; `swift test` passed 80 tests with 1 existing opt-in local audio audit skipped; `swift build` completed successfully."
     }
   ]
 }

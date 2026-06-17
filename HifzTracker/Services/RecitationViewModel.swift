@@ -43,6 +43,7 @@ final class RecitationViewModel {
     private var liveASRService: LiveQuranTranscriptionService?
     private var liveSampleWindow = LiveASRSampleWindow()
     private var liveASRRequestScheduler = LiveASRRequestScheduler()
+    private var liveASRTimingProbe = LiveASRTimingProbe()
     private var audioLevelMeter = AudioLevelMeter()
     private var transcriptionTask: Task<Void, Never>?
     private var wordStatesByLocation: [String: WordProgressState] = [:]
@@ -109,10 +110,13 @@ final class RecitationViewModel {
                 isRecording = true
                 sessionStartedAt = Date()
                 debugTranscript = ""
+                liveASRTimingProbe.recordingStarted(atNanoseconds: nowNanoseconds())
+                asrLogger.info("live_asr_timing event=recording_started")
             } catch {
                 asrLogger.error("start_failed error=\(error.localizedDescription, privacy: .public)")
                 snapshot = reducer.reduce(.fail(error.localizedDescription))
                 isRecording = false
+                liveASRTimingProbe.reset()
                 resetAudioLevel()
             }
         }
@@ -146,6 +150,7 @@ final class RecitationViewModel {
         liveASRService = nil
         liveSampleWindow.reset()
         liveASRRequestScheduler.reset()
+        liveASRTimingProbe.reset()
         transcriptLocator.reset()
         snapshot = reducer.reduce(.stop)
         isRecording = false
@@ -232,15 +237,39 @@ final class RecitationViewModel {
     }
 
     private func submitLiveASRWindow(_ samples: [Float], service: LiveQuranTranscriptionService) {
-        guard let requestSamples = liveASRRequestScheduler.submit(samples) else { return }
+        guard let requestSamples = liveASRRequestScheduler.submit(samples) else {
+            let metrics = liveASRTimingProbe.pendingWindowStored(
+                sampleCount: samples.count,
+                sampleRate: liveSampleWindow.sampleRate,
+                atNanoseconds: nowNanoseconds()
+            )
+            logLiveASRPendingWindow(metrics)
+            return
+        }
         startLiveASRTranscription(samples: requestSamples, service: service)
     }
 
     private func startLiveASRTranscription(samples: [Float], service: LiveQuranTranscriptionService) {
-        transcriptionTask = Task { [weak self, service, samples] in
+        let timingToken = liveASRTimingProbe.transcriptionStarted(
+            sampleCount: samples.count,
+            sampleRate: liveSampleWindow.sampleRate,
+            atNanoseconds: nowNanoseconds()
+        )
+        logLiveASRTranscriptionStarted(timingToken)
+
+        transcriptionTask = Task { [weak self, service, samples, timingToken] in
             do {
                 let transcript = try await service.transcribe(samples: samples)
-                self?.applyASRTranscript(transcript)
+                guard let self else { return }
+                let metrics = self.liveASRTimingProbe.transcriptionFinished(
+                    timingToken,
+                    atNanoseconds: self.nowNanoseconds()
+                )
+                self.logLiveASRTranscriptionFinished(metrics)
+                let didApplyHighlight = self.applyASRTranscript(transcript)
+                if didApplyHighlight {
+                    self.logLiveASRHighlightApplied(windowID: timingToken.windowID)
+                }
             } catch is CancellationError {
             } catch {
                 asrLogger.error("transcribe_failed error=\(error.localizedDescription, privacy: .public)")
@@ -257,11 +286,47 @@ final class RecitationViewModel {
             return
         }
         guard let pendingSamples = liveASRRequestScheduler.completeActiveRequest() else { return }
+        let metrics = liveASRTimingProbe.pendingWindowHandedOff(
+            sampleCount: pendingSamples.count,
+            sampleRate: liveSampleWindow.sampleRate,
+            atNanoseconds: nowNanoseconds()
+        )
+        logLiveASRPendingWindowHandoff(metrics)
         startLiveASRTranscription(samples: pendingSamples, service: service)
     }
 
-    private func applyASRTranscript(_ transcript: QuranSTTTranscript) {
-        guard isRecording else { return }
+    private func nowNanoseconds() -> UInt64 {
+        DispatchTime.now().uptimeNanoseconds
+    }
+
+    private func logLiveASRPendingWindow(_ metrics: LiveASRTimingProbe.PendingWindowMetrics) {
+        let elapsedMilliseconds = metrics.elapsedSinceRecordingStartMilliseconds ?? -1
+        asrLogger.info("live_asr_timing event=pending_window_stored pending_store_count=\(metrics.pendingWindowStoreCount, privacy: .public) sample_count=\(metrics.sampleCount, privacy: .public) audio_ms=\(metrics.audioMilliseconds, privacy: .public) elapsed_since_recording_start_ms=\(elapsedMilliseconds, privacy: .public)")
+    }
+
+    private func logLiveASRPendingWindowHandoff(_ metrics: LiveASRTimingProbe.PendingWindowHandoffMetrics) {
+        let elapsedMilliseconds = metrics.elapsedSinceRecordingStartMilliseconds ?? -1
+        asrLogger.info("live_asr_timing event=pending_window_handoff_started handoff_count=\(metrics.pendingHandoffCount, privacy: .public) sample_count=\(metrics.sampleCount, privacy: .public) audio_ms=\(metrics.audioMilliseconds, privacy: .public) elapsed_since_recording_start_ms=\(elapsedMilliseconds, privacy: .public)")
+    }
+
+    private func logLiveASRTranscriptionStarted(_ token: LiveASRTimingProbe.TranscriptionToken) {
+        asrLogger.info("live_asr_timing event=transcription_started window_id=\(token.windowID, privacy: .public) sample_count=\(token.sampleCount, privacy: .public) audio_ms=\(token.audioMilliseconds, privacy: .public)")
+    }
+
+    private func logLiveASRTranscriptionFinished(_ metrics: LiveASRTimingProbe.TranscriptionFinishedMetrics) {
+        let firstLatencyMilliseconds = metrics.firstTranscriptLatencyMilliseconds ?? -1
+        let intervalMilliseconds = metrics.transcriptIntervalMilliseconds ?? -1
+        let averageIntervalMilliseconds = metrics.averageTranscriptIntervalMilliseconds ?? -1
+        asrLogger.info("live_asr_timing event=transcription_finished window_id=\(metrics.windowID, privacy: .public) sample_count=\(metrics.sampleCount, privacy: .public) audio_ms=\(metrics.audioMilliseconds, privacy: .public) processing_ms=\(metrics.processingMilliseconds, privacy: .public) first_transcript_latency_ms=\(firstLatencyMilliseconds, privacy: .public) transcript_interval_ms=\(intervalMilliseconds, privacy: .public) average_transcript_interval_ms=\(averageIntervalMilliseconds, privacy: .public)")
+    }
+
+    private func logLiveASRHighlightApplied(windowID: Int) {
+        asrLogger.info("live_asr_timing event=highlight_applied window_id=\(windowID, privacy: .public)")
+    }
+
+    @discardableResult
+    private func applyASRTranscript(_ transcript: QuranSTTTranscript) -> Bool {
+        guard isRecording else { return false }
 
         debugTranscript = transcript.text
         let recognizedWords = QuranTextNormalizer
@@ -270,16 +335,16 @@ final class RecitationViewModel {
             .map(String.init)
         guard !recognizedWords.isEmpty else {
             _ = markFindingPlaceIfNeeded()
-            return
+            return false
         }
 
-        guard let referenceIndex = referenceIndexForSelectedSurah() else { return }
+        guard let referenceIndex = referenceIndexForSelectedSurah() else { return false }
         let expectedReferences = referenceIndex.expected
-        guard !expectedReferences.isEmpty else { return }
+        guard !expectedReferences.isEmpty else { return false }
 
         guard let location = transcriptLocator.locate(index: referenceIndex, recognizedWords: recognizedWords) else {
             _ = markFindingPlaceIfNeeded()
-            return
+            return false
         }
 
         snapshot = reducer.reduce(.progressAdvanced(
@@ -287,6 +352,7 @@ final class RecitationViewModel {
             completedWordCount: location.completedThrough.wordIndex
         ))
         applyLocatedProgress(through: location.completedThrough, references: expectedReferences)
+        return true
     }
 
     func applyLocatedProgress(through completedWord: RecitationWordReference, references: [RecitationWordReference]) {
