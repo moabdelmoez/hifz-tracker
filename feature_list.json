@@ -218,7 +218,7 @@
         "swift test",
         "swift build"
       ],
-      "evidence": "Implemented on 2026-06-17 in worktree `.worktrees/hide-ayah-toggle` on branch `codex-hide-ayah-toggle` after `codex/hide-ayah-toggle` branch creation was blocked by local Git ref permissions. Red check: focused hide-mode test filter failed because `RecitationViewModel.hideRecitationText`, `isMushafTextVisible`, `MushafWordGlyphPresentation`, and `MushafPageRenderer.visibilityProvider` did not exist. Green focused check passed 7 hide-mode tests. Final post-artifact checks: `swift test` passed 119 tests with 2 expected skips and 0 failures; `swift build` completed successfully."
+      "evidence": "Implemented on 2026-06-17 in worktree `.worktrees/hide-ayah-toggle` on branch `codex-hide-ayah-toggle` after `codex/hide-ayah-toggle` branch creation was blocked by local Git ref permissions. Red check: focused hide-mode test filter failed because `RecitationViewModel.hideRecitationText`, `isMushafTextVisible`, `MushafWordGlyphPresentation`, and `MushafPageRenderer.visibilityProvider` did not exist. Green focused check passed 7 hide-mode tests. Final post-artifact checks: `swift test` passed 119 tests with 2 expected skips and 0 failures; `swift build` completed successfully. Local merge checks on `main`: `swift test` passed 119 tests with 1 expected skip and 0 failures; `swift build` completed successfully."
     }
   ]
 }

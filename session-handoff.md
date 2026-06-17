@@ -3,10 +3,10 @@
 ## Current Objective
 
 - Goal: Add a session-only Hide toggle under Start ayah that hides recitation text from the selected start ayah onward until words are recited or flagged.
-- Current status: Implementation complete in isolated worktree; final verification passed.
-- Worktree: `.worktrees/hide-ayah-toggle`.
-- Branch: `codex-hide-ayah-toggle`.
-- Commit status: Uncommitted feature changes in the worktree.
+- Current status: Merged locally to `main`, verified, and cleaned up.
+- Worktree: removed after merge.
+- Branch: `codex-hide-ayah-toggle` deleted after merge.
+- Commit status: `main` contains `7e57eed Add hide ayah toggle`.
 
 ## Completed This Session
 
@@ -23,6 +23,9 @@
 - [x] Added focused tests for hide-mode visibility, renderer suppression, and fallback no-leak behavior.
 - [x] Added `hide-ayah-toggle-001` to `feature_list.json`.
 - [x] Updated `progress.md` and this handoff.
+- [x] Committed the feature branch as `7e57eed Add hide ayah toggle`.
+- [x] Fast-forward merged the feature branch into `main`.
+- [x] Removed `.worktrees/hide-ayah-toggle` and deleted `codex-hide-ayah-toggle`.
 
 ## Verification Evidence
 
@@ -35,6 +38,8 @@
 | Pre-artifact full check | `swift test` with temp module caches | Passed | 119 tests, 2 expected skips, 0 failures. |
 | Final post-artifact test | same full `swift test` command | Passed | 119 tests, 2 expected skips, 0 failures. |
 | Final post-artifact build | same `swift build` command | Passed | Debug build completed successfully. |
+| Merged main test | same full `swift test` command | Passed | 119 tests, 1 expected skip, 0 failures. |
+| Merged main build | same `swift build` command | Passed | Debug build completed successfully. |
 
 ## Files Changed
 
@@ -52,10 +57,9 @@
 
 ## Restart Notes
 
-1. `cd /Users/mostafa/Downloads/Coding_Projects/hifz-tracker/.worktrees/hide-ayah-toggle`
-2. Confirm branch `codex-hide-ayah-toggle`.
-3. If local ignored asset symlinks are absent, recreate links from `/Users/mostafa/Downloads/Coding_Projects/hifz-tracker`.
-4. Run the cache-safe `swift test` and `swift build` commands from `AGENTS.md`.
+1. `cd /Users/mostafa/Downloads/Coding_Projects/hifz-tracker`
+2. Confirm branch `main`.
+3. Run the cache-safe `swift test` and `swift build` commands from `AGENTS.md`.
 
 ## Risks
 
