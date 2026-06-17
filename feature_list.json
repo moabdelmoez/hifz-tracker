@@ -332,6 +332,27 @@
         "gh auth status"
       ],
       "evidence": "Repo-side Pages site implemented on 2026-06-18 with `docs/index.html`, `docs/styles.css`, `docs/.nojekyll`, and `docs/assets/hifz-tracker-icon.png`. Baseline and final checks passed: `swift test` executed 130 tests with 1 expected skip and 0 failures; `swift build` completed successfully. Browser verification served `docs/` locally and confirmed desktop 1280x720 and mobile 390x844 render with images loaded, stable latest-release download URL, visible next-section hint, and no horizontal overflow. `./script/release_checks.sh release` passed tests/builds/staged bundle signing checks but exited 1 at release-only signing assessment; `security find-identity -p codesigning -v` reported 0 valid identities and `spctl -a -vv dist/HifzTracker.app` returned `internal error in Code Signing subsystem`. `gh auth status` reported the moabdelmoez token is invalid, so GitHub Release upload and Pages settings activation remain externally blocked."
+    },
+    {
+      "id": "readme-github-001",
+      "name": "GitHub Repository README",
+      "description": "Add a root GitHub README covering the app intro, tech stack, logo, project page URL, features, local development, and privacy notes.",
+      "dependencies": ["github-pages-site-001"],
+      "status": "done",
+      "done_criteria": [
+        "README.md introduces Hifz Tracker as a private offline-first macOS Quran memorization app",
+        "README.md displays or references the repository logo",
+        "README.md links to the GitHub Pages project URL",
+        "README.md summarizes user-facing features",
+        "README.md lists the repo's tech stack and key local development commands",
+        "Baseline verification evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test",
+        "swift build",
+        "jq empty feature_list.json"
+      ],
+      "evidence": "Implemented on 2026-06-18. Added root `README.md` with the app intro, logo image, Page URL, latest release link, feature list, tech stack, repository layout, local development commands, and privacy notes. Baseline checks before README edits passed: `swift test` executed 130 tests with 1 expected skip and 0 failures; `swift build` completed successfully. Final checks after edits passed: `jq empty feature_list.json`; `swift test` executed 130 tests with 1 expected skip and 0 failures; `swift build` completed successfully."
     }
   ]
 }
