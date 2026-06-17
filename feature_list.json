@@ -196,6 +196,29 @@
         "swift build"
       ],
       "evidence": "Implemented on 2026-06-17 on branch `codex/dashboard-surah-progress`. Red check: `swift test --filter DashboardProgressCalculatorTests` failed because `DashboardProgressCalculator` did not exist and `SessionRecord` had no `lastSurah` argument. Red check: focused storage/session test failed because `StoredSessionRecord.lastSurah` was missing and `sessionStartedAt` was private. Final focused checks passed 8 dashboard/storage/session tests. Full `swift test` passed 112 tests with 1 expected local-audio audit skipped and 0 failures. `swift build` completed successfully."
+    },
+    {
+      "id": "hide-ayah-toggle-001",
+      "name": "Hide Ayah Toggle",
+      "description": "Add a session-only Hide toggle under Start ayah that hides recitation text from the selected start ayah onward until words are recited or flagged by feedback.",
+      "dependencies": ["dashboard-surah-progress-001"],
+      "status": "done",
+      "done_criteria": [
+        "A Hide toggle renders under Start ayah and defaults off for each app/window session",
+        "Hide mode can be changed while recording without resetting recitation state",
+        "Words before the selected start ayah remain visible",
+        "Pending and current recitation words from the selected start onward are hidden",
+        "Completed, provisional, uncertain, and correction-needed recitation words remain visible",
+        "Mushaf rendering preserves page layout while suppressing hidden word glyphs and highlights",
+        "Fallback word grid does not expose hidden glyph text",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter 'RecitationViewModelTests/testHideRecitationText|MushafPageRendererTests/testVisibilityProviderSuppressesHiddenWordsWithoutChangingPageSize|MushafWordGlyphPresentationTests'",
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Implemented on 2026-06-17 in worktree `.worktrees/hide-ayah-toggle` on branch `codex-hide-ayah-toggle` after `codex/hide-ayah-toggle` branch creation was blocked by local Git ref permissions. Red check: focused hide-mode test filter failed because `RecitationViewModel.hideRecitationText`, `isMushafTextVisible`, `MushafWordGlyphPresentation`, and `MushafPageRenderer.visibilityProvider` did not exist. Green focused check passed 7 hide-mode tests. Final post-artifact checks: `swift test` passed 119 tests with 2 expected skips and 0 failures; `swift build` completed successfully."
     }
   ]
 }

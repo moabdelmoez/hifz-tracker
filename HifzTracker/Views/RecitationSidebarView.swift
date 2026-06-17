@@ -67,6 +67,17 @@ private struct RecitationSetupSection: View {
                     )
                     .labelsHidden()
                 }
+
+                Divider()
+
+                HStack(spacing: 8) {
+                    Text("Hide")
+                        .foregroundStyle(.primary)
+                    Spacer(minLength: 8)
+                    Toggle("Hide recitation text", isOn: $viewModel.hideRecitationText)
+                        .labelsHidden()
+                        .help("Hide recitation text until it is recited")
+                }
             }
         }
     }

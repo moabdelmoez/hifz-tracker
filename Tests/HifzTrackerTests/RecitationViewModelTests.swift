@@ -11,6 +11,85 @@ final class RecitationViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.startAyah, 1)
     }
 
+    @MainActor
+    func testHideRecitationTextDefaultsOffAndLeavesMushafWordsVisible() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 1
+        viewModel.startAyah = 1
+
+        XCTAssertFalse(viewModel.hideRecitationText)
+        XCTAssertTrue(viewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 1)))
+        XCTAssertTrue(viewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 2, wordIndex: 1)))
+    }
+
+    @MainActor
+    func testHideRecitationTextKeepsEarlierContextVisibleAndHidesCurrentTargetWord() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 1
+        viewModel.startAyah = 2
+        viewModel.hideRecitationText = true
+
+        XCTAssertTrue(viewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)))
+        XCTAssertFalse(viewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 2, wordIndex: 1)))
+    }
+
+    @MainActor
+    func testHideRecitationTextRevealsCompletedProvisionalAndCorrectionWords() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 1
+        viewModel.startAyah = 1
+        viewModel.hideRecitationText = true
+        let references = Self.references()
+
+        viewModel.applyLocatedProgress(through: references[1], references: references)
+
+        XCTAssertTrue(viewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 1)))
+        XCTAssertTrue(viewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 2)))
+        XCTAssertFalse(viewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)))
+
+        let provisionalViewModel = RecitationViewModel(repository: repository)
+        provisionalViewModel.selectedSurah = 1
+        provisionalViewModel.startAyah = 1
+        provisionalViewModel.hideRecitationText = true
+        provisionalViewModel.applyProvisionalInitialHighlight(
+            through: Self.location(matching: references, range: 0..<2),
+            references: references
+        )
+
+        XCTAssertTrue(provisionalViewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 1)))
+        XCTAssertTrue(provisionalViewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 2)))
+        XCTAssertFalse(provisionalViewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)))
+
+        let correctionViewModel = RecitationViewModel(repository: repository)
+        correctionViewModel.selectedSurah = 1
+        correctionViewModel.startAyah = 1
+        correctionViewModel.hideRecitationText = true
+        correctionViewModel.isRecording = true
+        correctionViewModel.markDemoCorrection()
+
+        XCTAssertTrue(correctionViewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 1)))
+    }
+
+    @MainActor
+    func testHideRecitationTextContinuesAcrossNextSurah() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 100
+        viewModel.startAyah = 11
+        viewModel.hideRecitationText = true
+        viewModel.isRecording = true
+
+        XCTAssertTrue(viewModel.applyASRTranscript(Self.transcript("hundred final one two"), windowID: 1))
+        XCTAssertTrue(viewModel.applyASRTranscript(Self.transcript("next surah one two"), windowID: 2))
+
+        XCTAssertTrue(viewModel.isMushafTextVisible(for: repository.word(surah: 101, ayah: 1, wordIndex: 1)))
+        XCTAssertTrue(viewModel.isMushafTextVisible(for: repository.word(surah: 101, ayah: 1, wordIndex: 4)))
+        XCTAssertFalse(viewModel.isMushafTextVisible(for: repository.word(surah: 101, ayah: 1, wordIndex: 5)))
+    }
+
     func testAudioLevelMeterKeepsSilenceAtZero() {
         var meter = AudioLevelMeter()
 

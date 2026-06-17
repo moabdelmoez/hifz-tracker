@@ -87,6 +87,63 @@ final class MushafPageRendererTests: XCTestCase {
         )
     }
 
+    func testVisibilityProviderSuppressesHiddenWordsWithoutChangingPageSize() throws {
+        let page = try makePage574()
+        let canvasSize = MushafPageRenderer.canonicalContentSize(for: page)
+        let firstAyahLineRect = CGRect(x: 52, y: 246, width: 920, height: 130)
+
+        let visible = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 574,
+            fontDirectory: fontDirectory,
+            canvasSize: canvasSize,
+            stateProvider: Optional<((QuranWord) -> WordProgressState)>.none
+        )
+        let hidden = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 574,
+            fontDirectory: fontDirectory,
+            canvasSize: canvasSize,
+            stateProvider: Optional<((QuranWord) -> WordProgressState)>.none,
+            visibilityProvider: { word in
+                !(word.surah == 73 && word.ayah == 1)
+            }
+        )
+        let firstWordVisible = try MushafPageRenderer.renderPage(
+            page,
+            pageNumber: 574,
+            fontDirectory: fontDirectory,
+            canvasSize: canvasSize,
+            stateProvider: Optional<((QuranWord) -> WordProgressState)>.none,
+            visibilityProvider: { word in
+                word.surah != 73 || word.ayah != 1 || word.wordIndex == 1
+            }
+        )
+
+        XCTAssertEqual(hidden.size, visible.size)
+        XCTAssertEqual(firstWordVisible.size, visible.size)
+
+        let visibleInk = try visibleInkPixelCount(in: visible, rect: firstAyahLineRect)
+        let hiddenInk = try visibleInkPixelCount(in: hidden, rect: firstAyahLineRect)
+        let firstWordInk = try visibleInkPixelCount(in: firstWordVisible, rect: firstAyahLineRect)
+
+        XCTAssertGreaterThan(
+            visibleInk - hiddenInk,
+            1_000,
+            "Hidden ayah words should remove visible glyph ink from the ayah line."
+        )
+        XCTAssertGreaterThan(
+            firstWordInk - hiddenInk,
+            80,
+            "A visible completed word should still render its glyph in the original line position."
+        )
+        XCTAssertLessThan(
+            firstWordInk,
+            visibleInk,
+            "Rendering one revealed word should not leak the remaining hidden ayah text."
+        )
+    }
+
     func testUsesQULDisplayTokensForSurahHeaderAndBismillah() throws {
         let page = try makePage574()
 
@@ -284,6 +341,18 @@ final class MushafPageRendererTests: XCTestCase {
             guard rect.contains(CGPoint(x: x, y: y)) else { return false }
             let darkness = 1 - min(color.redComponent, color.greenComponent, color.blueComponent)
             return color.alphaComponent > 0.1 && darkness > 0.45
+        }
+    }
+
+    private func visibleInkPixelCount(in image: NSImage, rect: CGRect) throws -> Int {
+        try pixelCount(in: image) { color, x, y, _, _ in
+            guard rect.contains(CGPoint(x: x, y: y)) else { return false }
+            let distanceFromWhite = max(
+                abs(1 - color.redComponent),
+                abs(1 - color.greenComponent),
+                abs(1 - color.blueComponent)
+            )
+            return color.alphaComponent > 0.1 && distanceFromWhite > 0.08
         }
     }
 

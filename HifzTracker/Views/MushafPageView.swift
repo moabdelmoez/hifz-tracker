@@ -15,6 +15,10 @@ struct MushafPageView: View {
                 wordProgress: viewModel.wordProgress
             ) { word in
                 viewModel.progressState(for: word)
+            } isTextVisible: { word in
+                viewModel.isMushafTextVisible(for: word)
+            } isFallbackTextVisible: { word in
+                viewModel.isSelectedAyahWordTextVisible(for: word)
             }
 
             if showDebugTranscript, !viewModel.debugTranscript.isEmpty {
@@ -32,6 +36,8 @@ private struct MushafContentView: View {
     var focusAyah: Int
     var wordProgress: [WordProgress]
     var state: (QuranWord) -> WordProgressState
+    var isTextVisible: (QuranWord) -> Bool
+    var isFallbackTextVisible: (WordProgress) -> Bool
 
     var body: some View {
         Group {
@@ -41,7 +47,8 @@ private struct MushafContentView: View {
                     pageNumber: pageNumber,
                     selectedSurah: selectedSurah,
                     focusAyah: focusAyah,
-                    state: state
+                    state: state,
+                    isTextVisible: isTextVisible
                 )
                 .id(page.pageNumber)
                 .transition(.opacity)
@@ -52,7 +59,11 @@ private struct MushafContentView: View {
                     description: Text("Install the bundled Mushaf resources to render page-aware recitation.")
                 )
             } else {
-                WordGridFallbackView(words: wordProgress, pageNumber: pageNumber)
+                WordGridFallbackView(
+                    words: wordProgress,
+                    pageNumber: pageNumber,
+                    isTextVisible: isFallbackTextVisible
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -66,6 +77,7 @@ private struct MushafPageStage: View {
     var selectedSurah: Int
     var focusAyah: Int
     var state: (QuranWord) -> WordProgressState
+    var isTextVisible: (QuranWord) -> Bool
 
     var body: some View {
         GeometryReader { proxy in
@@ -81,6 +93,7 @@ private struct MushafPageStage: View {
                         page: page,
                         pageNumber: pageNumber,
                         state: state,
+                        isTextVisible: isTextVisible,
                         pageSize: metrics.pageSize,
                         focusY: focusY
                     )
@@ -128,12 +141,18 @@ private struct MushafPageCanvasStack: View {
     var page: MushafPage
     var pageNumber: Int
     var state: (QuranWord) -> WordProgressState
+    var isTextVisible: (QuranWord) -> Bool
     var pageSize: CGSize
     var focusY: CGFloat?
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            MushafPageCanvasView(page: page, pageNumber: pageNumber, state: state)
+            MushafPageCanvasView(
+                page: page,
+                pageNumber: pageNumber,
+                state: state,
+                isTextVisible: isTextVisible
+            )
                 .frame(width: pageSize.width, height: pageSize.height)
                 .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
                 .shadow(color: Color.black.opacity(0.10), radius: 14, y: 4)
@@ -240,6 +259,7 @@ struct MushafViewportMetrics {
 private struct WordGridFallbackView: View {
     var words: [WordProgress]
     var pageNumber: Int
+    var isTextVisible: (WordProgress) -> Bool
 
     var body: some View {
         ScrollView {
@@ -248,7 +268,11 @@ private struct WordGridFallbackView: View {
                 spacing: 14
             ) {
                 ForEach(words) { word in
-                    WordGlyphView(word: word, pageNumber: pageNumber)
+                    WordGlyphView(
+                        word: word,
+                        pageNumber: pageNumber,
+                        isTextVisible: isTextVisible(word)
+                    )
                 }
             }
             .environment(\.layoutDirection, .rightToLeft)
@@ -289,9 +313,14 @@ private struct DebugTranscriptPanel: View {
 private struct WordGlyphView: View {
     var word: WordProgress
     var pageNumber: Int = 1
+    var isTextVisible = true
+
+    private var presentation: MushafWordGlyphPresentation {
+        MushafWordGlyphPresentation(word: word, isTextVisible: isTextVisible)
+    }
 
     var body: some View {
-        Text(word.text)
+        Text(presentation.displayText)
             .font(.custom(MushafFontResolver.qpcV4Tajweed.fontName(pageNumber: pageNumber), size: 42, relativeTo: .largeTitle))
             .frame(minWidth: 64, minHeight: 58)
             .padding(.horizontal, 8)
@@ -299,41 +328,60 @@ private struct WordGlyphView: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay {
                 RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(border, lineWidth: word.state == .pending ? 0 : 1.5)
+                    .strokeBorder(border, lineWidth: presentation.isHighlighted ? 1.5 : 0)
             }
-            .help(help)
+            .help(presentation.help)
     }
 
     private var background: Color {
+        guard presentation.isTextVisible else { return .clear }
+
         switch word.state {
-        case .completed: Color.green.opacity(0.18)
-        case .current: Color.accentColor.opacity(0.18)
-        case .provisional: Color.orange.opacity(0.14)
-        case .uncertain: Color.yellow.opacity(0.18)
-        case .correctionNeeded: Color.red.opacity(0.18)
-        case .pending: Color.clear
+        case .completed: return Color.green.opacity(0.18)
+        case .current: return Color.accentColor.opacity(0.18)
+        case .provisional: return Color.orange.opacity(0.14)
+        case .uncertain: return Color.yellow.opacity(0.18)
+        case .correctionNeeded: return Color.red.opacity(0.18)
+        case .pending: return Color.clear
         }
     }
 
     private var border: Color {
+        guard presentation.isTextVisible else { return .clear }
+
         switch word.state {
-        case .completed: .green
-        case .current: .accentColor
-        case .provisional: .orange
-        case .uncertain: .yellow
-        case .correctionNeeded: .red
-        case .pending: .clear
+        case .completed: return .green
+        case .current: return .accentColor
+        case .provisional: return .orange
+        case .uncertain: return .yellow
+        case .correctionNeeded: return .red
+        case .pending: return .clear
         }
     }
+}
 
-    private var help: String {
+struct MushafWordGlyphPresentation {
+    var word: WordProgress
+    var isTextVisible: Bool
+
+    var displayText: String {
+        isTextVisible ? word.text : ""
+    }
+
+    var isHighlighted: Bool {
+        isTextVisible && word.state != .pending
+    }
+
+    var help: String {
+        guard isTextVisible else { return "Hidden" }
+
         switch word.state {
-        case .completed: "Completed"
-        case .current: "Current word"
-        case .provisional: "Provisional"
-        case .uncertain: "Uncertain"
-        case .correctionNeeded: "Correction needed"
-        case .pending: "Pending"
+        case .completed: return "Completed"
+        case .current: return "Current word"
+        case .provisional: return "Provisional"
+        case .uncertain: return "Uncertain"
+        case .correctionNeeded: return "Correction needed"
+        case .pending: return "Pending"
         }
     }
 }

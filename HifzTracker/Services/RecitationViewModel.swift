@@ -27,6 +27,7 @@ final class RecitationViewModel {
     var debugTranscript = ""
     var audioLevel = 0.0
     var isRecording = false
+    var hideRecitationText = false
     var assetMessage: String?
     var focusedAyah: Int {
         focusedReference?.ayah ?? snapshot.currentAyah ?? startAyah
@@ -183,6 +184,22 @@ final class RecitationViewModel {
 
     func progressState(for word: QuranWord) -> WordProgressState {
         wordStatesByLocation[wordLocation(surah: word.surah, ayah: word.ayah, wordIndex: word.wordIndex)] ?? .pending
+    }
+
+    func isMushafTextVisible(for word: QuranWord) -> Bool {
+        isRecitationTextVisible(
+            state: progressState(for: word),
+            surah: word.surah,
+            ayah: word.ayah
+        )
+    }
+
+    func isSelectedAyahWordTextVisible(for word: WordProgress) -> Bool {
+        isRecitationTextVisible(
+            state: word.state,
+            surah: selectedSurah,
+            ayah: startAyah
+        )
     }
 
     private func loadSelectedAyah() {
@@ -776,6 +793,24 @@ final class RecitationViewModel {
 
     private func wordLocation(surah: Int, ayah: Int, wordIndex: Int) -> String {
         "\(surah):\(ayah):\(wordIndex)"
+    }
+
+    private func isRecitationTextVisible(state: WordProgressState, surah: Int, ayah: Int) -> Bool {
+        guard hideRecitationText else { return true }
+        guard isInHiddenRecitationScope(surah: surah, ayah: ayah) else { return true }
+
+        switch state {
+        case .completed, .provisional, .uncertain, .correctionNeeded:
+            return true
+        case .pending, .current:
+            return false
+        }
+    }
+
+    private func isInHiddenRecitationScope(surah: Int, ayah: Int) -> Bool {
+        if surah < selectedSurah { return false }
+        if surah == selectedSurah { return ayah >= startAyah }
+        return true
     }
 }
 

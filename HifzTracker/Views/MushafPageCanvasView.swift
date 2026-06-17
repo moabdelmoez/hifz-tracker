@@ -6,12 +6,14 @@ struct MushafPageCanvasView: NSViewRepresentable {
     var page: MushafPage
     var pageNumber: Int
     var state: (QuranWord) -> WordProgressState
+    var isTextVisible: (QuranWord) -> Bool = { _ in true }
 
     func makeNSView(context: Context) -> MushafPageDrawingView {
         let view = MushafPageDrawingView()
         view.page = page
         view.pageNumber = pageNumber
         view.stateProvider = state
+        view.visibilityProvider = isTextVisible
         view.fontDirectory = Bundle.main.url(forResource: "Fonts", withExtension: nil)
         view.setContentHuggingPriority(.defaultLow, for: .horizontal)
         view.setContentHuggingPriority(.defaultLow, for: .vertical)
@@ -24,6 +26,7 @@ struct MushafPageCanvasView: NSViewRepresentable {
         nsView.page = page
         nsView.pageNumber = pageNumber
         nsView.stateProvider = state
+        nsView.visibilityProvider = isTextVisible
         nsView.fontDirectory = Bundle.main.url(forResource: "Fonts", withExtension: nil)
     }
 }
@@ -36,6 +39,9 @@ final class MushafPageDrawingView: NSView {
         didSet { needsDisplay = true }
     }
     var stateProvider: ((QuranWord) -> WordProgressState)? {
+        didSet { needsDisplay = true }
+    }
+    var visibilityProvider: ((QuranWord) -> Bool)? {
         didSet { needsDisplay = true }
     }
     var fontDirectory: URL? {
@@ -59,7 +65,8 @@ final class MushafPageDrawingView: NSView {
                 pageNumber: pageNumber,
                 fontDirectory: fontDirectory,
                 in: bounds,
-                stateProvider: stateProvider
+                stateProvider: stateProvider,
+                visibilityProvider: visibilityProvider
             )
         } catch {
             drawRenderError(in: bounds)

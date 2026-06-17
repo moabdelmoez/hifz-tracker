@@ -77,7 +77,8 @@ public enum MushafPageRenderer {
         pageNumber: Int,
         fontDirectory: URL,
         canvasSize: CGSize,
-        stateProvider: ((QuranWord) -> WordProgressState)?
+        stateProvider: ((QuranWord) -> WordProgressState)?,
+        visibilityProvider: ((QuranWord) -> Bool)? = nil
     ) throws -> NSImage {
         let image = NSImage(size: canvasSize, flipped: true) { rect in
             do {
@@ -86,7 +87,8 @@ public enum MushafPageRenderer {
                     pageNumber: pageNumber,
                     fontDirectory: fontDirectory,
                     in: rect,
-                    stateProvider: stateProvider
+                    stateProvider: stateProvider,
+                    visibilityProvider: visibilityProvider
                 )
                 return true
             } catch {
@@ -102,7 +104,8 @@ public enum MushafPageRenderer {
         pageNumber: Int,
         fontDirectory: URL,
         in bounds: CGRect,
-        stateProvider: ((QuranWord) -> WordProgressState)?
+        stateProvider: ((QuranWord) -> WordProgressState)?,
+        visibilityProvider: ((QuranWord) -> Bool)? = nil
     ) throws {
         let lineLayout = MushafLineLayout(lines: page.lines)
         let pageRect = fittedPageRect(in: bounds, canonicalSize: canonicalContentSize(lineLayout: lineLayout))
@@ -145,7 +148,8 @@ public enum MushafPageRenderer {
                     fontDirectory: fontDirectory,
                     in: lineRect,
                     fontSize: canonicalAyahFontSize(lineLayout: lineLayout) * scale,
-                    stateProvider: stateProvider
+                    stateProvider: stateProvider,
+                    visibilityProvider: visibilityProvider
                 )
             }
         }
@@ -156,7 +160,8 @@ public enum MushafPageRenderer {
         pageNumber: Int,
         fontDirectory: URL,
         canvasSize: CGSize,
-        fontSize: CGFloat
+        fontSize: CGFloat,
+        visibilityProvider: ((QuranWord) -> Bool)? = nil
     ) throws -> NSImage {
         let image = NSImage(size: canvasSize)
         image.lockFocus()
@@ -178,7 +183,8 @@ public enum MushafPageRenderer {
             fontDirectory: fontDirectory,
             in: rect,
             fontSize: fontSize,
-            stateProvider: nil
+            stateProvider: nil,
+            visibilityProvider: visibilityProvider
         )
         return image
     }
@@ -189,16 +195,27 @@ public enum MushafPageRenderer {
         fontDirectory: URL,
         in rect: CGRect,
         fontSize: CGFloat,
-        stateProvider: ((QuranWord) -> WordProgressState)?
+        stateProvider: ((QuranWord) -> WordProgressState)?,
+        visibilityProvider: ((QuranWord) -> Bool)? = nil
     ) throws {
         guard !line.words.isEmpty else { return }
 
         let font = try pageFont(pageNumber: pageNumber, fontDirectory: fontDirectory, size: fontSize)
         let attributes = textAttributes(font: font, centered: line.isCentered)
-        drawHighlights(for: line, in: rect, attributes: attributes, stateProvider: stateProvider)
+        drawHighlights(
+            for: line,
+            in: rect,
+            attributes: attributes,
+            stateProvider: stateProvider,
+            visibilityProvider: visibilityProvider
+        )
 
-        let text = glyphText(for: line)
-        NSAttributedString(string: text, attributes: attributes).draw(in: rect)
+        if hasHiddenWords(in: line, visibilityProvider: visibilityProvider) {
+            drawVisibleWords(for: line, in: rect, attributes: attributes, visibilityProvider: visibilityProvider)
+        } else {
+            let text = glyphText(for: line)
+            NSAttributedString(string: text, attributes: attributes).draw(in: rect)
+        }
     }
 
     public static func pageFont(pageNumber: Int, fontDirectory: URL, size: CGFloat) throws -> NSFont {
@@ -238,7 +255,8 @@ public enum MushafPageRenderer {
         for line: MushafPageLine,
         in rect: CGRect,
         attributes: [NSAttributedString.Key: Any],
-        stateProvider: ((QuranWord) -> WordProgressState)?
+        stateProvider: ((QuranWord) -> WordProgressState)?,
+        visibilityProvider: ((QuranWord) -> Bool)?
     ) {
         guard let stateProvider else { return }
 
@@ -251,9 +269,51 @@ public enum MushafPageRenderer {
                 width: wordWidth + 8,
                 height: rect.height * 0.48
             )
-            drawHighlight(for: stateProvider(word), in: wordRect)
+            if isTextVisible(for: word, visibilityProvider: visibilityProvider) {
+                drawHighlight(for: stateProvider(word), in: wordRect)
+            }
             rightEdge -= wordWidth
         }
+    }
+
+    private static func drawVisibleWords(
+        for line: MushafPageLine,
+        in rect: CGRect,
+        attributes: [NSAttributedString.Key: Any],
+        visibilityProvider: ((QuranWord) -> Bool)?
+    ) {
+        var rightEdge = rect.maxX
+        for word in line.words {
+            let wordWidth = (word.text as NSString).size(withAttributes: attributes).width
+            defer { rightEdge -= wordWidth }
+
+            guard isTextVisible(for: word, visibilityProvider: visibilityProvider) else {
+                continue
+            }
+
+            let wordRect = CGRect(
+                x: rightEdge - wordWidth,
+                y: rect.minY,
+                width: wordWidth,
+                height: rect.height
+            )
+            NSAttributedString(string: word.text, attributes: attributes).draw(in: wordRect)
+        }
+    }
+
+    private static func hasHiddenWords(
+        in line: MushafPageLine,
+        visibilityProvider: ((QuranWord) -> Bool)?
+    ) -> Bool {
+        guard let visibilityProvider else { return false }
+        return line.words.contains { !visibilityProvider($0) }
+    }
+
+    private static func isTextVisible(
+        for word: QuranWord,
+        visibilityProvider: ((QuranWord) -> Bool)?
+    ) -> Bool {
+        visibilityProvider?(word) ?? true
     }
 
     private static func drawHighlight(for state: WordProgressState, in rect: CGRect) {

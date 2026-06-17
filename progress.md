@@ -2,9 +2,9 @@
 
 ## Current State
 
-**Last Updated:** 2026-06-17 19:51 EEST
-**Session ID:** dashboard-surah-progress-2026-06-17
-**Active Feature:** `dashboard-surah-progress-001` - implementation complete, merged into `main`, and automated verification passed.
+**Last Updated:** 2026-06-17 21:09 EEST
+**Session ID:** hide-ayah-toggle-2026-06-17
+**Active Feature:** `hide-ayah-toggle-001` - implementation complete in isolated worktree; final verification passed.
 
 ## Status
 
@@ -12,67 +12,66 @@
 
 - [x] Confirmed repo root with `pwd`.
 - [x] Read `AGENTS.md`, `feature_list.json`, `progress.md`, and `session-handoff.md`.
-- [x] Reviewed recent git status and log; started from clean `main`.
-- [x] Created branch `codex/dashboard-surah-progress`.
-- [x] Committed and merged `codex/dashboard-surah-progress` into `main`.
-- [x] Ran baseline `swift test` and `swift build`; both passed before feature edits.
-- [x] Replaced the user-facing History window/menu/toolbar entrypoints with Dashboard.
-- [x] Added a Dashboard list for all 114 surahs with Quran number, Arabic name, English name, percent label, and green progress bar.
-- [x] Added `DashboardProgressCalculator` to derive word-based surah progress from saved session records and local Quran reference text.
-- [x] Added `SessionRecord.lastSurah` with backward-compatible decoding/default behavior.
-- [x] Added `StoredSessionRecord.lastSurah` with fallback for records where the stored value is missing or zero.
-- [x] Updated `RecitationViewModel` to persist the actual last completed surah/ayah/word after cross-surah live progress.
-- [x] Added focused tests for dashboard summaries, stored session records, and cross-surah session persistence.
-- [x] Updated `feature_list.json`, `progress.md`, and `session-handoff.md` with implementation and verification evidence.
+- [x] Reviewed recent git status and log.
+- [x] Added `/.worktrees/` to `.gitignore` on `main` and committed `7cce406 Ignore local worktrees`.
+- [x] Created isolated worktree `.worktrees/hide-ayah-toggle`.
+- [x] Used branch `codex-hide-ayah-toggle` because creating `codex/hide-ayah-toggle` was blocked by local Git ref permissions in this environment.
+- [x] Linked ignored local asset directories/files into the worktree so SwiftPM tests match the main checkout environment.
+- [x] Ran baseline `swift test` and `swift build`; both passed before feature edits after asset links were in place.
+- [x] Added a session-only `Hide` toggle under `Start ayah`.
+- [x] Added view-model text visibility rules that keep hide mode out of recitation progress state.
+- [x] Extended Mushaf rendering with a defaulted `visibilityProvider` that suppresses hidden glyphs and highlights while preserving layout.
+- [x] Applied the same hide/no-leak behavior to the fallback word grid.
+- [x] Added focused tests for view-model hide rules, renderer suppression, and fallback text hiding.
+- [x] Updated `feature_list.json` with `hide-ayah-toggle-001`.
 
 ### What's In Progress
 
-- [ ] No active code work.
+- [ ] No active code work. Optional manual app-window smoke testing remains.
 
 ### What's Next
 
-1. Optionally run the app and open Dashboard to visually inspect the 114-surah list in a real window.
-2. Optionally recite across a surah boundary and confirm the Dashboard shows progress in both surahs after stopping the session.
+1. Optionally launch the app and visually smoke-test Hide mode with real Mushaf pages.
 
 ## Blockers / Risks
 
-- [ ] No manual app-window smoke test was run in this session; SwiftUI compiled and behavior is covered by focused unit tests.
-- [ ] Release checks were skipped because this was not a release, signing, asset, packaging, or distribution change.
+- [ ] No manual app-window smoke test has been run yet.
+- [ ] Release checks are skipped because this is not a release, signing, asset, packaging, or distribution change.
+- [ ] Worktree setup required local symlinks for ignored assets (`assets/runtime`, `assets/models`, `quran-stt-onnx`, `tanzil`, and bundled app resources).
 
 ## Decisions Made
 
-- **Derived progress:** Dashboard progress is computed from saved sessions on demand instead of introducing a dedicated progress table.
-- **Word-based percentage:** Percentages use local normalized Quran reference words, not ayah count.
-- **Best saved position:** A surah's dashboard progress uses the farthest saved completed word offset.
-- **Cross-surah records:** `lastSurah` is persisted so a session that starts in one surah and continues into the next can complete the starting surah and partially fill the ending surah.
-- **History v1 removal:** The old session list/export/reset controls are not shown in the Dashboard v1 surface.
+- **Session-only toggle:** `hideRecitationText` is an in-memory `RecitationViewModel` property, not `@AppStorage`.
+- **Render policy:** Hide mode uses a visibility helper instead of adding a new `WordProgressState`.
+- **No current-word hint:** `.current` target words are hidden in Hide mode.
+- **Feedback visible:** `.completed`, `.provisional`, `.uncertain`, and `.correctionNeeded` words remain visible.
+- **Practical markers:** Surah headers and basmallah remain visible; embedded ayah markers reveal with their carrying glyph.
+- **Worktree branch:** The intended `codex/hide-ayah-toggle` branch name could not be created here, so the feature branch is `codex-hide-ayah-toggle`.
 
 ## Files Modified This Session
 
-- `Sources/HifzCore/Models.swift` - Added backward-compatible `SessionRecord.lastSurah` coding and initializer support.
-- `HifzTracker/Models/StoredSessionRecord.swift` - Stored/restored `lastSurah` with old-record fallback.
-- `HifzTracker/Services/RecitationViewModel.swift` - Tracked last completed reference for cross-surah session persistence.
-- `HifzTracker/Services/DashboardProgressCalculator.swift` - Added surah progress summary calculation from saved session records.
-- `HifzTracker/Views/DashboardWindowView.swift` - Replaced History UI with the Dashboard 114-surah progress list.
-- `HifzTracker/App/HifzTrackerApp.swift` - Renamed auxiliary window and command menu entry to Dashboard.
-- `HifzTracker/Views/RecitationRootView.swift` - Renamed toolbar action to Dashboard.
-- `Tests/HifzTrackerTests/DashboardProgressCalculatorTests.swift` - Added focused progress summary tests.
-- `Tests/HifzTrackerTests/StoredSessionRecordTests.swift` - Added last-surah storage/fallback tests.
-- `Tests/HifzTrackerTests/RecitationViewModelTests.swift` - Added cross-surah session record persistence test.
-- `feature_list.json` - Added completion evidence for `dashboard-surah-progress-001`.
-- `progress.md` - Recorded current state and verification evidence.
-- `session-handoff.md` - Updated restart notes for the dashboard work.
+- `HifzTracker/Services/RecitationViewModel.swift` - Added session-only hide flag and text visibility helpers.
+- `HifzTracker/Views/RecitationSidebarView.swift` - Added the Hide toggle under Start ayah.
+- `HifzTracker/Views/MushafPageView.swift` - Threaded visibility into Mushaf/fallback rendering and added fallback presentation helper.
+- `HifzTracker/Views/MushafPageCanvasView.swift` - Passed text visibility into the AppKit drawing view.
+- `Sources/HifzCore/MushafPageRenderer.swift` - Added defaulted `visibilityProvider` support and hidden-word drawing.
+- `Tests/HifzTrackerTests/RecitationViewModelTests.swift` - Added hide-mode visibility tests.
+- `Tests/HifzCoreTests/MushafPageRendererTests.swift` - Added renderer hidden-word pixel test.
+- `Tests/HifzTrackerTests/MushafWordGlyphPresentationTests.swift` - Added fallback no-leak tests.
+- `feature_list.json` - Added `hide-ayah-toggle-001`.
+- `progress.md` - Recorded current state and evidence.
+- `session-handoff.md` - Updated restart notes for this worktree.
 
 ## Evidence of Completion
 
-- [x] Red check 1: `swift test --filter DashboardProgressCalculatorTests` failed because `DashboardProgressCalculator` did not exist and `SessionRecord` had no `lastSurah` argument.
-- [x] Green check 1: `swift test --filter DashboardProgressCalculatorTests` passed 5 tests with 0 failures.
-- [x] Red check 2: `swift test --filter 'RecitationViewModelTests/testSessionRecordStoresLastSurahAfterCrossSurahProgress|StoredSessionRecordTests'` failed because `StoredSessionRecord.lastSurah` was missing and `sessionStartedAt` was private.
-- [x] Green check 2: the same focused storage/session filter passed 3 tests with 0 failures.
-- [x] Focused dashboard/storage/session check: `swift test --filter 'DashboardProgressCalculatorTests|StoredSessionRecordTests|RecitationViewModelTests/testSessionRecordStoresLastSurahAfterCrossSurahProgress'` passed 8 tests with 0 failures.
-- [x] Full test suite: `swift test` passed 112 tests with 1 expected local-audio audit skipped and 0 failures.
-- [x] Build verification: `swift build` completed successfully.
+- [x] Baseline `swift test` passed 112 tests with 2 expected skips and 0 failures after local ignored assets were linked into the worktree.
+- [x] Baseline `swift build` completed successfully.
+- [x] Red check: `swift test --filter 'RecitationViewModelTests/testHideRecitationText|MushafPageRendererTests/testVisibilityProviderSuppressesHiddenWordsWithoutChangingPageSize|MushafWordGlyphPresentationTests'` failed because the planned APIs did not exist yet.
+- [x] Focused green check: the same filter passed 7 tests with 0 failures.
+- [x] Pre-artifact full check: `swift test` passed 119 tests with 2 expected skips and 0 failures.
+- [x] Final post-artifact `swift test` passed 119 tests with 2 expected skips and 0 failures.
+- [x] Final post-artifact `swift build` completed successfully.
 
 ## Notes for Next Session
 
-Start with `AGENTS.md`, `feature_list.json`, this file, and `session-handoff.md`. The Dashboard feature is implemented, merged into `main`, and verified.
+Start in `.worktrees/hide-ayah-toggle` on branch `codex-hide-ayah-toggle`. If ignored asset symlinks are missing, recreate them from the main checkout before running SwiftPM verification.
