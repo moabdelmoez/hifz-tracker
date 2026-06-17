@@ -263,6 +263,8 @@ public enum MushafPageRenderer {
             color = NSColor.systemGreen.withAlphaComponent(0.16)
         case .current:
             color = NSColor.controlAccentColor.withAlphaComponent(0.18)
+        case .provisional:
+            color = NSColor.systemOrange.withAlphaComponent(0.14)
         case .uncertain:
             color = NSColor.systemYellow.withAlphaComponent(0.2)
         case .correctionNeeded:

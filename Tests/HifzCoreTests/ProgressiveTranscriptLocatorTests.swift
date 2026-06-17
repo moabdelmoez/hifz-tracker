@@ -36,6 +36,67 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         XCTAssertEqual(location.completedThrough.location, "108:1:3")
     }
 
+    func testAcceptsUniqueThreeWordInitialMatchNearStart() throws {
+        var locator = ProgressiveTranscriptLocator(
+            minimumInitialMatchLength: 4,
+            lookBehindWordCount: 4,
+            lookAheadWordCount: 24
+        )
+        let expected = references([
+            (1, ["يا", "ايها", "المزمل", "قم", "الليل", "الا"]),
+            (2, ["رب", "المشرق", "والمغرب"])
+        ], surah: 73)
+
+        let location = try XCTUnwrap(
+            locator.locate(expected: expected, recognizedWords: ["يا", "ايها", "المزمل"])
+        )
+
+        XCTAssertEqual(location.completedThrough.location, "73:1:3")
+        XCTAssertEqual(location.matchedWordCount, 3)
+    }
+
+    func testRejectsRepeatedThreeWordInitialMatchUntilFourWordMatch() throws {
+        var locator = ProgressiveTranscriptLocator(
+            minimumInitialMatchLength: 4,
+            lookBehindWordCount: 4,
+            lookAheadWordCount: 24
+        )
+        let expected = references([
+            (1, ["يا", "ايها", "الذين", "امنوا", "اوفوا"]),
+            (2, ["قريب", "منكم"]),
+            (3, ["يا", "ايها", "الذين", "صدقوا", "الله"])
+        ], surah: 5)
+
+        let ambiguousShortMatch = locator.locate(
+            expected: expected,
+            recognizedWords: ["يا", "ايها", "الذين"]
+        )
+        XCTAssertNil(ambiguousShortMatch)
+
+        let strongMatch = try XCTUnwrap(
+            locator.locate(expected: expected, recognizedWords: ["يا", "ايها", "الذين", "امنوا"])
+        )
+        XCTAssertEqual(strongMatch.completedThrough.location, "5:1:4")
+        XCTAssertEqual(strongMatch.matchedWordCount, 4)
+    }
+
+    func testRejectsUniqueThreeWordInitialMatchBeyondRelaxedStartLimit() {
+        var locator = ProgressiveTranscriptLocator(
+            minimumInitialMatchLength: 4,
+            lookBehindWordCount: 4,
+            lookAheadWordCount: 24
+        )
+        let filler = (1...32).map { "حشو\($0)" }
+        let expected = references([
+            (1, filler),
+            (2, ["نادر", "قريب", "واضح", "بعد"])
+        ])
+
+        let location = locator.locate(expected: expected, recognizedWords: ["نادر", "قريب", "واضح"])
+
+        XCTAssertNil(location)
+    }
+
     func testKeepsLockedProgressFromJumpingToDistantShortMatch() throws {
         var locator = ProgressiveTranscriptLocator(
             minimumInitialMatchLength: 4,
@@ -74,6 +135,27 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         let nextLocation = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: ["هو", "الذي", "اخرج", "الذين"]))
 
         XCTAssertEqual(nextLocation.completedThrough.location, "59:2:4")
+    }
+
+    func testPostLockPrefersAdvancingMatchOverStrongerOldMatch() throws {
+        var locator = ProgressiveTranscriptLocator(
+            minimumInitialMatchLength: 4,
+            lookBehindWordCount: 4,
+            lookAheadWordCount: 12
+        )
+        let expected = references([
+            (1, ["سبح", "لله", "ما", "في", "السماوات", "وما", "في", "الارض"]),
+            (2, ["هو", "الذي", "اخرج", "الذين", "كفروا"])
+        ])
+
+        _ = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: ["سبح", "لله", "ما", "في"]))
+        let nextLocation = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["سبح", "لله", "ما", "في", "حشو", "السماوات", "وما"]
+        ))
+
+        XCTAssertEqual(nextLocation.completedThrough.location, "59:1:6")
+        XCTAssertEqual(nextLocation.matchedWordCount, 2)
     }
 
     func testInitialLockPrefersEarliestRepeatedPhraseInSelectedRange() throws {

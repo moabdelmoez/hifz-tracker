@@ -308,6 +308,7 @@ private struct WordGlyphView: View {
         switch word.state {
         case .completed: Color.green.opacity(0.18)
         case .current: Color.accentColor.opacity(0.18)
+        case .provisional: Color.orange.opacity(0.14)
         case .uncertain: Color.yellow.opacity(0.18)
         case .correctionNeeded: Color.red.opacity(0.18)
         case .pending: Color.clear
@@ -318,6 +319,7 @@ private struct WordGlyphView: View {
         switch word.state {
         case .completed: .green
         case .current: .accentColor
+        case .provisional: .orange
         case .uncertain: .yellow
         case .correctionNeeded: .red
         case .pending: .clear
@@ -328,6 +330,7 @@ private struct WordGlyphView: View {
         switch word.state {
         case .completed: "Completed"
         case .current: "Current word"
+        case .provisional: "Provisional"
         case .uncertain: "Uncertain"
         case .correctionNeeded: "Correction needed"
         case .pending: "Pending"

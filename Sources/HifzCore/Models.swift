@@ -133,6 +133,7 @@ public enum RecitationPhase: String, Codable, Equatable, Sendable, CaseIterable 
 public enum WordProgressState: String, Codable, Equatable, Sendable {
     case pending
     case current
+    case provisional
     case completed
     case uncertain
     case correctionNeeded

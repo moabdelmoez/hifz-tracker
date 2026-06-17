@@ -44,6 +44,10 @@ final class RecitationViewModel {
     private var liveSampleWindow = LiveASRSampleWindow()
     private var liveASRRequestScheduler = LiveASRRequestScheduler()
     private var liveASRTimingProbe = LiveASRTimingProbe()
+    private let liveASRLocatorOutcomeProbe = LiveASRLocatorOutcomeProbe()
+    private var provisionalInitialHighlightTracker = ProvisionalInitialHighlightTracker()
+    private var provisionalHighlightLocation: TranscriptLocation?
+    private var provisionalVisualLocations: Set<String> = []
     private var audioLevelMeter = AudioLevelMeter()
     private var transcriptionTask: Task<Void, Never>?
     private var wordStatesByLocation: [String: WordProgressState] = [:]
@@ -96,6 +100,7 @@ final class RecitationViewModel {
                 liveSampleWindow.reset()
                 liveASRRequestScheduler.reset()
                 transcriptLocator.reset()
+                clearAndResetProvisionalInitialHighlightState()
                 _ = referenceIndexForSelectedSurah()
                 transcriptionTask?.cancel()
                 transcriptionTask = nil
@@ -152,6 +157,7 @@ final class RecitationViewModel {
         liveASRRequestScheduler.reset()
         liveASRTimingProbe.reset()
         transcriptLocator.reset()
+        clearAndResetProvisionalInitialHighlightState()
         snapshot = reducer.reduce(.stop)
         isRecording = false
         resetAudioLevel()
@@ -266,7 +272,10 @@ final class RecitationViewModel {
                     atNanoseconds: self.nowNanoseconds()
                 )
                 self.logLiveASRTranscriptionFinished(metrics)
-                let didApplyHighlight = self.applyASRTranscript(transcript)
+                let didApplyHighlight = self.applyASRTranscript(
+                    transcript,
+                    windowID: timingToken.windowID
+                )
                 if didApplyHighlight {
                     self.logLiveASRHighlightApplied(windowID: timingToken.windowID)
                 }
@@ -324,35 +333,157 @@ final class RecitationViewModel {
         asrLogger.info("live_asr_timing event=highlight_applied window_id=\(windowID, privacy: .public)")
     }
 
-    @discardableResult
-    private func applyASRTranscript(_ transcript: QuranSTTTranscript) -> Bool {
-        guard isRecording else { return false }
+    private func logLiveASRLocatorOutcome(_ metrics: LiveASRLocatorOutcomeProbe.Metrics) {
+        let matchedWordCount = metrics.matchedWordCount ?? -1
+        let requiredWordCount = metrics.requiredWordCount ?? -1
+        let completedOffset = metrics.completedOffset ?? -1
+        let acceptedOffset = metrics.acceptedOffset ?? -1
+        let completedSurah = metrics.completedSurah ?? -1
+        let completedAyah = metrics.completedAyah ?? -1
+        let completedWord = metrics.completedWord ?? -1
+        asrLogger.info("live_asr_locator event=locator_outcome window_id=\(metrics.windowID, privacy: .public) reason=\(metrics.reason, privacy: .public) recognized_word_count=\(metrics.recognizedWordCount, privacy: .public) expected_reference_count=\(metrics.expectedReferenceCount, privacy: .public) completed_word_count_before=\(metrics.completedWordCountBefore, privacy: .public) matched_word_count=\(matchedWordCount, privacy: .public) required_word_count=\(requiredWordCount, privacy: .public) completed_offset=\(completedOffset, privacy: .public) accepted_offset=\(acceptedOffset, privacy: .public) completed_surah=\(completedSurah, privacy: .public) completed_ayah=\(completedAyah, privacy: .public) completed_word=\(completedWord, privacy: .public)")
+    }
 
-        debugTranscript = transcript.text
+    private func logProvisionalInitialHighlight(
+        state: String,
+        windowID: Int,
+        location: TranscriptLocation?,
+        confirmationCount: Int
+    ) {
+        let matchedWordCount = location?.matchedWordCount ?? -1
+        let completedSurah = location?.completedThrough.surah ?? -1
+        let completedAyah = location?.completedThrough.ayah ?? -1
+        let completedWord = location?.completedThrough.wordIndex ?? -1
+        asrLogger.info("live_asr_locator event=provisional_initial_highlight state=\(state, privacy: .public) window_id=\(windowID, privacy: .public) matched_word_count=\(matchedWordCount, privacy: .public) confirmation_count=\(confirmationCount, privacy: .public) completed_surah=\(completedSurah, privacy: .public) completed_ayah=\(completedAyah, privacy: .public) completed_word=\(completedWord, privacy: .public)")
+    }
+
+    @discardableResult
+    private func applyASRTranscript(_ transcript: QuranSTTTranscript, windowID: Int) -> Bool {
         let recognizedWords = QuranTextNormalizer
             .asrComparable(transcript.text)
             .split(separator: " ")
             .map(String.init)
+
+        guard isRecording else {
+            let metrics = liveASRLocatorOutcomeProbe.metrics(
+                windowID: windowID,
+                recognizedWordCount: recognizedWords.count,
+                expectedReferenceCount: 0,
+                completedWordCountBefore: snapshot.completedWordCount,
+                failureReason: .notRecording
+            )
+            logLiveASRLocatorOutcome(metrics)
+            return false
+        }
+
+        debugTranscript = transcript.text
         guard !recognizedWords.isEmpty else {
+            let metrics = liveASRLocatorOutcomeProbe.metrics(
+                windowID: windowID,
+                recognizedWordCount: 0,
+                expectedReferenceCount: 0,
+                completedWordCountBefore: snapshot.completedWordCount,
+                failureReason: .emptyTranscript
+            )
+            logLiveASRLocatorOutcome(metrics)
+            clearAndResetProvisionalInitialHighlightState()
             _ = markFindingPlaceIfNeeded()
             return false
         }
 
-        guard let referenceIndex = referenceIndexForSelectedSurah() else { return false }
+        guard let referenceIndex = referenceIndexForSelectedSurah() else {
+            let metrics = liveASRLocatorOutcomeProbe.metrics(
+                windowID: windowID,
+                recognizedWordCount: recognizedWords.count,
+                expectedReferenceCount: 0,
+                completedWordCountBefore: snapshot.completedWordCount,
+                failureReason: .referenceUnavailable
+            )
+            logLiveASRLocatorOutcome(metrics)
+            clearAndResetProvisionalInitialHighlightState()
+            return false
+        }
         let expectedReferences = referenceIndex.expected
-        guard !expectedReferences.isEmpty else { return false }
-
-        guard let location = transcriptLocator.locate(index: referenceIndex, recognizedWords: recognizedWords) else {
+        let completedWordCountBefore = snapshot.completedWordCount
+        guard !expectedReferences.isEmpty else {
+            let metrics = liveASRLocatorOutcomeProbe.metrics(
+                windowID: windowID,
+                recognizedWordCount: recognizedWords.count,
+                expectedReferenceCount: 0,
+                completedWordCountBefore: completedWordCountBefore,
+                outcome: .emptyReference
+            )
+            logLiveASRLocatorOutcome(metrics)
+            clearAndResetProvisionalInitialHighlightState()
             _ = markFindingPlaceIfNeeded()
             return false
         }
 
-        snapshot = reducer.reduce(.progressAdvanced(
-            ayah: location.completedThrough.ayah,
-            completedWordCount: location.completedThrough.wordIndex
-        ))
-        applyLocatedProgress(through: location.completedThrough, references: expectedReferences)
+        let outcome = transcriptLocator.locateWithOutcome(index: referenceIndex, recognizedWords: recognizedWords)
+        let metrics = liveASRLocatorOutcomeProbe.metrics(
+            windowID: windowID,
+            recognizedWordCount: recognizedWords.count,
+            expectedReferenceCount: expectedReferences.count,
+            completedWordCountBefore: completedWordCountBefore,
+            outcome: outcome
+        )
+        logLiveASRLocatorOutcome(metrics)
+
+        guard case .located(let location) = outcome else {
+            handleProvisionalInitialHighlight(
+                windowID: windowID,
+                completedWordCountBefore: completedWordCountBefore,
+                referenceIndex: referenceIndex,
+                references: expectedReferences,
+                recognizedWords: recognizedWords
+            )
+            _ = markFindingPlaceIfNeeded()
+            return false
+        }
+
+        applyAuthoritativeLocatedProgress(location, references: expectedReferences)
         return true
+    }
+
+    private func handleProvisionalInitialHighlight(
+        windowID: Int,
+        completedWordCountBefore: Int,
+        referenceIndex: TranscriptPositionIndex,
+        references: [RecitationWordReference],
+        recognizedWords: [String]
+    ) {
+        guard completedWordCountBefore == 0 else {
+            clearAndResetProvisionalInitialHighlightState()
+            return
+        }
+
+        switch provisionalInitialHighlightTracker.evaluate(index: referenceIndex, recognizedWords: recognizedWords) {
+        case .candidate(let location, let consecutiveCount):
+            logProvisionalInitialHighlight(
+                state: "candidate",
+                windowID: windowID,
+                location: location,
+                confirmationCount: consecutiveCount
+            )
+        case .confirmed(let location, let consecutiveCount):
+            logProvisionalInitialHighlight(
+                state: "confirmed",
+                windowID: windowID,
+                location: location,
+                confirmationCount: consecutiveCount
+            )
+            applyProvisionalInitialHighlight(through: location, references: references)
+        case .cleared:
+            logProvisionalInitialHighlight(
+                state: "cleared",
+                windowID: windowID,
+                location: nil,
+                confirmationCount: -1
+            )
+            clearProvisionalInitialHighlight()
+        case .none:
+            clearProvisionalInitialHighlight()
+        }
     }
 
     func applyLocatedProgress(through completedWord: RecitationWordReference, references: [RecitationWordReference]) {
@@ -379,8 +510,103 @@ final class RecitationViewModel {
         autoFlipDisplayedPageIfNeeded(toFollow: focusedReference)
     }
 
+    func applyAuthoritativeLocatedProgress(
+        _ location: TranscriptLocation,
+        references: [RecitationWordReference]
+    ) {
+        clearProvisionalInitialHighlight()
+        resetProvisionalInitialHighlightTracking()
+        snapshot = reducer.reduce(.progressAdvanced(
+            ayah: location.completedThrough.ayah,
+            completedWordCount: location.completedThrough.wordIndex
+        ))
+        applyLocatedProgress(through: location.completedThrough, references: references)
+        resetProvisionalInitialHighlightTracking()
+    }
+
+    func applyProvisionalInitialHighlight(
+        through location: TranscriptLocation,
+        references: [RecitationWordReference]
+    ) {
+        guard snapshot.completedWordCount == 0 else { return }
+        guard !location.expectedRange.isEmpty,
+              location.expectedRange.lowerBound >= 0,
+              location.expectedRange.upperBound <= references.count else {
+            return
+        }
+
+        clearProvisionalInitialHighlight()
+        resetSelectedAyahPageStatesToPending()
+
+        let provisionalReferences = references[location.expectedRange]
+        var visualLocations: Set<String> = []
+        for reference in provisionalReferences {
+            wordStatesByLocation[reference.location] = .provisional
+            visualLocations.insert(reference.location)
+        }
+
+        if references.indices.contains(location.expectedRange.upperBound) {
+            let nextReference = references[location.expectedRange.upperBound]
+            wordStatesByLocation[nextReference.location] = .current
+            visualLocations.insert(nextReference.location)
+        }
+
+        syncSelectedAyahProvisionalProgress(through: location, references: references)
+        provisionalHighlightLocation = location
+        provisionalVisualLocations = visualLocations
+    }
+
+    func clearProvisionalInitialHighlight() {
+        guard provisionalHighlightLocation != nil || !provisionalVisualLocations.isEmpty else { return }
+        guard snapshot.completedWordCount == 0 else {
+            self.provisionalHighlightLocation = nil
+            provisionalVisualLocations.removeAll()
+            return
+        }
+
+        let visualLocations = provisionalVisualLocations
+        for location in visualLocations {
+            wordStatesByLocation[location] = .pending
+        }
+        resetDisplayedWordStates()
+        for location in visualLocations {
+            wordStatesByLocation[location] = .pending
+        }
+        wordStatesByLocation[wordLocation(surah: selectedSurah, ayah: startAyah, wordIndex: 1)] = .current
+        wordProgress = wordProgress.map { word in
+            WordProgress(
+                wordIndex: word.wordIndex,
+                text: word.text,
+                state: word.wordIndex == 1 ? .current : .pending
+            )
+        }
+        self.provisionalHighlightLocation = nil
+        provisionalVisualLocations.removeAll()
+        focusedReference = nil
+    }
+
+    private func resetSelectedAyahPageStatesToPending() {
+        for word in wordProgress {
+            wordStatesByLocation[wordLocation(surah: selectedSurah, ayah: startAyah, wordIndex: word.wordIndex)] = .pending
+        }
+    }
+
+    private func resetProvisionalInitialHighlightTracking() {
+        provisionalInitialHighlightTracker.reset()
+        provisionalHighlightLocation = nil
+        if snapshot.completedWordCount > 0 {
+            provisionalVisualLocations.removeAll()
+        }
+    }
+
+    private func clearAndResetProvisionalInitialHighlightState() {
+        clearProvisionalInitialHighlight()
+        resetProvisionalInitialHighlightTracking()
+    }
+
     private func handleASRError(_ error: Error) {
         guard isRecording else { return }
+        clearAndResetProvisionalInitialHighlightState()
         snapshot = reducer.reduce(.fail(error.localizedDescription))
         microphone.stop()
         isRecording = false
@@ -443,6 +669,7 @@ final class RecitationViewModel {
     }
 
     private func invalidateReferenceScope() {
+        clearAndResetProvisionalInitialHighlightState()
         referenceScopeCache = nil
         transcriptLocator.reset()
     }
@@ -473,6 +700,29 @@ final class RecitationViewModel {
             if completedWord.ayah > startAyah || word.wordIndex <= completedWord.wordIndex {
                 state = .completed
             } else if completedWord.ayah == startAyah, word.wordIndex == completedWord.wordIndex + 1 {
+                state = .current
+            } else {
+                state = .pending
+            }
+            return WordProgress(wordIndex: word.wordIndex, text: word.text, state: state)
+        }
+    }
+
+    private func syncSelectedAyahProvisionalProgress(
+        through location: TranscriptLocation,
+        references: [RecitationWordReference]
+    ) {
+        let provisionalLocations = Set(references[location.expectedRange].map(\.location))
+        let currentLocation = references.indices.contains(location.expectedRange.upperBound)
+            ? references[location.expectedRange.upperBound].location
+            : nil
+
+        wordProgress = wordProgress.map { word in
+            let location = wordLocation(surah: selectedSurah, ayah: startAyah, wordIndex: word.wordIndex)
+            let state: WordProgressState
+            if provisionalLocations.contains(location) {
+                state = .provisional
+            } else if location == currentLocation {
                 state = .current
             } else {
                 state = .pending

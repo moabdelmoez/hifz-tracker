@@ -60,6 +60,98 @@
         "swift build"
       ],
       "evidence": "Implemented on 2026-06-17. Added `LiveASRTimingProbe`, wired `RecitationViewModel` to emit `live_asr_timing` OSLog events for recording start, transcription start/finish, pending-window storage, pending-window handoff start, and highlight application. Final checks: `swift test --filter LiveASRTimingProbeTests` passed 3 tests; `swift test` passed 80 tests with 1 existing opt-in local audio audit skipped; `swift build` completed successfully."
+    },
+    {
+      "id": "live-asr-locator-outcomes-001",
+      "name": "Live ASR Locator Outcome Instrumentation",
+      "description": "Add lightweight locator outcome diagnostics to the live ASR path so transcript-to-highlight gaps can be explained by no match, short initial lock, repeated non-advancing matches, empty transcripts, missing references, or successful progress.",
+      "dependencies": ["live-asr-timing-001"],
+      "status": "done",
+      "done_criteria": [
+        "Progressive transcript locating exposes diagnostic outcomes without changing existing locate behavior",
+        "Each live ASR transcript logs one locator outcome with recognized word count and expected reference count",
+        "Successful locator outcomes log matched word count and completed surah/ayah/word",
+        "Rejected locator outcomes log actionable no-progress reasons",
+        "No transcript text or audio is persisted in logs",
+        "Outcome mapping and locator diagnostics are covered by focused unit tests",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter ProgressiveTranscriptLocatorOutcomeTests",
+        "swift test --filter LiveASRLocatorOutcomeProbeTests",
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Implemented on 2026-06-17. Added `ProgressiveTranscriptLocatorOutcome`, `LiveASRLocatorOutcomeProbe`, and `live_asr_locator event=locator_outcome` OSLog events in `RecitationViewModel`. Focused red checks failed for missing diagnostic APIs before implementation, then focused checks passed 13 tests with 0 failures. Final full verification is recorded in progress.md."
+    },
+    {
+      "id": "guarded-initial-lock-001",
+      "name": "Guarded 3-Word Initial Lock",
+      "description": "Reduce first-highlight latency by allowing the initial locator lock to accept a unique near-start 3-word match while preserving the default 4-word strong lock and existing post-lock behavior.",
+      "dependencies": ["live-asr-locator-outcomes-001"],
+      "status": "done",
+      "done_criteria": [
+        "ProgressiveTranscriptLocator keeps minimumInitialMatchLength defaulted to 4",
+        "A unique 3-word initial match near the selected start is accepted",
+        "Repeated or ambiguous 3-word initial matches are rejected until a 4-word match appears",
+        "Unique 3-word initial matches at or beyond the first 32 expected words are rejected",
+        "Complete short ayah initial lock and post-lock distant short-match protection are preserved",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter ProgressiveTranscriptLocatorTests",
+        "swift test --filter ProgressiveTranscriptLocatorOutcomeTests",
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Implemented on 2026-06-17. Red check: `swift test --filter ProgressiveTranscriptLocatorTests` failed because `testAcceptsUniqueThreeWordInitialMatchNearStart` still returned nil. Added a private guarded first-lock fallback for exactly 3 normalized words when the phrase is unique in the selected reference scope and starts before expected offset 32. Final checks: focused locator tests passed 9 tests; outcome tests passed 3 tests; `swift test` passed 89 tests with 1 existing opt-in local audio audit skipped; `swift build` completed successfully."
+    },
+    {
+      "id": "post-lock-advancing-locator-001",
+      "name": "Post-Lock Advancing Locator Preference",
+      "description": "Reduce post-lock highlight stalls by preferring locator candidates that complete beyond the accepted offset before falling back to the existing strongest-match behavior.",
+      "dependencies": ["guarded-initial-lock-001"],
+      "status": "done",
+      "done_criteria": [
+        "Post-lock locating first searches for candidates that advance beyond the accepted offset",
+        "Older stronger matches no longer block a shorter advancing match from applying progress",
+        "Existing no-match and not-advancing diagnostics remain available when no advancing candidate exists",
+        "Initial-lock behavior, ASR cadence, scheduler, repository, and Mushaf rendering are unchanged",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter ProgressiveTranscriptLocatorTests",
+        "swift test --filter ProgressiveTranscriptLocatorOutcomeTests",
+        "swift test --filter TranscriptPositionLocatorTests",
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Implemented on 2026-06-17. Red check: `swift test --filter ProgressiveTranscriptLocatorTests` failed because `testPostLockPrefersAdvancingMatchOverStrongerOldMatch` returned nil when a stronger old match beat a shorter advancing match. Added an optional completing-after filter to `TranscriptPositionLocator.locate` and used it only after `ProgressiveTranscriptLocator` has an accepted offset. Final checks: focused locator tests passed 10 tests; outcome tests passed 3 tests; transcript locator tests passed 3 tests; `swift test` passed 90 tests with 1 existing opt-in local audio audit skipped; `swift build` completed successfully. Live log review from the 2026-06-17 16:38 run showed healthy ASR timing (`first_transcript_latency_ms=1097.487792`, window 156 `average_transcript_interval_ms=502.281718`, `processing_ms=444.147084`), no ASR/start failures, and no pending-window backlog. The guarded 3-word initial lock applied at window 16, about 8.94s after recording start, because earlier windows were no-match or only 2-word short initial matches. Locator outcomes across 157 windows: 54 `progress_applied`, 87 `not_advancing`, 9 `no_match`, 3 `initial_match_too_short`, 3 `empty_transcript`, and 1 final `not_recording`."
+    },
+    {
+      "id": "guarded-provisional-initial-highlight-001",
+      "name": "Guarded Provisional Initial Highlight",
+      "description": "Show a visual-only provisional first highlight after the same unique 2-word near-start candidate appears in consecutive live ASR windows, without committing recitation progress until the existing locator confirms.",
+      "dependencies": ["post-lock-advancing-locator-001"],
+      "status": "done",
+      "done_criteria": [
+        "WordProgressState supports a distinct provisional visual state in SwiftUI and rendered Mushaf pages",
+        "Core tracker confirms only exact 2-word candidates that are unique across the selected reference scope and start before the first 16 expected words",
+        "Replacement or missing evidence clears stale provisional state before a new candidate can be confirmed",
+        "3+ word matches and candidates at or beyond the guarded start limit stay owned by the normal locator path",
+        "RecitationViewModel applies provisional highlights as visual-only state without advancing snapshot.completedWordCount or calling applyLocatedProgress",
+        "Real located progress clears provisional visuals and applies authoritative completed/current states",
+        "Lifecycle, ASR error, empty transcript/reference, and cross-page cleanup paths do not orphan provisional states",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter ProvisionalInitialHighlightTrackerTests",
+        "swift test --filter ProgressiveTranscriptLocatorTests",
+        "swift test --filter RecitationViewModelTests",
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Implemented on 2026-06-17 on branch `provisional-initial-highlight`. Added `.provisional` word state rendering, `ProvisionalInitialHighlightTracker`, live ASR view-model wiring, provisional locator logs, and focused safety tests. Final checks: provisional tracker tests passed 8 tests; progressive locator tests passed 10 tests; RecitationViewModelTests passed 12 tests; full `swift test` passed 103 tests with 1 expected local-audio audit skipped and 0 failures; `swift build` completed successfully. On-device log verification is still pending."
     }
   ]
 }

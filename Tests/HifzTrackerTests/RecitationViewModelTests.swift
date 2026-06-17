@@ -104,6 +104,126 @@ final class RecitationViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.pageNumber, 1)
         XCTAssertEqual(viewModel.mushafPage?.pageNumber, 1)
     }
+
+    @MainActor
+    func testProvisionalInitialHighlightDoesNotAdvanceCommittedSnapshot() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 1
+        viewModel.startAyah = 1
+        let references = Self.references()
+
+        viewModel.applyProvisionalInitialHighlight(
+            through: Self.location(matching: references, range: 0..<2),
+            references: references
+        )
+
+        XCTAssertEqual(viewModel.snapshot.completedWordCount, 0)
+    }
+
+    @MainActor
+    func testProvisionalInitialHighlightPaintsMatchedWordsAndNextCurrent() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 1
+        viewModel.startAyah = 1
+        let references = Self.references()
+
+        viewModel.applyProvisionalInitialHighlight(
+            through: Self.location(matching: references, range: 0..<2),
+            references: references
+        )
+
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 1)), .provisional)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 2)), .provisional)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)), .current)
+    }
+
+    @MainActor
+    func testLocatedProgressReplacesProvisionalVisualStateWithAuthoritativeStates() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 1
+        viewModel.startAyah = 1
+        let references = Self.references()
+
+        viewModel.applyProvisionalInitialHighlight(
+            through: Self.location(matching: references, range: 0..<2),
+            references: references
+        )
+        viewModel.applyAuthoritativeLocatedProgress(
+            Self.location(matching: references, range: 0..<2),
+            references: references
+        )
+
+        XCTAssertEqual(viewModel.snapshot.completedWordCount, 2)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 1)), .completed)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 2)), .completed)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)), .current)
+        XCTAssertEqual(viewModel.wordProgress.map(\.state), [.completed, .completed, .current])
+    }
+
+    @MainActor
+    func testProvisionalInitialHighlightClearsWhenEvidenceDisappearsBeforeLock() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 1
+        viewModel.startAyah = 1
+        let references = Self.references()
+
+        viewModel.applyProvisionalInitialHighlight(
+            through: Self.location(matching: references, range: 0..<2),
+            references: references
+        )
+        viewModel.clearProvisionalInitialHighlight()
+
+        XCTAssertEqual(viewModel.snapshot.completedWordCount, 0)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 1)), .current)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 2)), .pending)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)), .pending)
+        XCTAssertEqual(viewModel.wordProgress.map(\.state), [.current, .pending, .pending])
+    }
+
+    @MainActor
+    func testProvisionalInitialHighlightDoesNotMoveDisplayedAyahOrAutoFlipPage() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 1
+        viewModel.startAyah = 1
+        viewModel.isRecording = true
+        let references = Self.references()
+
+        viewModel.applyProvisionalInitialHighlight(
+            through: Self.location(matching: references, range: 0..<3),
+            references: references
+        )
+
+        XCTAssertEqual(viewModel.displayedAyah, 1)
+        XCTAssertEqual(viewModel.pageNumber, 1)
+        XCTAssertEqual(viewModel.mushafPage?.pageNumber, 1)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 2, wordIndex: 1)), .current)
+    }
+
+    private static func references() -> [RecitationWordReference] {
+        [
+            RecitationWordReference(surah: 1, ayah: 1, wordIndex: 1, text: "one"),
+            RecitationWordReference(surah: 1, ayah: 1, wordIndex: 2, text: "two"),
+            RecitationWordReference(surah: 1, ayah: 1, wordIndex: 3, text: "three"),
+            RecitationWordReference(surah: 1, ayah: 2, wordIndex: 1, text: "four")
+        ]
+    }
+
+    private static func location(
+        matching references: [RecitationWordReference],
+        range: Range<Int>
+    ) -> TranscriptLocation {
+        TranscriptLocation(
+            completedThrough: references[range.upperBound - 1],
+            matchedWordCount: range.count,
+            expectedRange: range,
+            recognizedRange: 0..<range.count
+        )
+    }
 }
 
 private final class InMemoryQuranRepository: QuranRepository {

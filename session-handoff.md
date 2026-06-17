@@ -2,68 +2,73 @@
 
 ## Current Objective
 
-- Goal: Add on-device timing instrumentation for the live ASR/highlighting path.
-- Current status: Complete and verified; timing logs are emitted without changing ASR model, locator, repository, or Mushaf rendering behavior.
-- Branch / commit: `main`, no commit made in this session.
+- Goal: Add guarded provisional initial highlighting so repeated 2-word near-start evidence can show a visual first highlight before the existing authoritative locator lock.
+- Current status: Implementation complete and automated verification passed.
+- Branch: `provisional-initial-highlight`.
+- Commit status: Not committed.
+- Remaining step: On-device recitation/log verification for real-world latency and safety evidence.
 
 ## Completed This Session
 
-- [x] Added `live-asr-timing-001` to `feature_list.json`.
-- [x] Added `LiveASRTimingProbe` with deterministic timestamp inputs and reset behavior.
-- [x] Wired recording lifecycle timing reset/start markers into `RecitationViewModel`.
-- [x] Logged ASR window starts and finishes, including processing duration.
-- [x] Logged one-time first transcript latency per recording.
-- [x] Logged transcript interval and running average interval after multiple transcript completions.
-- [x] Logged pending-window storage while transcription is busy.
-- [x] Logged pending-window handoff starts when the scheduler immediately starts the newest pending window.
-- [x] Logged highlight application after a transcript advances located progress.
-- [x] Added focused unit tests for the timing probe.
-- [x] Updated `progress.md` with evidence and next measurement steps.
+- [x] Added `.provisional` to `WordProgressState`.
+- [x] Rendered provisional state in `MushafPageView` and `MushafPageRenderer`.
+- [x] Added `ProvisionalInitialHighlightTracker`.
+- [x] Confirmed only exact 2-word candidates after two consecutive matching windows.
+- [x] Required candidate start before expected offset 16.
+- [x] Required the normalized 2-word phrase to be unique across the selected reference scope.
+- [x] Rejected 3+ word candidates so the normal 3-word/4-word locator path stays authoritative.
+- [x] Wired `RecitationViewModel` to evaluate provisional evidence only when no committed progress exists and the real locator rejects the transcript.
+- [x] Applied provisional highlights as visual-only state without advancing `snapshot.completedWordCount`.
+- [x] Cleared provisional visuals on disagreement, lifecycle reset, ASR error, empty transcript/reference, reference invalidation, and authoritative progress.
+- [x] Added `live_asr_locator event=provisional_initial_highlight` logs for candidate, confirmed, and cleared states without transcript text or audio.
+- [x] Added focused tracker tests and view-model safety tests.
 
 ## Verification Evidence
 
 | Check | Command | Result | Notes |
 |---|---|---|---|
-| Red test | `swift test --filter LiveASRTimingProbeTests` | Failed as expected | `LiveASRTimingProbe` did not exist before production edits. |
-| Focused regression | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift test --filter LiveASRTimingProbeTests` | Passed | 3 timing-probe tests, 0 failures. |
-| Standard verification | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift test` | Passed | 80 tests passed; 1 existing local audio audit skipped by opt-in flag. |
-| Standard verification | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift build` | Passed | Debug build completed successfully. |
+| Provisional tracker | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift test --filter ProvisionalInitialHighlightTrackerTests` | Passed | 8 tests, 0 failures. |
+| Locator regression | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift test --filter ProgressiveTranscriptLocatorTests` | Passed | 10 tests, 0 failures. |
+| View-model safety | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift test --filter RecitationViewModelTests` | Passed | 12 tests, 0 failures. |
+| Full test suite | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift test` | Passed | 103 tests, 1 expected local-audio audit skipped, 0 failures. |
+| Build | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift build` | Passed | Debug build completed successfully. |
 
 ## Files Changed
 
-- `HifzTracker/Services/LiveASRTimingProbe.swift`
+- `Sources/HifzCore/Models.swift`
+- `Sources/HifzCore/MushafPageRenderer.swift`
+- `Sources/HifzCore/TranscriptPositionLocator.swift`
+- `HifzTracker/Views/MushafPageView.swift`
 - `HifzTracker/Services/RecitationViewModel.swift`
-- `Tests/HifzTrackerTests/LiveASRTimingProbeTests.swift`
+- `Tests/HifzCoreTests/ProvisionalInitialHighlightTrackerTests.swift`
+- `Tests/HifzCoreTests/ProgressiveTranscriptLocatorTests.swift`
+- `Tests/HifzTrackerTests/RecitationViewModelTests.swift`
 - `feature_list.json`
 - `progress.md`
 - `session-handoff.md`
+- `docs/superpowers/plans/2026-06-17-guarded-provisional-initial-highlight.md`
 
-## Decisions Made
+## Existing Worktree Context
 
-- Keep this pass instrumentation-only: no model, locator, repository, Mushaf rendering, cadence, or scheduler behavior changes.
-- Use the existing ASR OSLog subsystem/category with `live_asr_timing` in every timing event.
-- Emit `-1` for timing fields that do not apply yet, such as first latency after the first transcript or interval before a second transcript.
-- Separate `pending_window_stored` from `pending_window_handoff_started` so logs can show both queue pressure and actual handoff starts.
-- Keep timing tests unit-level and deterministic by injecting nanosecond timestamps.
-
-## Useful Log Filter
-
-```bash
-log show --last 10m --style compact --predicate 'subsystem == "dev.mostafa.HifzTracker" && category == "ASR" && eventMessage CONTAINS "live_asr_timing"'
-```
+- This branch was created during the live ASR optimization thread, and earlier uncommitted locator/outcome instrumentation changes are still present in the same worktree.
+- Do not revert those changes unless explicitly instructed.
+- Before committing, inspect `git diff` and stage intentionally.
 
 ## Blockers / Risks
 
-- No blockers.
-- On-device timing data still needs to be captured in a real recitation session before picking the next optimization.
-- Release checks were skipped because this did not touch release assets, signing, packaging, or distribution flow.
+- No code blocker.
+- On-device verification has not been run yet. The automated tests prove safety and semantics, but the real user-visible win still needs logs from a live recitation.
+- Release checks were skipped because this was not a release, signing, asset, packaging, or distribution change.
 
 ## Next Session Startup
 
 1. Read `AGENTS.md`.
 2. Read `feature_list.json`, `progress.md`, and this file.
-3. Run `swift test` and `swift build` before new edits when feasible.
+3. Run `git status --short`.
+4. Run one on-device recitation and inspect:
 
-## Recommended Next Step
+```bash
+log show --info --last 10m --style compact --predicate 'subsystem == "dev.mostafa.HifzTracker" && category == "ASR" && eventMessage CONTAINS "provisional_initial_highlight"'
+```
 
-- Run the app on-device, recite a short passage, collect `live_asr_timing` logs, and compare first transcript latency, average transcript interval, pending handoffs, and ASR processing time per window.
+5. Confirm candidate/confirmed provisional events appear only before committed progress and only for repeated unique 2-word near-start evidence.
