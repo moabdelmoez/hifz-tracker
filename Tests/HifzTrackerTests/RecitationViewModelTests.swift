@@ -204,6 +204,28 @@ final class RecitationViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 2, wordIndex: 1)), .current)
     }
 
+    @MainActor
+    func testLiveASRHighlightsNextSurahAfterCompletingSelectedSurah() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 100
+        viewModel.startAyah = 11
+        viewModel.isRecording = true
+
+        XCTAssertTrue(viewModel.applyASRTranscript(Self.transcript("hundred final one two"), windowID: 1))
+        XCTAssertEqual(viewModel.snapshot.currentAyah, 11)
+
+        XCTAssertTrue(viewModel.applyASRTranscript(Self.transcript("next surah one two"), windowID: 2))
+
+        XCTAssertEqual(viewModel.snapshot.currentAyah, 1)
+        XCTAssertEqual(viewModel.snapshot.completedWordCount, 4)
+        XCTAssertEqual(viewModel.pageNumber, 101)
+        XCTAssertEqual(viewModel.mushafPage?.pageNumber, 101)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 1)), .completed)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 4)), .completed)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 5)), .current)
+    }
+
     private static func references() -> [RecitationWordReference] {
         [
             RecitationWordReference(surah: 1, ayah: 1, wordIndex: 1, text: "one"),
@@ -224,6 +246,14 @@ final class RecitationViewModelTests: XCTestCase {
             recognizedRange: 0..<range.count
         )
     }
+
+    private static func transcript(_ text: String) -> QuranSTTTranscript {
+        QuranSTTTranscript(
+            text: text,
+            tokenIDs: [],
+            logProbabilities: ONNXLogProbabilities(values: [], timeStepCount: 0, vocabularySize: 0)
+        )
+    }
 }
 
 private final class InMemoryQuranRepository: QuranRepository {
@@ -242,23 +272,49 @@ private final class InMemoryQuranRepository: QuranRepository {
             Self.makeWord(id: 3, surah: 1, ayah: 1, wordIndex: 3, text: "three"),
             Self.makeWord(id: 4, surah: 1, ayah: 2, wordIndex: 1, text: "four")
         ]
-        let allWords = pageOneWords + pageTwoWords
+        let surahOneHundredWords = [
+            Self.makeWord(id: 1001, surah: 100, ayah: 11, wordIndex: 1, text: "hundred"),
+            Self.makeWord(id: 1002, surah: 100, ayah: 11, wordIndex: 2, text: "final"),
+            Self.makeWord(id: 1003, surah: 100, ayah: 11, wordIndex: 3, text: "one"),
+            Self.makeWord(id: 1004, surah: 100, ayah: 11, wordIndex: 4, text: "two")
+        ]
+        let nextSurahWords = [
+            Self.makeWord(id: 1011, surah: 101, ayah: 1, wordIndex: 1, text: "next"),
+            Self.makeWord(id: 1012, surah: 101, ayah: 1, wordIndex: 2, text: "surah"),
+            Self.makeWord(id: 1013, surah: 101, ayah: 1, wordIndex: 3, text: "one"),
+            Self.makeWord(id: 1014, surah: 101, ayah: 1, wordIndex: 4, text: "two"),
+            Self.makeWord(id: 1015, surah: 101, ayah: 1, wordIndex: 5, text: "three")
+        ]
+        let allWords = pageOneWords + pageTwoWords + surahOneHundredWords + nextSurahWords
 
         self.wordsByLocation = Dictionary(uniqueKeysWithValues: allWords.map { ($0.location, $0) })
         self.wordsByAyah = Dictionary(grouping: allWords) { "\($0.surah):\($0.ayah)" }
         self.pages = [
             1: Self.makePage(pageNumber: 1, words: pageOneWords),
-            2: Self.makePage(pageNumber: 2, words: pageTwoWords)
+            2: Self.makePage(pageNumber: 2, words: pageTwoWords),
+            100: Self.makePage(pageNumber: 100, words: surahOneHundredWords),
+            101: Self.makePage(pageNumber: 101, words: nextSurahWords)
         ]
         self.ayahPages = [
             "1:1": 1,
-            "1:2": 2
+            "1:2": 2,
+            "100:11": 100,
+            "101:1": 101
         ]
         self.wordPages = [
             "1:1:1": 1,
             "1:1:2": 1,
             "1:1:3": 2,
-            "1:2:1": 2
+            "1:2:1": 2,
+            "100:11:1": 100,
+            "100:11:2": 100,
+            "100:11:3": 100,
+            "100:11:4": 100,
+            "101:1:1": 101,
+            "101:1:2": 101,
+            "101:1:3": 101,
+            "101:1:4": 101,
+            "101:1:5": 101
         ]
     }
 

@@ -152,6 +152,27 @@
         "swift build"
       ],
       "evidence": "Implemented on 2026-06-17 on branch `provisional-initial-highlight`. Added `.provisional` word state rendering, `ProvisionalInitialHighlightTracker`, live ASR view-model wiring, provisional locator logs, and focused safety tests. Final checks: provisional tracker tests passed 8 tests; progressive locator tests passed 10 tests; RecitationViewModelTests passed 12 tests; full `swift test` passed 103 tests with 1 expected local-audio audit skipped and 0 failures; `swift build` completed successfully. On-device log verification is still pending."
+    },
+    {
+      "id": "surah-boundary-live-highlights-001",
+      "name": "Surah Boundary Live Highlight Continuation",
+      "description": "Allow live ASR highlighting to continue from the selected surah into the immediate next surah, so finishing surah 100 and reciting surah 101 keeps page flips and word highlights moving.",
+      "dependencies": ["guarded-provisional-initial-highlight-001"],
+      "status": "done",
+      "done_criteria": [
+        "Live ASR reference scope includes the selected surah from startAyah and the immediate next surah",
+        "Post-lock locating can advance from the final ayah of the selected surah into the next surah",
+        "The Mushaf page flips to the next surah page when the next tracked word is there",
+        "Next-surah word states render completed and current highlights after a boundary transcript",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter RecitationViewModelTests/testLiveASRHighlightsNextSurahAfterCompletingSelectedSurah",
+        "swift test --filter RecitationViewModelTests",
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Implemented on 2026-06-17. Red check: `swift test --filter RecitationViewModelTests/testLiveASRHighlightsNextSurahAfterCompletingSelectedSurah` first failed because the live transcript method was private, then failed behaviorally because the surah 101 transcript returned false, page stayed at 100, and surah 101 word states stayed pending. Extended `RecitationViewModel` live reference scope to the immediate next surah and updated selected-ayah sync for later-surah completions. Final checks: focused boundary regression passed 1 test; RecitationViewModelTests passed 13 tests; `swift test` passed 104 tests with 1 expected local-audio audit skipped and 0 failures; `swift build` completed successfully."
     }
   ]
 }

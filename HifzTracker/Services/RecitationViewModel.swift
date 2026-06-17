@@ -358,7 +358,7 @@ final class RecitationViewModel {
     }
 
     @discardableResult
-    private func applyASRTranscript(_ transcript: QuranSTTTranscript, windowID: Int) -> Bool {
+    func applyASRTranscript(_ transcript: QuranSTTTranscript, windowID: Int) -> Bool {
         let recognizedWords = QuranTextNormalizer
             .asrComparable(transcript.text)
             .split(separator: " ")
@@ -626,43 +626,53 @@ final class RecitationViewModel {
     }
 
     private func referenceIndexForSelectedSurah() -> TranscriptPositionIndex? {
-        let finalAyah = selectedSurahInfo.ayahCount
+        let finalSurah = SurahCatalog.surah(selectedSurah + 1) == nil ? selectedSurah : selectedSurah + 1
+        let finalAyah = SurahCatalog.surah(finalSurah)?.ayahCount ?? selectedSurahInfo.ayahCount
         if let referenceScopeCache,
            referenceScopeCache.surah == selectedSurah,
            referenceScopeCache.startAyah == startAyah,
+           referenceScopeCache.finalSurah == finalSurah,
            referenceScopeCache.finalAyah == finalAyah {
             return referenceScopeCache.index
         }
 
-        let references = referenceWordsForSelectedSurah(finalAyah: finalAyah)
+        let references = referenceWordsForLiveRecitation(finalSurah: finalSurah, finalAyah: finalAyah)
         let index = TranscriptPositionIndex(expected: references)
         referenceScopeCache = ReferenceScopeCache(
             surah: selectedSurah,
             startAyah: startAyah,
+            finalSurah: finalSurah,
             finalAyah: finalAyah,
             index: index
         )
         return index
     }
 
-    private func referenceWordsForSelectedSurah(finalAyah: Int) -> [RecitationWordReference] {
+    private func referenceWordsForLiveRecitation(finalSurah: Int, finalAyah: Int) -> [RecitationWordReference] {
         guard let repository else { return [] }
 
         var references: [RecitationWordReference] = []
-        for ayah in startAyah...finalAyah {
-            let text = (try? repository.referenceText(surah: selectedSurah, ayah: ayah)) ?? ""
-            let referenceWords = QuranReferenceWords.wordsForAyah(text, surah: selectedSurah, ayah: ayah)
-            guard !referenceWords.isEmpty else { continue }
+        for surah in selectedSurah...finalSurah {
+            guard let surahInfo = SurahCatalog.surah(surah) else { continue }
+            let firstAyah = surah == selectedSurah ? startAyah : 1
+            let lastAyah = surah == finalSurah ? finalAyah : surahInfo.ayahCount
+            guard firstAyah <= lastAyah else { continue }
 
-            let glyphWords = (try? repository.words(surah: selectedSurah, ayah: ayah)) ?? []
-            for (offset, word) in referenceWords.enumerated() {
-                let wordIndex = glyphWords.indices.contains(offset) ? glyphWords[offset].wordIndex : offset + 1
-                references.append(RecitationWordReference(
-                    surah: selectedSurah,
-                    ayah: ayah,
-                    wordIndex: wordIndex,
-                    text: word
-                ))
+            for ayah in firstAyah...lastAyah {
+                let text = (try? repository.referenceText(surah: surah, ayah: ayah)) ?? ""
+                let referenceWords = QuranReferenceWords.wordsForAyah(text, surah: surah, ayah: ayah)
+                guard !referenceWords.isEmpty else { continue }
+
+                let glyphWords = (try? repository.words(surah: surah, ayah: ayah)) ?? []
+                for (offset, word) in referenceWords.enumerated() {
+                    let wordIndex = glyphWords.indices.contains(offset) ? glyphWords[offset].wordIndex : offset + 1
+                    references.append(RecitationWordReference(
+                        surah: surah,
+                        ayah: ayah,
+                        wordIndex: wordIndex,
+                        text: word
+                    ))
+                }
             }
         }
         return references
@@ -697,7 +707,9 @@ final class RecitationViewModel {
     private func syncSelectedAyahWordProgress(through completedWord: RecitationWordReference) {
         wordProgress = wordProgress.map { word in
             let state: WordProgressState
-            if completedWord.ayah > startAyah || word.wordIndex <= completedWord.wordIndex {
+            if completedWord.surah > selectedSurah
+                || completedWord.ayah > startAyah
+                || word.wordIndex <= completedWord.wordIndex {
                 state = .completed
             } else if completedWord.ayah == startAyah, word.wordIndex == completedWord.wordIndex + 1 {
                 state = .current
@@ -770,6 +782,7 @@ private extension Array {
 private struct ReferenceScopeCache {
     var surah: Int
     var startAyah: Int
+    var finalSurah: Int
     var finalAyah: Int
     var index: TranscriptPositionIndex
 }

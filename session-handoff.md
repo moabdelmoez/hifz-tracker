@@ -2,73 +2,48 @@
 
 ## Current Objective
 
-- Goal: Add guarded provisional initial highlighting so repeated 2-word near-start evidence can show a visual first highlight before the existing authoritative locator lock.
+- Goal: Fix live recitation highlights at a surah boundary, specifically finishing surah 100 and continuing into surah 101.
 - Current status: Implementation complete and automated verification passed.
-- Branch: `provisional-initial-highlight`.
-- Commit status: Not committed.
-- Remaining step: On-device recitation/log verification for real-world latency and safety evidence.
+- Branch: `main`.
+- Commit status: Included in the requested main-branch boundary-fix commit.
+- Remaining optional step: Live microphone smoke test from surah 100 ayah 11 into surah 101 ayah 1.
 
 ## Completed This Session
 
-- [x] Added `.provisional` to `WordProgressState`.
-- [x] Rendered provisional state in `MushafPageView` and `MushafPageRenderer`.
-- [x] Added `ProvisionalInitialHighlightTracker`.
-- [x] Confirmed only exact 2-word candidates after two consecutive matching windows.
-- [x] Required candidate start before expected offset 16.
-- [x] Required the normalized 2-word phrase to be unique across the selected reference scope.
-- [x] Rejected 3+ word candidates so the normal 3-word/4-word locator path stays authoritative.
-- [x] Wired `RecitationViewModel` to evaluate provisional evidence only when no committed progress exists and the real locator rejects the transcript.
-- [x] Applied provisional highlights as visual-only state without advancing `snapshot.completedWordCount`.
-- [x] Cleared provisional visuals on disagreement, lifecycle reset, ASR error, empty transcript/reference, reference invalidation, and authoritative progress.
-- [x] Added `live_asr_locator event=provisional_initial_highlight` logs for candidate, confirmed, and cleared states without transcript text or audio.
-- [x] Added focused tracker tests and view-model safety tests.
+- [x] Added a view-model regression test for live ASR crossing from surah 100 to surah 101.
+- [x] Opened `RecitationViewModel.applyASRTranscript` to module-internal so tests can exercise the live transcript path.
+- [x] Extended the live reference scope to include the selected surah from `startAyah` and the immediate next surah.
+- [x] Kept selected-ayah word progress coherent when authoritative progress has moved to a later surah.
+- [x] Verified next-surah page flip and completed/current word states with the regression fixture.
+- [x] Updated `feature_list.json` and `progress.md`.
 
 ## Verification Evidence
 
 | Check | Command | Result | Notes |
 |---|---|---|---|
-| Provisional tracker | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift test --filter ProvisionalInitialHighlightTrackerTests` | Passed | 8 tests, 0 failures. |
-| Locator regression | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift test --filter ProgressiveTranscriptLocatorTests` | Passed | 10 tests, 0 failures. |
-| View-model safety | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift test --filter RecitationViewModelTests` | Passed | 12 tests, 0 failures. |
-| Full test suite | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift test` | Passed | 103 tests, 1 expected local-audio audit skipped, 0 failures. |
-| Build | `env CLANG_MODULE_CACHE_PATH=/private/tmp/hifz-clang-module-cache SWIFT_MODULE_CACHE_PATH=/private/tmp/hifz-swift-module-cache swift build` | Passed | Debug build completed successfully. |
+| Red compile check | `swift test --filter RecitationViewModelTests/testLiveASRHighlightsNextSurahAfterCompletingSelectedSurah` | Failed | `applyASRTranscript` was private. |
+| Red behavior check | `swift test --filter RecitationViewModelTests/testLiveASRHighlightsNextSurahAfterCompletingSelectedSurah` | Failed | Surah 101 transcript returned false, page stayed at 100, highlights stayed pending. |
+| Boundary regression | `swift test --filter RecitationViewModelTests/testLiveASRHighlightsNextSurahAfterCompletingSelectedSurah` | Passed | 1 test, 0 failures. |
+| View-model suite | `swift test --filter RecitationViewModelTests` | Passed | 13 tests, 0 failures. |
+| Full test suite | `swift test` | Passed | 104 tests, 1 expected local-audio audit skipped, 0 failures. |
+| Build | `swift build` | Passed | Debug build completed successfully. |
 
 ## Files Changed
 
-- `Sources/HifzCore/Models.swift`
-- `Sources/HifzCore/MushafPageRenderer.swift`
-- `Sources/HifzCore/TranscriptPositionLocator.swift`
-- `HifzTracker/Views/MushafPageView.swift`
 - `HifzTracker/Services/RecitationViewModel.swift`
-- `Tests/HifzCoreTests/ProvisionalInitialHighlightTrackerTests.swift`
-- `Tests/HifzCoreTests/ProgressiveTranscriptLocatorTests.swift`
 - `Tests/HifzTrackerTests/RecitationViewModelTests.swift`
 - `feature_list.json`
 - `progress.md`
 - `session-handoff.md`
-- `docs/superpowers/plans/2026-06-17-guarded-provisional-initial-highlight.md`
 
-## Existing Worktree Context
+## Existing Context
 
-- This branch was created during the live ASR optimization thread, and earlier uncommitted locator/outcome instrumentation changes are still present in the same worktree.
-- Do not revert those changes unless explicitly instructed.
-- Before committing, inspect `git diff` and stage intentionally.
-
-## Blockers / Risks
-
-- No code blocker.
-- On-device verification has not been run yet. The automated tests prove safety and semantics, but the real user-visible win still needs logs from a live recitation.
 - Release checks were skipped because this was not a release, signing, asset, packaging, or distribution change.
+- The previous provisional-initial-highlight handoff noted pending on-device log verification; that remains separate from this boundary fix.
 
 ## Next Session Startup
 
 1. Read `AGENTS.md`.
 2. Read `feature_list.json`, `progress.md`, and this file.
 3. Run `git status --short`.
-4. Run one on-device recitation and inspect:
-
-```bash
-log show --info --last 10m --style compact --predicate 'subsystem == "dev.mostafa.HifzTracker" && category == "ASR" && eventMessage CONTAINS "provisional_initial_highlight"'
-```
-
-5. Confirm candidate/confirmed provisional events appear only before committed progress and only for repeated unique 2-word near-start evidence.
+4. If extra confidence is needed, run the app and recite from surah 100 ayah 11 into surah 101 ayah 1, confirming the Mushaf flips to page 101 and highlights continue.
