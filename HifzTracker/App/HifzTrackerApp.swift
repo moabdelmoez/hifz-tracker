@@ -5,10 +5,6 @@ import SwiftUI
 struct HifzTrackerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
-    init() {
-        MushafFontRegistrar.registerBundledQPCV4TajweedFonts()
-    }
-
     var body: some Scene {
         WindowGroup("Hifz Tracker", id: "recite") {
             RecitationRootView()

@@ -373,6 +373,50 @@
         "swift build"
       ],
       "evidence": "Implemented on 2026-06-18. Copied the provided 5.5 MB GIF to `docs/assets/hifztracker-demo.gif` and added a centered README image under the `## Features` heading with descriptive alt text. Final validation and SwiftPM checks are recorded in progress.md."
+    },
+    {
+      "id": "ponytail-audit-report-001",
+      "name": "Persist Ponytail Audit Report",
+      "description": "Save the latest read-only ponytail complexity audit as repository documentation without applying its recommendations.",
+      "dependencies": ["readme-demo-gif-001"],
+      "status": "done",
+      "done_criteria": [
+        "docs/ponytail-audit.md contains the latest ranked audit findings",
+        "Repository links in the report are relative and reviewable on GitHub",
+        "No audit recommendation is implemented as part of saving the report",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "test -f docs/ponytail-audit.md",
+        "jq empty feature_list.json",
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Saved `docs/ponytail-audit.md` on 2026-07-13 with 21 ranked findings, relative repository links, and the audit net summary. No audit recommendation was implemented. Validation passed: the report exists; 21 tagged findings and the net summary were confirmed; `feature_list.json` is valid JSON; `swift test` executed 130 tests with 1 expected local-audio skip and 0 failures; `swift build` completed successfully."
+    },
+    {
+      "id": "ponytail-cleanup-001",
+      "name": "Ponytail Audit Cleanup",
+      "description": "Apply all 21 findings from docs/ponytail-audit.md serially, using behavior-level TDD where applicable and focused validation before each next item.",
+      "dependencies": ["ponytail-audit-report-001"],
+      "status": "done",
+      "done_criteria": [
+        "All 21 audit findings are applied in report order",
+        "Behavior-sensitive changes retain focused public/module seam coverage",
+        "Dead APIs, duplicate assets, prototype controls, and untracked skill mirrors are removed",
+        "Native AVFAudio, Accelerate, and macOS font-loading replacements preserve app behavior",
+        "Release-sensitive changes pass local checks and record any external credential blocker",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test",
+        "swift build",
+        "./script/build_and_run.sh --verify",
+        "./script/release_checks.sh",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-13. Applied and serially validated all 21 findings from `docs/ponytail-audit.md`, including behavior-level red/green coverage for native microphone conversion and packaged font loading. Final `./script/release_checks.sh` passed 123 tests with 1 expected local-audio skip and 0 failures, `swift build`, staged app launch, ad-hoc signature verification, ONNX dylib/rpath checks, and bundled-data checksums. `./script/release_checks.sh release` independently passed 124 tests and all repo-controlled release checks before stopping at the known external blocker: no Developer ID Application identity. `jq empty feature_list.json`, shell syntax checks, cleanup symbol sweeps, and `git diff --check` passed."
     }
   ]
 }

@@ -1,15 +1,11 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("preferredInputDeviceID") private var preferredInputDeviceID = "system-default"
     @AppStorage("showDebugTranscript") private var showDebugTranscript = true
 
     var body: some View {
         TabView {
             Form {
-                Picker("Microphone", selection: $preferredInputDeviceID) {
-                    Text("System Default").tag("system-default")
-                }
                 Toggle("Show debug transcript", isOn: $showDebugTranscript)
             }
             .formStyle(.grouped)

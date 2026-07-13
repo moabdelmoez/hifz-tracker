@@ -131,27 +131,6 @@ final class RecitationViewModel {
         }
     }
 
-    func advanceDemoProgress() {
-        guard isRecording else { return }
-        let completed = min(wordProgress.count, max(1, snapshot.completedWordCount + 1))
-        snapshot = reducer.reduce(.progressAdvanced(ayah: startAyah, completedWordCount: completed))
-        applyProgress(completed: completed)
-        debugTranscript = wordProgress
-            .filter { $0.state == .completed }
-            .map(\.text)
-            .joined(separator: " ")
-    }
-
-    func markDemoCorrection() {
-        guard isRecording else { return }
-        let current = max(1, min(wordProgress.count, snapshot.completedWordCount + 1))
-        let expected = wordProgress[safe: current - 1]?.text ?? "expected"
-        let mismatch = AlignmentMismatch(expectedWordIndex: current, expectedWord: expected, recognizedWord: "غير مطابق")
-        snapshot = reducer.reduce(.strongMismatch(mismatch))
-        snapshot = reducer.reduce(.strongMismatch(mismatch))
-        applyCorrection(wordIndex: current)
-    }
-
     func stopRecording() {
         microphone.stop()
         transcriptionTask?.cancel()
@@ -239,30 +218,6 @@ final class RecitationViewModel {
         }
     }
 
-    private func applyProgress(completed: Int) {
-        wordProgress = wordProgress.map { word in
-            if word.wordIndex <= completed {
-                WordProgress(wordIndex: word.wordIndex, text: word.text, state: .completed)
-            } else if word.wordIndex == completed + 1 {
-                WordProgress(wordIndex: word.wordIndex, text: word.text, state: .current)
-            } else {
-                WordProgress(wordIndex: word.wordIndex, text: word.text, state: .pending)
-            }
-        }
-        syncSelectedAyahProgressToPageStates()
-    }
-
-    private func applyCorrection(wordIndex: Int) {
-        wordProgress = wordProgress.map { word in
-            if word.wordIndex == wordIndex {
-                WordProgress(wordIndex: word.wordIndex, text: word.text, state: .correctionNeeded)
-            } else {
-                word
-            }
-        }
-        wordStatesByLocation[wordLocation(surah: selectedSurah, ayah: startAyah, wordIndex: wordIndex)] = .correctionNeeded
-    }
-
     private func handleMicrophoneSamples(_ samples: [Float]) {
         guard isRecording, let service = liveASRService else { return }
         audioLevel = audioLevelMeter.update(with: samples)
@@ -272,7 +227,8 @@ final class RecitationViewModel {
 
     private func submitLiveASRWindow(_ samples: [Float], service: LiveQuranTranscriptionService) {
         guard let requestSamples = liveASRRequestScheduler.submit(samples) else {
-            let metrics = liveASRTimingProbe.pendingWindowStored(
+            let metrics = liveASRTimingProbe.pendingWindow(
+                .stored,
                 sampleCount: samples.count,
                 sampleRate: liveSampleWindow.sampleRate,
                 atNanoseconds: nowNanoseconds()
@@ -323,12 +279,13 @@ final class RecitationViewModel {
             return
         }
         guard let pendingSamples = liveASRRequestScheduler.completeActiveRequest() else { return }
-        let metrics = liveASRTimingProbe.pendingWindowHandedOff(
+        let metrics = liveASRTimingProbe.pendingWindow(
+            .handoffStarted,
             sampleCount: pendingSamples.count,
             sampleRate: liveSampleWindow.sampleRate,
             atNanoseconds: nowNanoseconds()
         )
-        logLiveASRPendingWindowHandoff(metrics)
+        logLiveASRPendingWindow(metrics)
         startLiveASRTranscription(samples: pendingSamples, service: service)
     }
 
@@ -338,12 +295,12 @@ final class RecitationViewModel {
 
     private func logLiveASRPendingWindow(_ metrics: LiveASRTimingProbe.PendingWindowMetrics) {
         let elapsedMilliseconds = metrics.elapsedSinceRecordingStartMilliseconds ?? -1
-        asrLogger.info("live_asr_timing event=pending_window_stored pending_store_count=\(metrics.pendingWindowStoreCount, privacy: .public) sample_count=\(metrics.sampleCount, privacy: .public) audio_ms=\(metrics.audioMilliseconds, privacy: .public) elapsed_since_recording_start_ms=\(elapsedMilliseconds, privacy: .public)")
-    }
-
-    private func logLiveASRPendingWindowHandoff(_ metrics: LiveASRTimingProbe.PendingWindowHandoffMetrics) {
-        let elapsedMilliseconds = metrics.elapsedSinceRecordingStartMilliseconds ?? -1
-        asrLogger.info("live_asr_timing event=pending_window_handoff_started handoff_count=\(metrics.pendingHandoffCount, privacy: .public) sample_count=\(metrics.sampleCount, privacy: .public) audio_ms=\(metrics.audioMilliseconds, privacy: .public) elapsed_since_recording_start_ms=\(elapsedMilliseconds, privacy: .public)")
+        switch metrics.event {
+        case .stored:
+            asrLogger.info("live_asr_timing event=pending_window_stored pending_store_count=\(metrics.count, privacy: .public) sample_count=\(metrics.sampleCount, privacy: .public) audio_ms=\(metrics.audioMilliseconds, privacy: .public) elapsed_since_recording_start_ms=\(elapsedMilliseconds, privacy: .public)")
+        case .handoffStarted:
+            asrLogger.info("live_asr_timing event=pending_window_handoff_started handoff_count=\(metrics.count, privacy: .public) sample_count=\(metrics.sampleCount, privacy: .public) audio_ms=\(metrics.audioMilliseconds, privacy: .public) elapsed_since_recording_start_ms=\(elapsedMilliseconds, privacy: .public)")
+        }
     }
 
     private func logLiveASRTranscriptionStarted(_ token: LiveASRTimingProbe.TranscriptionToken) {
@@ -711,17 +668,6 @@ final class RecitationViewModel {
         clearAndResetProvisionalInitialHighlightState()
         referenceScopeCache = nil
         transcriptLocator.reset()
-    }
-
-    private func applyUncertain(wordIndex: Int) {
-        wordProgress = wordProgress.map { word in
-            if word.wordIndex == wordIndex {
-                WordProgress(wordIndex: word.wordIndex, text: word.text, state: .uncertain)
-            } else {
-                word
-            }
-        }
-        wordStatesByLocation[wordLocation(surah: selectedSurah, ayah: startAyah, wordIndex: wordIndex)] = .uncertain
     }
 
     private func resetDisplayedWordStates() {

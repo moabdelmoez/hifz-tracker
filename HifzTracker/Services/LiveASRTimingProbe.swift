@@ -16,15 +16,14 @@ struct LiveASRTimingProbe {
         var averageTranscriptIntervalMilliseconds: Double?
     }
 
-    struct PendingWindowMetrics: Equatable {
-        var pendingWindowStoreCount: Int
-        var sampleCount: Int
-        var audioMilliseconds: Double
-        var elapsedSinceRecordingStartMilliseconds: Double?
+    enum PendingWindowEvent: Equatable {
+        case stored
+        case handoffStarted
     }
 
-    struct PendingWindowHandoffMetrics: Equatable {
-        var pendingHandoffCount: Int
+    struct PendingWindowMetrics: Equatable {
+        var event: PendingWindowEvent
+        var count: Int
         var sampleCount: Int
         var audioMilliseconds: Double
         var elapsedSinceRecordingStartMilliseconds: Double?
@@ -97,34 +96,27 @@ struct LiveASRTimingProbe {
         )
     }
 
-    mutating func pendingWindowStored(
+    mutating func pendingWindow(
+        _ event: PendingWindowEvent,
         sampleCount: Int,
         sampleRate: Int,
         atNanoseconds timestamp: UInt64
     ) -> PendingWindowMetrics {
-        pendingWindowStoreCount += 1
+        let count: Int
+        switch event {
+        case .stored:
+            pendingWindowStoreCount += 1
+            count = pendingWindowStoreCount
+        case .handoffStarted:
+            pendingHandoffCount += 1
+            count = pendingHandoffCount
+        }
         let elapsedSinceRecordingStartMilliseconds = recordingStartedAtNanoseconds.map {
             milliseconds(from: $0, to: timestamp)
         }
         return PendingWindowMetrics(
-            pendingWindowStoreCount: pendingWindowStoreCount,
-            sampleCount: sampleCount,
-            audioMilliseconds: audioMilliseconds(sampleCount: sampleCount, sampleRate: sampleRate),
-            elapsedSinceRecordingStartMilliseconds: elapsedSinceRecordingStartMilliseconds
-        )
-    }
-
-    mutating func pendingWindowHandedOff(
-        sampleCount: Int,
-        sampleRate: Int,
-        atNanoseconds timestamp: UInt64
-    ) -> PendingWindowHandoffMetrics {
-        pendingHandoffCount += 1
-        let elapsedSinceRecordingStartMilliseconds = recordingStartedAtNanoseconds.map {
-            milliseconds(from: $0, to: timestamp)
-        }
-        return PendingWindowHandoffMetrics(
-            pendingHandoffCount: pendingHandoffCount,
+            event: event,
+            count: count,
             sampleCount: sampleCount,
             audioMilliseconds: audioMilliseconds(sampleCount: sampleCount, sampleRate: sampleRate),
             elapsedSinceRecordingStartMilliseconds: elapsedSinceRecordingStartMilliseconds

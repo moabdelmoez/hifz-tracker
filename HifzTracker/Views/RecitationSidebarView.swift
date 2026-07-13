@@ -228,44 +228,19 @@ private struct RecitationActionBar: View {
     var persistSession: () -> Void
 
     var body: some View {
-        VStack(spacing: 10) {
-            Button {
-                if viewModel.isRecording {
-                    persistSession()
-                }
-                viewModel.toggleRecording()
-            } label: {
-                Label(primaryTitle, systemImage: primarySystemImage)
-                    .frame(maxWidth: .infinity)
+        Button {
+            if viewModel.isRecording {
+                persistSession()
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .keyboardShortcut("r", modifiers: [.command])
-            .help("\(primaryTitle) (⌘R)")
-
-            HStack(spacing: 8) {
-                Button {
-                    viewModel.advanceDemoProgress()
-                } label: {
-                    Label("Advance", systemImage: "forward.frame.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .disabled(!viewModel.isRecording)
-                .help("Manual smoke-test progress until ONNX assets and WAV fixtures are installed")
-
-                Button {
-                    viewModel.markDemoCorrection()
-                } label: {
-                    Label("Correction", systemImage: "exclamationmark.triangle.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .disabled(!viewModel.isRecording)
-                .help("Simulate conservative correction-needed state")
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .labelStyle(.titleAndIcon)
+            viewModel.toggleRecording()
+        } label: {
+            Label(primaryTitle, systemImage: primarySystemImage)
+                .frame(maxWidth: .infinity)
         }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .keyboardShortcut("r", modifiers: [.command])
+        .help("\(primaryTitle) (⌘R)")
     }
 
     private var primaryTitle: String {

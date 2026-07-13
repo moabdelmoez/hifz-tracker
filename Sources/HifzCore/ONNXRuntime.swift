@@ -8,9 +8,6 @@ public enum ONNXRuntime {
 }
 
 public final class ONNXRuntimeSession {
-    public let inputNames: [String]
-    public let outputNames: [String]
-
     private let handle: OpaquePointer
 
     public init(modelURL: URL) throws {
@@ -25,22 +22,7 @@ public final class ONNXRuntimeSession {
             throw ONNXRuntimeError.sessionCreationFailed("ONNX Runtime did not return a session handle.")
         }
 
-        do {
-            self.inputNames = try Self.names(
-                handle: handle,
-                count: HifzORTSessionInputCount,
-                name: HifzORTSessionInputName
-            )
-            self.outputNames = try Self.names(
-                handle: handle,
-                count: HifzORTSessionOutputCount,
-                name: HifzORTSessionOutputName
-            )
-            self.handle = handle
-        } catch {
-            HifzORTDestroySession(handle)
-            throw error
-        }
+        self.handle = handle
     }
 
     deinit {
@@ -84,27 +66,6 @@ public final class ONNXRuntimeSession {
         )
     }
 
-    private static func names(
-        handle: OpaquePointer,
-        count: (OpaquePointer?, UnsafeMutablePointer<CInt>?, UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> CInt,
-        name: (OpaquePointer?, CInt, UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?, UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> CInt
-    ) throws -> [String] {
-        var countValue: CInt = 0
-        var errorPointer: UnsafeMutablePointer<CChar>?
-        try check(count(handle, &countValue, &errorPointer), errorPointer: errorPointer, error: ONNXRuntimeError.metadataReadFailed)
-
-        return try (0..<countValue).map { index in
-            var namePointer: UnsafeMutablePointer<CChar>?
-            var errorPointer: UnsafeMutablePointer<CChar>?
-            try check(name(handle, index, &namePointer, &errorPointer), errorPointer: errorPointer, error: ONNXRuntimeError.metadataReadFailed)
-            guard let namePointer else {
-                throw ONNXRuntimeError.metadataReadFailed("ONNX Runtime returned an empty metadata name.")
-            }
-            defer { HifzORTFreeString(namePointer) }
-            return String(cString: namePointer)
-        }
-    }
-
     private static func check(
         _ status: CInt,
         errorPointer: UnsafeMutablePointer<CChar>?,
@@ -140,12 +101,11 @@ public struct ONNXLogProbabilities: Equatable, Sendable {
 
 public enum ONNXRuntimeError: Error, Equatable, CustomStringConvertible {
     case sessionCreationFailed(String)
-    case metadataReadFailed(String)
     case inferenceFailed(String)
 
     public var description: String {
         switch self {
-        case let .sessionCreationFailed(message), let .metadataReadFailed(message), let .inferenceFailed(message):
+        case let .sessionCreationFailed(message), let .inferenceFailed(message):
             message
         }
     }

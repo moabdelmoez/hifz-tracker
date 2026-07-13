@@ -188,7 +188,7 @@ private struct MushafPageNumberFooter: View {
 
             Text(MushafPageNumberFormatter.string(for: pageNumber))
                 .font(.custom(
-                    MushafFontResolver.qpcV4Tajweed.fontName(pageNumber: pageNumber),
+                    MushafFontResolver.qpcV4TajweedFontName(pageNumber: pageNumber),
                     size: max(10, pageSize.width * 0.032),
                     relativeTo: .caption
                 ))
@@ -259,13 +259,6 @@ struct MushafViewportMetrics {
 
     func scaledCanonicalY(_ y: CGFloat) -> CGFloat {
         y * pageScale
-    }
-
-    func centeredScrollOffset(forCanonicalY y: CGFloat) -> CGFloat {
-        let markerY = contentPadding.top + scaledCanonicalY(y)
-        let contentHeight = contentPadding.top + pageSize.height + contentPadding.bottom
-        let maximumOffset = max(0, contentHeight - containerSize.height)
-        return min(max(0, markerY - containerSize.height / 2), maximumOffset)
     }
 
     private var baseInsets: EdgeInsets {
@@ -348,7 +341,7 @@ private struct WordGlyphView: View {
 
     var body: some View {
         Text(presentation.displayText)
-            .font(.custom(MushafFontResolver.qpcV4Tajweed.fontName(pageNumber: pageNumber), size: 42, relativeTo: .largeTitle))
+            .font(.custom(MushafFontResolver.qpcV4TajweedFontName(pageNumber: pageNumber), size: 42, relativeTo: .largeTitle))
             .frame(minWidth: 64, minHeight: 58)
             .padding(.horizontal, 8)
             .background(background)

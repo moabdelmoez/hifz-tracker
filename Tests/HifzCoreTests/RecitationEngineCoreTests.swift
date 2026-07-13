@@ -10,18 +10,6 @@ final class RecitationEngineCoreTests: XCTestCase {
         XCTAssertEqual(decoded, [4, 5, 5, 6])
     }
 
-    func testWordAlignerMarksCompletedCurrentAndPendingWords() {
-        let aligner = WordAligner()
-
-        let progress = aligner.align(
-            expected: ["بسم", "الله", "الرحمن", "الرحيم"],
-            recognized: ["بسم", "الله", "الرحمن"]
-        )
-
-        XCTAssertEqual(progress.map(\.state), [.completed, .completed, .completed, .current])
-        XCTAssertEqual(progress.map(\.wordIndex), [1, 2, 3, 4])
-    }
-
     func testCorrectionGateRequiresTwoStableStrongMismatches() {
         var gate = CorrectionGate(requiredStableChunks: 2)
         let mismatch = AlignmentMismatch(expectedWordIndex: 3, expectedWord: "الرحمن", recognizedWord: "العالمين")

@@ -214,12 +214,12 @@ public enum MushafPageRenderer {
     }
 
     public static func pageFont(pageNumber: Int, fontDirectory: URL, size: CGFloat) throws -> NSFont {
-        let fontName = MushafFontResolver.qpcV4Tajweed.fontName(pageNumber: pageNumber)
+        let fontName = MushafFontResolver.qpcV4TajweedFontName(pageNumber: pageNumber)
         if let font = NSFont(name: fontName, size: size) {
             return font
         }
 
-        let fontURL = fontDirectory.appending(path: MushafFontResolver.qpcV4Tajweed.fontFileName(pageNumber: pageNumber))
+        let fontURL = fontDirectory.appending(path: MushafFontResolver.qpcV4TajweedFontFileName(pageNumber: pageNumber))
         guard FileManager.default.fileExists(atPath: fontURL.path) else {
             throw MushafPageRendererError.missingFontFile(fontURL.path)
         }

@@ -140,21 +140,6 @@ public struct TranscriptPositionLocator: Sendable {
         )
     }
 
-    private func matchingRunLength(
-        expected: [String],
-        recognized: [String],
-        expectedStart: Int,
-        recognizedStart: Int,
-        expectedUpperBound: Int
-    ) -> Int {
-        var length = 0
-        while expectedStart + length < expectedUpperBound,
-              recognizedStart + length < recognized.count,
-              expected[expectedStart + length] == recognized[recognizedStart + length] {
-            length += 1
-        }
-        return length
-    }
 }
 
 public enum ProvisionalInitialHighlightOutcome: Equatable, Sendable {
@@ -249,27 +234,6 @@ public struct ProvisionalInitialHighlightTracker: Sendable {
         }
 
         return (location, CandidateKey(location: location))
-    }
-
-    private func occurrenceCount(
-        of phrase: [String],
-        in expected: [String]
-    ) -> Int {
-        guard !phrase.isEmpty, phrase.count <= expected.count else { return 0 }
-
-        var count = 0
-        for start in 0...(expected.count - phrase.count) {
-            var matches = true
-            for offset in phrase.indices where expected[start + offset] != phrase[offset] {
-                matches = false
-                break
-            }
-            if matches {
-                count += 1
-                if count > 1 { return count }
-            }
-        }
-        return count
     }
 
     private struct CandidateKey: Equatable, Sendable {
@@ -540,22 +504,6 @@ public struct ProgressiveTranscriptLocator: Sendable {
         )
     }
 
-    private func matchingRunLength(
-        expected: [String],
-        recognized: [String],
-        expectedStart: Int,
-        recognizedStart: Int,
-        expectedUpperBound: Int
-    ) -> Int {
-        var length = 0
-        while expectedStart + length < expectedUpperBound,
-              recognizedStart + length < recognized.count,
-              expected[expectedStart + length] == recognized[recognizedStart + length] {
-            length += 1
-        }
-        return length
-    }
-
     private func isSingleGapWithinSameAyah(
         index: TranscriptPositionIndex,
         gapOffset: Int,
@@ -606,23 +554,40 @@ public struct ProgressiveTranscriptLocator: Sendable {
         return occurrenceCount(of: phrase, in: index.normalizedExpected) == 1
     }
 
-    private func occurrenceCount(of phrase: [String], in expected: [String]) -> Int {
-        guard !phrase.isEmpty, phrase.count <= expected.count else { return 0 }
+}
 
-        var count = 0
-        for start in 0...(expected.count - phrase.count) {
-            var matches = true
-            for offset in phrase.indices where expected[start + offset] != phrase[offset] {
-                matches = false
-                break
-            }
-            if matches {
-                count += 1
-                if count > 1 { return count }
-            }
-        }
-        return count
+private func matchingRunLength(
+    expected: [String],
+    recognized: [String],
+    expectedStart: Int,
+    recognizedStart: Int,
+    expectedUpperBound: Int
+) -> Int {
+    var length = 0
+    while expectedStart + length < expectedUpperBound,
+          recognizedStart + length < recognized.count,
+          expected[expectedStart + length] == recognized[recognizedStart + length] {
+        length += 1
     }
+    return length
+}
+
+private func occurrenceCount(of phrase: [String], in expected: [String]) -> Int {
+    guard !phrase.isEmpty, phrase.count <= expected.count else { return 0 }
+
+    var count = 0
+    for start in 0...(expected.count - phrase.count) {
+        var matches = true
+        for offset in phrase.indices where expected[start + offset] != phrase[offset] {
+            matches = false
+            break
+        }
+        if matches {
+            count += 1
+            if count > 1 { return count }
+        }
+    }
+    return count
 }
 
 private struct Candidate {

@@ -45,29 +45,35 @@ final class LiveASRTimingProbeTests: XCTestCase {
         var probe = LiveASRTimingProbe()
         probe.recordingStarted(atNanoseconds: 10_000_000_000)
 
-        let first = probe.pendingWindowStored(
+        let first = probe.pendingWindow(
+            .stored,
             sampleCount: 32_000,
             sampleRate: 16_000,
             atNanoseconds: 10_750_000_000
         )
-        let second = probe.pendingWindowStored(
+        let second = probe.pendingWindow(
+            .stored,
             sampleCount: 40_000,
             sampleRate: 16_000,
             atNanoseconds: 11_250_000_000
         )
-        let handoff = probe.pendingWindowHandedOff(
+        let handoff = probe.pendingWindow(
+            .handoffStarted,
             sampleCount: 40_000,
             sampleRate: 16_000,
             atNanoseconds: 11_500_000_000
         )
 
-        XCTAssertEqual(first.pendingWindowStoreCount, 1)
+        XCTAssertEqual(first.event, .stored)
+        XCTAssertEqual(first.count, 1)
         XCTAssertEqual(first.audioMilliseconds, 2_000, accuracy: 0.001)
         XCTAssertEqual(first.elapsedSinceRecordingStartMilliseconds ?? -1, 750, accuracy: 0.001)
-        XCTAssertEqual(second.pendingWindowStoreCount, 2)
+        XCTAssertEqual(second.event, .stored)
+        XCTAssertEqual(second.count, 2)
         XCTAssertEqual(second.audioMilliseconds, 2_500, accuracy: 0.001)
         XCTAssertEqual(second.elapsedSinceRecordingStartMilliseconds ?? -1, 1_250, accuracy: 0.001)
-        XCTAssertEqual(handoff.pendingHandoffCount, 1)
+        XCTAssertEqual(handoff.event, .handoffStarted)
+        XCTAssertEqual(handoff.count, 1)
         XCTAssertEqual(handoff.audioMilliseconds, 2_500, accuracy: 0.001)
         XCTAssertEqual(handoff.elapsedSinceRecordingStartMilliseconds ?? -1, 1_500, accuracy: 0.001)
     }
@@ -75,7 +81,8 @@ final class LiveASRTimingProbeTests: XCTestCase {
     func testResetClearsMeasurements() {
         var probe = LiveASRTimingProbe()
         probe.recordingStarted(atNanoseconds: 1_000_000_000)
-        _ = probe.pendingWindowStored(
+        _ = probe.pendingWindow(
+            .stored,
             sampleCount: 16_000,
             sampleRate: 16_000,
             atNanoseconds: 1_500_000_000

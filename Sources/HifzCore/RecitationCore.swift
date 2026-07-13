@@ -22,55 +22,6 @@ public struct CTCGreedyDecoder: Sendable {
     }
 }
 
-public struct WordAligner: Sendable {
-    public init() {}
-
-    public func align(expected: [String], recognized: [String]) -> [WordProgress] {
-        let normalizedExpected = expected.map(QuranTextNormalizer.asrComparable)
-        let normalizedRecognized = recognized.map(QuranTextNormalizer.asrComparable)
-        var firstUnmatched = normalizedExpected.count
-
-        for index in normalizedExpected.indices {
-            guard index < normalizedRecognized.count else {
-                firstUnmatched = index
-                break
-            }
-            if normalizedExpected[index] != normalizedRecognized[index] {
-                firstUnmatched = index
-                break
-            }
-        }
-
-        return expected.enumerated().map { offset, word in
-            let state: WordProgressState
-            if offset < firstUnmatched {
-                state = .completed
-            } else if offset == firstUnmatched {
-                state = .current
-            } else {
-                state = .pending
-            }
-            return WordProgress(wordIndex: offset + 1, text: word, state: state)
-        }
-    }
-
-    public func firstStrongMismatch(expected: [String], recognized: [String]) -> AlignmentMismatch? {
-        let limit = min(expected.count, recognized.count)
-        for index in 0..<limit {
-            let expectedWord = QuranTextNormalizer.asrComparable(expected[index])
-            let recognizedWord = QuranTextNormalizer.asrComparable(recognized[index])
-            if expectedWord != recognizedWord {
-                return AlignmentMismatch(
-                    expectedWordIndex: index + 1,
-                    expectedWord: expected[index],
-                    recognizedWord: recognized[index]
-                )
-            }
-        }
-        return nil
-    }
-}
-
 public struct CorrectionGate: Sendable {
     public var requiredStableChunks: Int
     private var lastMismatch: AlignmentMismatch?

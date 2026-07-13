@@ -7,6 +7,7 @@ typealias MicrophoneSampleHandler = @Sendable ([Float]) -> Void
 enum MicrophoneCaptureError: Error, LocalizedError {
     case permissionDenied
     case inputFormatUnavailable
+    case audioConversionFailed
 
     var errorDescription: String? {
         switch self {
@@ -14,6 +15,8 @@ enum MicrophoneCaptureError: Error, LocalizedError {
             "Microphone permission was denied."
         case .inputFormatUnavailable:
             "No microphone input format is available."
+        case .audioConversionFailed:
+            "Microphone audio conversion failed."
         }
     }
 }
@@ -22,10 +25,6 @@ enum MicrophoneCaptureError: Error, LocalizedError {
 final class MicrophoneCaptureService {
     private let engine = AVAudioEngine()
     private var isRunning = false
-
-    func startDiscardingAudio() async throws {
-        try await startStreamingAudio { _ in }
-    }
 
     func startStreamingAudio(_ onSamples: @escaping MicrophoneSampleHandler) async throws {
         microphoneLogger.info("Microphone capture start requested")
@@ -45,9 +44,15 @@ final class MicrophoneCaptureService {
             microphoneLogger.error("Microphone input format unavailable")
             throw MicrophoneCaptureError.inputFormatUnavailable
         }
+        let converter = try Mono16kAudioConverter(inputFormat: format)
 
         input.removeTap(onBus: 0)
-        input.installTap(onBus: 0, bufferSize: 4096, format: format, block: makeAudioTap(onSamples: onSamples))
+        input.installTap(
+            onBus: 0,
+            bufferSize: 4096,
+            format: format,
+            block: makeAudioTap(converter: converter, onSamples: onSamples)
+        )
         microphoneLogger.info("Microphone audio tap installed at \(format.sampleRate, privacy: .public) Hz, \(format.channelCount, privacy: .public) channels")
 
         engine.prepare()
@@ -78,69 +83,80 @@ final class MicrophoneCaptureService {
     }
 }
 
-private func makeAudioTap(onSamples: @escaping MicrophoneSampleHandler) -> AVAudioNodeTapBlock {
+private func makeAudioTap(
+    converter: Mono16kAudioConverter,
+    onSamples: @escaping MicrophoneSampleHandler
+) -> AVAudioNodeTapBlock {
     { buffer, _ in
-        let samples = makeMono16kSamples(from: buffer)
-        guard !samples.isEmpty else { return }
-        onSamples(samples)
+        do {
+            let samples = try converter.convert(buffer)
+            guard !samples.isEmpty else { return }
+            onSamples(samples)
+        } catch {
+            microphoneLogger.error("Microphone audio conversion failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 }
 
-private func makeMono16kSamples(from buffer: AVAudioPCMBuffer) -> [Float] {
-    guard
-        let channelData = buffer.floatChannelData,
-        buffer.frameLength > 0,
-        buffer.format.channelCount > 0
-    else {
-        return []
+final class Mono16kAudioConverter: @unchecked Sendable {
+    private let converter: AVAudioConverter
+    private let outputFormat: AVAudioFormat
+
+    init(inputFormat: AVAudioFormat) throws {
+        guard let outputFormat = AVAudioFormat(
+            standardFormatWithSampleRate: 16_000,
+            channels: 1
+        ),
+        let converter = AVAudioConverter(from: inputFormat, to: outputFormat) else {
+            throw MicrophoneCaptureError.inputFormatUnavailable
+        }
+        converter.downmix = true
+        converter.sampleRateConverterQuality = AVAudioQuality.max.rawValue
+        self.converter = converter
+        self.outputFormat = outputFormat
     }
 
-    let frameCount = Int(buffer.frameLength)
-    let channelCount = Int(buffer.format.channelCount)
-    var mono = [Float](repeating: 0, count: frameCount)
+    func convert(_ input: AVAudioPCMBuffer) throws -> [Float] {
+        guard input.frameLength > 0 else { return [] }
+        let capacity = AVAudioFrameCount(ceil(
+            Double(input.frameLength) * outputFormat.sampleRate / input.format.sampleRate
+        )) + 32
+        guard let output = AVAudioPCMBuffer(
+            pcmFormat: outputFormat,
+            frameCapacity: capacity
+        ) else {
+            throw MicrophoneCaptureError.audioConversionFailed
+        }
 
-    if buffer.format.isInterleaved {
-        let interleaved = channelData[0]
-        for frameIndex in 0..<frameCount {
-            var value = Float(0)
-            for channelIndex in 0..<channelCount {
-                value += interleaved[frameIndex * channelCount + channelIndex]
+        let inputProvider = AudioConverterInput(input)
+        var conversionError: NSError?
+        let status = converter.convert(to: output, error: &conversionError) { _, inputStatus in
+            guard let input = inputProvider.take() else {
+                inputStatus.pointee = .noDataNow
+                return nil
             }
-            mono[frameIndex] = value / Float(channelCount)
+            inputStatus.pointee = .haveData
+            return input
         }
-    } else {
-        for frameIndex in 0..<frameCount {
-            var value = Float(0)
-            for channelIndex in 0..<channelCount {
-                value += channelData[channelIndex][frameIndex]
-            }
-            mono[frameIndex] = value / Float(channelCount)
+        if status == .error {
+            throw conversionError ?? MicrophoneCaptureError.audioConversionFailed
         }
+        guard let channel = output.floatChannelData?[0] else {
+            throw MicrophoneCaptureError.audioConversionFailed
+        }
+        return Array(UnsafeBufferPointer(start: channel, count: Int(output.frameLength)))
     }
-
-    return resample(samples: mono, sourceSampleRate: buffer.format.sampleRate, targetSampleRate: 16_000)
 }
 
-private func resample(samples: [Float], sourceSampleRate: Double, targetSampleRate: Double) -> [Float] {
-    guard !samples.isEmpty, sourceSampleRate > 0, targetSampleRate > 0 else {
-        return []
+private final class AudioConverterInput: @unchecked Sendable {
+    private var buffer: AVAudioPCMBuffer?
+
+    init(_ buffer: AVAudioPCMBuffer) {
+        self.buffer = buffer
     }
 
-    guard abs(sourceSampleRate - targetSampleRate) > 0.5 else {
-        return samples
+    func take() -> AVAudioPCMBuffer? {
+        defer { buffer = nil }
+        return buffer
     }
-
-    let outputCount = max(1, Int((Double(samples.count) * targetSampleRate / sourceSampleRate).rounded(.down)))
-    let sourceStep = sourceSampleRate / targetSampleRate
-    var output = [Float](repeating: 0, count: outputCount)
-
-    for outputIndex in 0..<outputCount {
-        let sourcePosition = Double(outputIndex) * sourceStep
-        let lowerIndex = min(samples.count - 1, Int(sourcePosition.rounded(.down)))
-        let upperIndex = min(samples.count - 1, lowerIndex + 1)
-        let fraction = Float(sourcePosition - Double(lowerIndex))
-        output[outputIndex] = samples[lowerIndex] + (samples[upperIndex] - samples[lowerIndex]) * fraction
-    }
-
-    return output
 }

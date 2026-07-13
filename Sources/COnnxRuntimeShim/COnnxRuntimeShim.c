@@ -8,7 +8,6 @@ struct HifzORTSession {
     OrtEnv *env;
     OrtSessionOptions *options;
     OrtSession *session;
-    OrtAllocator *allocator;
 };
 
 static const OrtApi *HifzORTApi(void) {
@@ -29,32 +28,6 @@ static int HifzORTFailStatus(const OrtApi *api, OrtStatus *status, char **out_er
     HifzORTSetError(out_error, api->GetErrorMessage(status));
     api->ReleaseStatus(status);
     return -1;
-}
-
-static int HifzORTCopyAllocatedName(
-    const OrtApi *api,
-    OrtAllocator *allocator,
-    char *allocated_name,
-    char **out_name,
-    char **out_error
-) {
-    if (allocated_name == NULL) {
-        HifzORTSetError(out_error, "ONNX Runtime returned an empty metadata name.");
-        return -1;
-    }
-
-    *out_name = strdup(allocated_name);
-    OrtStatus *free_status = api->AllocatorFree(allocator, allocated_name);
-    if (free_status != NULL) {
-        api->ReleaseStatus(free_status);
-    }
-
-    if (*out_name == NULL) {
-        HifzORTSetError(out_error, "Unable to copy ONNX Runtime metadata name.");
-        return -1;
-    }
-
-    return 0;
 }
 
 const char *HifzORTVersionString(void) {
@@ -90,11 +63,6 @@ int HifzORTCreateSession(const char *model_path, HifzORTSession **out_session, c
     }
 
     if (HifzORTFailStatus(api, api->CreateSession(wrapper->env, model_path, wrapper->options, &wrapper->session), out_error) != 0) {
-        HifzORTDestroySession(wrapper);
-        return -1;
-    }
-
-    if (HifzORTFailStatus(api, api->GetAllocatorWithDefaultOptions(&wrapper->allocator), out_error) != 0) {
         HifzORTDestroySession(wrapper);
         return -1;
     }
@@ -294,52 +262,6 @@ fail:
         api->ReleaseMemoryInfo(memory_info);
     }
     return -1;
-}
-
-int HifzORTSessionInputCount(HifzORTSession *session, int *out_count, char **out_error) {
-    const OrtApi *api = HifzORTApi();
-    size_t count = 0;
-    if (HifzORTFailStatus(api, api->SessionGetInputCount(session->session, &count), out_error) != 0) {
-        return -1;
-    }
-    *out_count = (int)count;
-    return 0;
-}
-
-int HifzORTSessionOutputCount(HifzORTSession *session, int *out_count, char **out_error) {
-    const OrtApi *api = HifzORTApi();
-    size_t count = 0;
-    if (HifzORTFailStatus(api, api->SessionGetOutputCount(session->session, &count), out_error) != 0) {
-        return -1;
-    }
-    *out_count = (int)count;
-    return 0;
-}
-
-int HifzORTSessionInputName(HifzORTSession *session, int index, char **out_name, char **out_error) {
-    const OrtApi *api = HifzORTApi();
-    char *allocated_name = NULL;
-    if (HifzORTFailStatus(
-        api,
-        api->SessionGetInputName(session->session, (size_t)index, session->allocator, &allocated_name),
-        out_error
-    ) != 0) {
-        return -1;
-    }
-    return HifzORTCopyAllocatedName(api, session->allocator, allocated_name, out_name, out_error);
-}
-
-int HifzORTSessionOutputName(HifzORTSession *session, int index, char **out_name, char **out_error) {
-    const OrtApi *api = HifzORTApi();
-    char *allocated_name = NULL;
-    if (HifzORTFailStatus(
-        api,
-        api->SessionGetOutputName(session->session, (size_t)index, session->allocator, &allocated_name),
-        out_error
-    ) != 0) {
-        return -1;
-    }
-    return HifzORTCopyAllocatedName(api, session->allocator, allocated_name, out_name, out_error);
 }
 
 void HifzORTFreeString(char *value) {

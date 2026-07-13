@@ -43,8 +43,6 @@ fi
 
 if [ -f "$ORT_LIB_SOURCE" ]; then
   cp "$ORT_LIB_SOURCE" "$APP_FRAMEWORKS/libonnxruntime.1.dylib"
-  cp "$ORT_LIB_SOURCE" "$APP_FRAMEWORKS/libonnxruntime.1.26.0.dylib"
-  cp "$ORT_LIB_SOURCE" "$APP_FRAMEWORKS/libonnxruntime.dylib"
 fi
 
 cat >"$INFO_PLIST" <<PLIST
@@ -52,6 +50,8 @@ cat >"$INFO_PLIST" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+  <key>ATSApplicationFontsPath</key>
+  <string>Fonts/</string>
   <key>CFBundleExecutable</key>
   <string>$APP_NAME</string>
   <key>CFBundleIdentifier</key>

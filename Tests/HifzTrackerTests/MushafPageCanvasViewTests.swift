@@ -42,22 +42,4 @@ final class MushafPageCanvasViewTests: XCTestCase {
         XCTAssertGreaterThan(metrics.pageSize.height, metrics.availableSize.height)
     }
 
-    func testViewportMetricsCanCenterLowerSelectedAyahInsteadOfLeavingItAtBottom() {
-        let metrics = MushafViewportMetrics(
-            containerSize: CGSize(width: 864, height: 756),
-            canonicalContentSize: CGSize(width: 1_024, height: 1_641)
-        )
-        let falaqFirstAyahCenterY: CGFloat = 766.5
-
-        XCTAssertGreaterThan(
-            metrics.scaledCanonicalY(falaqFirstAyahCenterY),
-            metrics.availableSize.height * 0.78,
-            "Without focus scrolling, Al-Falaq ayah 1 lands at the bottom of this viewport."
-        )
-        XCTAssertGreaterThan(
-            metrics.centeredScrollOffset(forCanonicalY: falaqFirstAyahCenterY),
-            120,
-            "The selected ayah needs a positive scroll offset so it is comfortably visible."
-        )
-    }
 }

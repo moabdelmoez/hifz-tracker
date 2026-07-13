@@ -36,7 +36,7 @@ final class RecitationViewModelTests: XCTestCase {
     }
 
     @MainActor
-    func testHideRecitationTextRevealsCompletedProvisionalAndCorrectionWords() {
+    func testHideRecitationTextRevealsCompletedAndProvisionalWords() {
         let repository = InMemoryQuranRepository()
         let viewModel = RecitationViewModel(repository: repository)
         viewModel.selectedSurah = 1
@@ -63,14 +63,6 @@ final class RecitationViewModelTests: XCTestCase {
         XCTAssertTrue(provisionalViewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 2)))
         XCTAssertFalse(provisionalViewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)))
 
-        let correctionViewModel = RecitationViewModel(repository: repository)
-        correctionViewModel.selectedSurah = 1
-        correctionViewModel.startAyah = 1
-        correctionViewModel.hideRecitationText = true
-        correctionViewModel.isRecording = true
-        correctionViewModel.markDemoCorrection()
-
-        XCTAssertTrue(correctionViewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 1)))
     }
 
     @MainActor

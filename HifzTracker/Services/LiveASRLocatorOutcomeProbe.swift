@@ -13,13 +13,13 @@ struct LiveASRLocatorOutcomeProbe {
         var recognizedWordCount: Int
         var expectedReferenceCount: Int
         var completedWordCountBefore: Int
-        var matchedWordCount: Int?
-        var requiredWordCount: Int?
-        var completedOffset: Int?
-        var acceptedOffset: Int?
-        var completedSurah: Int?
-        var completedAyah: Int?
-        var completedWord: Int?
+        var matchedWordCount: Int? = nil
+        var requiredWordCount: Int? = nil
+        var completedOffset: Int? = nil
+        var acceptedOffset: Int? = nil
+        var completedSurah: Int? = nil
+        var completedAyah: Int? = nil
+        var completedWord: Int? = nil
     }
 
     func metrics(
@@ -38,9 +38,6 @@ struct LiveASRLocatorOutcomeProbe {
                 expectedReferenceCount: expectedReferenceCount,
                 completedWordCountBefore: completedWordCountBefore,
                 matchedWordCount: location.matchedWordCount,
-                requiredWordCount: nil,
-                completedOffset: nil,
-                acceptedOffset: nil,
                 completedSurah: location.completedThrough.surah,
                 completedAyah: location.completedThrough.ayah,
                 completedWord: location.completedThrough.wordIndex
@@ -61,12 +58,7 @@ struct LiveASRLocatorOutcomeProbe {
                 expectedReferenceCount: expectedReferenceCount,
                 completedWordCountBefore: completedWordCountBefore,
                 matchedWordCount: matchedWordCount,
-                requiredWordCount: requiredWordCount,
-                completedOffset: nil,
-                acceptedOffset: nil,
-                completedSurah: nil,
-                completedAyah: nil,
-                completedWord: nil
+                requiredWordCount: requiredWordCount
             )
         case .initialMatchTooFar(let matchedWordCount, let startOffset, let allowedStartOffset):
             return Metrics(
@@ -76,12 +68,8 @@ struct LiveASRLocatorOutcomeProbe {
                 expectedReferenceCount: expectedReferenceCount,
                 completedWordCountBefore: completedWordCountBefore,
                 matchedWordCount: matchedWordCount,
-                requiredWordCount: nil,
                 completedOffset: startOffset,
-                acceptedOffset: allowedStartOffset,
-                completedSurah: nil,
-                completedAyah: nil,
-                completedWord: nil
+                acceptedOffset: allowedStartOffset
             )
         case .notAdvancing(let completedOffset, let acceptedOffset):
             return Metrics(
@@ -90,13 +78,8 @@ struct LiveASRLocatorOutcomeProbe {
                 recognizedWordCount: recognizedWordCount,
                 expectedReferenceCount: expectedReferenceCount,
                 completedWordCountBefore: completedWordCountBefore,
-                matchedWordCount: nil,
-                requiredWordCount: nil,
                 completedOffset: completedOffset,
-                acceptedOffset: acceptedOffset,
-                completedSurah: nil,
-                completedAyah: nil,
-                completedWord: nil
+                acceptedOffset: acceptedOffset
             )
         }
     }
@@ -129,14 +112,7 @@ struct LiveASRLocatorOutcomeProbe {
             reason: reason,
             recognizedWordCount: recognizedWordCount,
             expectedReferenceCount: expectedReferenceCount,
-            completedWordCountBefore: completedWordCountBefore,
-            matchedWordCount: nil,
-            requiredWordCount: nil,
-            completedOffset: nil,
-            acceptedOffset: nil,
-            completedSurah: nil,
-            completedAyah: nil,
-            completedWord: nil
+            completedWordCountBefore: completedWordCountBefore
         )
     }
 }

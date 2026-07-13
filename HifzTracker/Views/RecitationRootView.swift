@@ -41,7 +41,13 @@ struct RecitationRootView: View {
                     }
 
                     ToolbarItem(placement: .status) {
-                        RecitationStatusBadge(text: viewModel.statusText, color: statusColor)
+                        RecitationStatusBadge(
+                            text: viewModel.statusText,
+                            color: RecitationVisualState(
+                                phase: viewModel.snapshot.phase,
+                                wordProgress: viewModel.wordProgress
+                            ).tint
+                        )
                     }
 
                     ToolbarItemGroup(placement: .primaryAction) {
@@ -76,18 +82,6 @@ struct RecitationRootView: View {
         }
     }
 
-    private var statusColor: Color {
-        switch viewModel.snapshot.phase {
-        case .progressing, .locked, .listening:
-            .green
-        case .correctionNeeded, .failed:
-            .red
-        case .uncertain, .findingPlace, .requestingPermission:
-            .yellow
-        default:
-            .secondary
-        }
-    }
 }
 
 private struct RecitationStatusBadge: View {

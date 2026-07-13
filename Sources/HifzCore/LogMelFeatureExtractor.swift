@@ -1,3 +1,4 @@
+import Accelerate
 import Foundation
 
 public struct LogMelFeatures: Equatable, Sendable {
@@ -20,9 +21,6 @@ public struct LogMelFeatureExtractor: Sendable {
     public var featureCount: Int
 
     private let hannWindow: [Float]
-    private let bitReversedIndices: [Int]
-    private let twiddleReal: [Float]
-    private let twiddleImaginary: [Float]
     private let melFilters: [MelFilter]
 
     public init(
@@ -32,15 +30,21 @@ public struct LogMelFeatureExtractor: Sendable {
         fftSize: Int = 512,
         featureCount: Int = 80
     ) {
+        let windowLength = Int((Double(sampleRate) * windowSize).rounded())
+        precondition(fftSize > 0 && fftSize.nonzeroBitCount == 1)
+        precondition(windowLength <= fftSize)
+
         self.sampleRate = sampleRate
-        self.windowLength = Int((Double(sampleRate) * windowSize).rounded())
+        self.windowLength = windowLength
         self.hopLength = Int((Double(sampleRate) * windowStride).rounded())
         self.fftSize = fftSize
         self.featureCount = featureCount
-        self.hannWindow = Self.makeHannWindow(length: Int((Double(sampleRate) * windowSize).rounded()))
-        self.bitReversedIndices = Self.makeBitReversedIndices(size: fftSize)
-        self.twiddleReal = Self.makeTwiddleReal(size: fftSize)
-        self.twiddleImaginary = Self.makeTwiddleImaginary(size: fftSize)
+        self.hannWindow = vDSP.window(
+            ofType: Float.self,
+            usingSequence: .hanningDenormalized,
+            count: windowLength,
+            isHalfWindow: false
+        )
         self.melFilters = Self.makeSlaneyMelFilters(sampleRate: sampleRate, fftSize: fftSize, featureCount: featureCount)
     }
 
@@ -50,18 +54,44 @@ public struct LogMelFeatureExtractor: Sendable {
         let energyFloor = Float(pow(2.0, -24.0))
         var values = [Float](repeating: 0, count: featureCount * frameCount)
         var power = [Float](repeating: 0, count: frequencyBinCount)
-        var real = [Float](repeating: 0, count: fftSize)
-        var imaginary = [Float](repeating: 0, count: fftSize)
+        var inputReal = [Float](repeating: 0, count: fftSize)
+        let inputImaginary = [Float](repeating: 0, count: fftSize)
+        var outputReal = [Float](repeating: 0, count: fftSize)
+        var outputImaginary = [Float](repeating: 0, count: fftSize)
+        let transform = try! vDSP.DiscreteFourierTransform(
+            count: fftSize,
+            direction: .forward,
+            transformType: .complexComplex,
+            ofType: Float.self
+        )
 
         for frameIndex in 0..<frameCount {
             let sampleOffset = frameIndex * hopLength
-            fillPowerSpectrum(
-                samples: samples,
-                sampleOffset: sampleOffset,
-                real: &real,
-                imaginary: &imaginary,
-                power: &power
+            vDSP.clear(&inputReal)
+            let availableSampleCount = min(windowLength, max(0, samples.count - sampleOffset))
+            if availableSampleCount > 0 {
+                let windowed = vDSP.multiply(
+                    samples[sampleOffset..<(sampleOffset + availableSampleCount)],
+                    hannWindow.prefix(availableSampleCount)
+                )
+                inputReal.replaceSubrange(0..<availableSampleCount, with: windowed)
+            }
+
+            transform.transform(
+                inputReal: inputReal,
+                inputImaginary: inputImaginary,
+                outputReal: &outputReal,
+                outputImaginary: &outputImaginary
             )
+            outputReal.withUnsafeMutableBufferPointer { real in
+                outputImaginary.withUnsafeMutableBufferPointer { imaginary in
+                    let spectrum = DSPSplitComplex(
+                        realp: real.baseAddress!,
+                        imagp: imaginary.baseAddress!
+                    )
+                    vDSP.squareMagnitudes(spectrum, result: &power)
+                }
+            }
 
             for featureIndex in 0..<featureCount {
                 let filter = melFilters[featureIndex]
@@ -75,82 +105,6 @@ public struct LogMelFeatureExtractor: Sendable {
 
         normalizePerFeature(values: &values, frameCount: frameCount)
         return LogMelFeatures(values: values, featureCount: featureCount, frameCount: frameCount)
-    }
-
-    private func fillPowerSpectrum(
-        samples: [Float],
-        sampleOffset: Int,
-        real: inout [Float],
-        imaginary: inout [Float],
-        power: inout [Float]
-    ) {
-        guard bitReversedIndices.count == fftSize else {
-            fillDirectPowerSpectrum(samples: samples, sampleOffset: sampleOffset, power: &power)
-            return
-        }
-
-        for index in 0..<fftSize {
-            let sourceIndex = bitReversedIndices[index]
-            if sourceIndex < windowLength {
-                let inputIndex = sampleOffset + sourceIndex
-                let sample = inputIndex < samples.count ? samples[inputIndex] : 0
-                real[index] = sample * hannWindow[sourceIndex]
-            } else {
-                real[index] = 0
-            }
-            imaginary[index] = 0
-        }
-
-        var length = 2
-        while length <= fftSize {
-            let halfLength = length / 2
-            let tableStep = fftSize / length
-
-            for start in stride(from: 0, to: fftSize, by: length) {
-                for offset in 0..<halfLength {
-                    let twiddleIndex = offset * tableStep
-                    let evenIndex = start + offset
-                    let oddIndex = evenIndex + halfLength
-                    let rotationReal = twiddleReal[twiddleIndex]
-                    let rotationImaginary = twiddleImaginary[twiddleIndex]
-                    let oddReal = real[oddIndex]
-                    let oddImaginary = imaginary[oddIndex]
-                    let transformedReal = rotationReal * oddReal - rotationImaginary * oddImaginary
-                    let transformedImaginary = rotationReal * oddImaginary + rotationImaginary * oddReal
-
-                    real[oddIndex] = real[evenIndex] - transformedReal
-                    imaginary[oddIndex] = imaginary[evenIndex] - transformedImaginary
-                    real[evenIndex] += transformedReal
-                    imaginary[evenIndex] += transformedImaginary
-                }
-            }
-
-            length *= 2
-        }
-
-        let frequencyBinCount = fftSize / 2 + 1
-        for binIndex in 0..<frequencyBinCount {
-            power[binIndex] = real[binIndex] * real[binIndex] + imaginary[binIndex] * imaginary[binIndex]
-        }
-    }
-
-    private func fillDirectPowerSpectrum(samples: [Float], sampleOffset: Int, power: inout [Float]) {
-        let frequencyBinCount = fftSize / 2 + 1
-        for binIndex in 0..<frequencyBinCount {
-            var real = Float(0)
-            var imaginary = Float(0)
-
-            for windowIndex in 0..<windowLength {
-                let inputIndex = sampleOffset + windowIndex
-                let sample = inputIndex < samples.count ? samples[inputIndex] : 0
-                let windowedSample = sample * hannWindow[windowIndex]
-                let angle = (2.0 * Double.pi * Double(binIndex) * Double(windowIndex)) / Double(fftSize)
-                real += windowedSample * Float(cos(angle))
-                imaginary -= windowedSample * Float(sin(angle))
-            }
-
-            power[binIndex] = real * real + imaginary * imaginary
-        }
     }
 
     private func normalizePerFeature(values: inout [Float], frameCount: Int) {
@@ -175,41 +129,6 @@ public struct LogMelFeatureExtractor: Sendable {
             for index in start..<end {
                 values[index] = (values[index] - mean) / standardDeviation
             }
-        }
-    }
-
-    private static func makeHannWindow(length: Int) -> [Float] {
-        guard length > 1 else { return Array(repeating: 1, count: max(0, length)) }
-        return (0..<length).map { index in
-            Float(0.5 - 0.5 * cos((2.0 * Double.pi * Double(index)) / Double(length - 1)))
-        }
-    }
-
-    private static func makeBitReversedIndices(size: Int) -> [Int] {
-        guard size > 0, size.nonzeroBitCount == 1 else { return [] }
-        let bitCount = Int(log2(Double(size)))
-        return (0..<size).map { index in
-            var value = index
-            var reversed = 0
-            for _ in 0..<bitCount {
-                reversed = (reversed << 1) | (value & 1)
-                value >>= 1
-            }
-            return reversed
-        }
-    }
-
-    private static func makeTwiddleReal(size: Int) -> [Float] {
-        guard size > 0 else { return [] }
-        return (0..<size).map { index in
-            Float(cos((-2.0 * Double.pi * Double(index)) / Double(size)))
-        }
-    }
-
-    private static func makeTwiddleImaginary(size: Int) -> [Float] {
-        guard size > 0 else { return [] }
-        return (0..<size).map { index in
-            Float(sin((-2.0 * Double.pi * Double(index)) / Double(size)))
         }
     }
 

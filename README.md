@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" alt="Hifz Tracker logo" width="128">
+  <img src="docs/assets/hifz-tracker-icon.png" alt="Hifz Tracker logo" width="128">
 </p>
 
 # Hifz Tracker
@@ -39,8 +39,7 @@ Hifz Tracker is a private, offline-first macOS app for Quran memorization practi
 
 ## Logo And Project Page
 
-- Repository logo: [`logo.png`](logo.png)
-- GitHub Pages icon asset: [`docs/assets/hifz-tracker-icon.png`](docs/assets/hifz-tracker-icon.png)
+- Repository logo: [`docs/assets/hifz-tracker-icon.png`](docs/assets/hifz-tracker-icon.png)
 - Project page: [moabdelmoez.github.io/hifz-tracker](https://moabdelmoez.github.io/hifz-tracker/)
 
 ## Repository Layout

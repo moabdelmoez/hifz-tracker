@@ -12,6 +12,10 @@ ORT_DYLIB_PATH="assets/runtime/onnxruntime-osx-arm64-1.26.0/lib/libonnxruntime.1
 ORT_DYLIB_SHA="30afadcfc3c704f7671f8430d6252956651c1972373901d2be629da2e6a4d8ee"
 STAGED_ORT_DYLIB_PATH="dist/HifzTracker.app/Contents/Frameworks/libonnxruntime.1.dylib"
 STAGED_APP_BINARY="dist/HifzTracker.app/Contents/MacOS/HifzTracker"
+APP_BUNDLE="dist/HifzTracker.app"
+APP_FRAMEWORKS="$APP_BUNDLE/Contents/Frameworks"
+ENTITLEMENTS="dist/HifzTracker.entitlements"
+SIGN_IDENTITY="${DEVELOPER_ID_APPLICATION:-}"
 
 export CLANG_MODULE_CACHE_PATH="${CLANG_MODULE_CACHE_PATH:-/private/tmp/hifz-clang-module-cache}"
 export SWIFT_MODULE_CACHE_PATH="${SWIFT_MODULE_CACHE_PATH:-/private/tmp/hifz-swift-module-cache}"
@@ -60,6 +64,20 @@ require_no_local_runtime_rpath() {
   fi
 }
 
+sign_release_app() {
+  if [ -z "$SIGN_IDENTITY" ]; then
+    SIGN_IDENTITY="$(security find-identity -p codesigning -v | awk -F '"' '/Developer ID Application/ {print $2; exit}')"
+  fi
+  if [ -z "$SIGN_IDENTITY" ]; then
+    echo "No Developer ID Application signing identity found." >&2
+    exit 1
+  fi
+
+  find "$APP_FRAMEWORKS" -type f -name "*.dylib" -exec codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" {} \;
+  codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$SIGN_IDENTITY" "$APP_BUNDLE"
+  codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
+}
+
 swift test
 swift build
 ./script/build_and_run.sh --verify
@@ -86,9 +104,9 @@ if [ "$MODE" = "release" ]; then
   require_qpc_v4_tajweed_fonts
   require_file "$LAYOUT_BUNDLE_PATH"
   verify_sha "$LAYOUT_BUNDLE_PATH" "$LAYOUT_SHA"
-  security find-identity -p codesigning -v | grep "Developer ID Application" >/dev/null
-  codesign -dvvv --entitlements :- "dist/HifzTracker.app"
-  spctl -a -vv "dist/HifzTracker.app"
+  sign_release_app
+  codesign -dvvv --entitlements :- "$APP_BUNDLE"
+  spctl -a -vv "$APP_BUNDLE"
 else
-  echo "Local checks passed. Run '$0 release' after installing model/font/layout and signing the app."
+  echo "Local checks passed. Run '$0 release' after installing release assets and configuring Developer ID signing."
 fi

@@ -4,11 +4,9 @@ import CoreGraphics
 
 final class MushafFontResolverTests: XCTestCase {
     func testBuildsQpcV4TajweedFontNamesForBundledPageFonts() throws {
-        let resolver = MushafFontResolver.qpcV4Tajweed
-
         for pageNumber in [1, 5, 6, 574, 604] {
             XCTAssertEqual(
-                resolver.fontName(pageNumber: pageNumber),
+                MushafFontResolver.qpcV4TajweedFontName(pageNumber: pageNumber),
                 try bundledPostScriptName(pageNumber: pageNumber),
                 "Page \(pageNumber) must resolve to the TTF's registered PostScript name."
             )
@@ -16,10 +14,8 @@ final class MushafFontResolverTests: XCTestCase {
     }
 
     func testBuildsQpcV4TajweedFontResourcePathsForBundledFiles() {
-        let resolver = MushafFontResolver.qpcV4Tajweed
-
-        XCTAssertEqual(resolver.fontFileName(pageNumber: 1), "p1.ttf")
-        XCTAssertEqual(resolver.fontFileName(pageNumber: 604), "p604.ttf")
+        XCTAssertEqual(MushafFontResolver.qpcV4TajweedFontFileName(pageNumber: 1), "p1.ttf")
+        XCTAssertEqual(MushafFontResolver.qpcV4TajweedFontFileName(pageNumber: 604), "p604.ttf")
     }
 
     private func bundledPostScriptName(pageNumber: Int) throws -> String {

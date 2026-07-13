@@ -6,16 +6,6 @@ final class ONNXRuntimeBridgeTests: XCTestCase {
         XCTAssertEqual(ONNXRuntime.versionString(), "1.26.0")
     }
 
-    func testLoadsFp32QuranSTTSessionMetadata() throws {
-        let modelURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appending(path: "assets/models/model_fp32.onnx")
-
-        let session = try ONNXRuntimeSession(modelURL: modelURL)
-
-        XCTAssertEqual(session.inputNames, ["audio_signal", "length"])
-        XCTAssertEqual(session.outputNames, ["logprobs"])
-    }
-
     func testRunsFp32QuranSTTModelForFeatureWindow() throws {
         let modelURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appending(path: "assets/models/model_fp32.onnx")

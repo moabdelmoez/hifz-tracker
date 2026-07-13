@@ -42,7 +42,7 @@ Then sign and notarize the app with Developer ID credentials and run:
 ./script/release_checks.sh release
 ```
 
-The release gate must pass before publishing a DMG.
+The release gate validates release assets and signs the staged app. It must pass before publishing a DMG.
 
 ## DMG Packaging
 

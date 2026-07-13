@@ -20,55 +20,62 @@ final class LiveASRLocatorOutcomeProbeTests: XCTestCase {
             outcome: .located(location)
         )
 
-        XCTAssertEqual(metrics.windowID, 12)
-        XCTAssertEqual(metrics.reason, "progress_applied")
-        XCTAssertEqual(metrics.recognizedWordCount, 8)
-        XCTAssertEqual(metrics.expectedReferenceCount, 286)
-        XCTAssertEqual(metrics.completedWordCountBefore, 2)
-        XCTAssertEqual(metrics.matchedWordCount, 5)
-        XCTAssertEqual(metrics.completedSurah, 73)
-        XCTAssertEqual(metrics.completedAyah, 4)
-        XCTAssertEqual(metrics.completedWord, 3)
-        XCTAssertNil(metrics.requiredWordCount)
-        XCTAssertNil(metrics.completedOffset)
-        XCTAssertNil(metrics.acceptedOffset)
+        XCTAssertEqual(metrics, .init(
+            windowID: 12,
+            reason: "progress_applied",
+            recognizedWordCount: 8,
+            expectedReferenceCount: 286,
+            completedWordCountBefore: 2,
+            matchedWordCount: 5,
+            completedSurah: 73,
+            completedAyah: 4,
+            completedWord: 3
+        ))
     }
 
     func testBuildsMetricsForRejectedLocatorOutcomes() {
         let probe = LiveASRLocatorOutcomeProbe()
 
-        let short = probe.metrics(
-            windowID: 3,
-            recognizedWordCount: 2,
-            expectedReferenceCount: 120,
-            completedWordCountBefore: 0,
-            outcome: .initialMatchTooShort(matchedWordCount: 2, requiredWordCount: 4)
-        )
-        let repeated = probe.metrics(
-            windowID: 4,
-            recognizedWordCount: 5,
-            expectedReferenceCount: 120,
-            completedWordCountBefore: 4,
-            outcome: .notAdvancing(completedOffset: 3, acceptedOffset: 3)
-        )
-        let far = probe.metrics(
-            windowID: 5,
-            recognizedWordCount: 8,
-            expectedReferenceCount: 120,
-            completedWordCountBefore: 0,
-            outcome: .initialMatchTooFar(matchedWordCount: 8, startOffset: 48, allowedStartOffset: 31)
-        )
+        let cases: [(Int, Int, Int, ProgressiveTranscriptLocatorOutcome, LiveASRLocatorOutcomeProbe.Metrics)] = [
+            (3, 2, 0, .initialMatchTooShort(matchedWordCount: 2, requiredWordCount: 4), .init(
+                windowID: 3,
+                reason: "initial_match_too_short",
+                recognizedWordCount: 2,
+                expectedReferenceCount: 120,
+                completedWordCountBefore: 0,
+                matchedWordCount: 2,
+                requiredWordCount: 4
+            )),
+            (4, 5, 4, .notAdvancing(completedOffset: 3, acceptedOffset: 3), .init(
+                windowID: 4,
+                reason: "not_advancing",
+                recognizedWordCount: 5,
+                expectedReferenceCount: 120,
+                completedWordCountBefore: 4,
+                completedOffset: 3,
+                acceptedOffset: 3
+            )),
+            (5, 8, 0, .initialMatchTooFar(matchedWordCount: 8, startOffset: 48, allowedStartOffset: 31), .init(
+                windowID: 5,
+                reason: "initial_match_too_far",
+                recognizedWordCount: 8,
+                expectedReferenceCount: 120,
+                completedWordCountBefore: 0,
+                matchedWordCount: 8,
+                completedOffset: 48,
+                acceptedOffset: 31
+            ))
+        ]
 
-        XCTAssertEqual(short.reason, "initial_match_too_short")
-        XCTAssertEqual(short.matchedWordCount, 2)
-        XCTAssertEqual(short.requiredWordCount, 4)
-        XCTAssertEqual(repeated.reason, "not_advancing")
-        XCTAssertEqual(repeated.completedOffset, 3)
-        XCTAssertEqual(repeated.acceptedOffset, 3)
-        XCTAssertEqual(far.reason, "initial_match_too_far")
-        XCTAssertEqual(far.matchedWordCount, 8)
-        XCTAssertEqual(far.completedOffset, 48)
-        XCTAssertEqual(far.acceptedOffset, 31)
+        for (windowID, recognizedWordCount, completedWordCountBefore, outcome, expected) in cases {
+            XCTAssertEqual(probe.metrics(
+                windowID: windowID,
+                recognizedWordCount: recognizedWordCount,
+                expectedReferenceCount: 120,
+                completedWordCountBefore: completedWordCountBefore,
+                outcome: outcome
+            ), expected)
+        }
     }
 
     func testBuildsMetricsForViewModelFailureReasons() {
@@ -82,10 +89,12 @@ final class LiveASRLocatorOutcomeProbeTests: XCTestCase {
             failureReason: .emptyTranscript
         )
 
-        XCTAssertEqual(metrics.reason, "empty_transcript")
-        XCTAssertNil(metrics.matchedWordCount)
-        XCTAssertNil(metrics.completedSurah)
-        XCTAssertNil(metrics.completedAyah)
-        XCTAssertNil(metrics.completedWord)
+        XCTAssertEqual(metrics, .init(
+            windowID: 1,
+            reason: "empty_transcript",
+            recognizedWordCount: 0,
+            expectedReferenceCount: 0,
+            completedWordCountBefore: 0
+        ))
     }
 }
