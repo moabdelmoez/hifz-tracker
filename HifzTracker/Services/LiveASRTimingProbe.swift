@@ -1,4 +1,10 @@
 struct LiveASRTimingProbe {
+    struct EventMetrics: Equatable {
+        var elapsedSinceStartRequestMilliseconds: Double?
+        var elapsedSinceRecordingStartMilliseconds: Double?
+        var elapsedSinceVoiceOnsetMilliseconds: Double?
+    }
+
     struct TranscriptionToken: Equatable {
         var windowID: Int
         var sampleCount: Int
@@ -12,6 +18,7 @@ struct LiveASRTimingProbe {
         var audioMilliseconds: Double
         var processingMilliseconds: Double
         var firstTranscriptLatencyMilliseconds: Double?
+        var firstTranscriptEventMetrics: EventMetrics?
         var transcriptIntervalMilliseconds: Double?
         var averageTranscriptIntervalMilliseconds: Double?
     }
@@ -29,18 +36,54 @@ struct LiveASRTimingProbe {
         var elapsedSinceRecordingStartMilliseconds: Double?
     }
 
+    private var startRequestedAtNanoseconds: UInt64?
     private var recordingStartedAtNanoseconds: UInt64?
+    private var voiceOnsetAtNanoseconds: UInt64?
     private var nextWindowID = 1
     private var hasReportedFirstTranscript = false
+    private var hasReportedFirstHighlight = false
     private var lastTranscriptFinishedAtNanoseconds: UInt64?
     private var transcriptIntervalTotalMilliseconds = 0.0
     private var transcriptIntervalCount = 0
     private var pendingWindowStoreCount = 0
     private var pendingHandoffCount = 0
 
-    mutating func recordingStarted(atNanoseconds timestamp: UInt64) {
+    mutating func startRequested(atNanoseconds timestamp: UInt64) {
         reset()
+        startRequestedAtNanoseconds = timestamp
+    }
+
+    func eventMetrics(atNanoseconds timestamp: UInt64) -> EventMetrics {
+        EventMetrics(
+            elapsedSinceStartRequestMilliseconds: startRequestedAtNanoseconds.map {
+                milliseconds(from: $0, to: timestamp)
+            },
+            elapsedSinceRecordingStartMilliseconds: recordingStartedAtNanoseconds.map {
+                milliseconds(from: $0, to: timestamp)
+            },
+            elapsedSinceVoiceOnsetMilliseconds: voiceOnsetAtNanoseconds.map {
+                milliseconds(from: $0, to: timestamp)
+            }
+        )
+    }
+
+    @discardableResult
+    mutating func recordingStarted(atNanoseconds timestamp: UInt64) -> EventMetrics {
+        resetRecordingMetrics()
         recordingStartedAtNanoseconds = timestamp
+        return eventMetrics(atNanoseconds: timestamp)
+    }
+
+    mutating func voiceOnset(atNanoseconds timestamp: UInt64) -> EventMetrics? {
+        guard recordingStartedAtNanoseconds != nil, voiceOnsetAtNanoseconds == nil else { return nil }
+        voiceOnsetAtNanoseconds = timestamp
+        return eventMetrics(atNanoseconds: timestamp)
+    }
+
+    mutating func highlightApplied(atNanoseconds timestamp: UInt64) -> EventMetrics? {
+        guard !hasReportedFirstHighlight else { return nil }
+        hasReportedFirstHighlight = true
+        return eventMetrics(atNanoseconds: timestamp)
     }
 
     mutating func transcriptionStarted(
@@ -64,11 +107,14 @@ struct LiveASRTimingProbe {
     ) -> TranscriptionFinishedMetrics {
         let processingMilliseconds = milliseconds(from: token.startedAtNanoseconds, to: timestamp)
         let firstTranscriptLatencyMilliseconds: Double?
+        let firstTranscriptEventMetrics: EventMetrics?
         if !hasReportedFirstTranscript, let recordingStartedAtNanoseconds {
             firstTranscriptLatencyMilliseconds = milliseconds(from: recordingStartedAtNanoseconds, to: timestamp)
+            firstTranscriptEventMetrics = eventMetrics(atNanoseconds: timestamp)
             hasReportedFirstTranscript = true
         } else {
             firstTranscriptLatencyMilliseconds = nil
+            firstTranscriptEventMetrics = nil
         }
 
         let transcriptIntervalMilliseconds: Double?
@@ -91,6 +137,7 @@ struct LiveASRTimingProbe {
             audioMilliseconds: token.audioMilliseconds,
             processingMilliseconds: processingMilliseconds,
             firstTranscriptLatencyMilliseconds: firstTranscriptLatencyMilliseconds,
+            firstTranscriptEventMetrics: firstTranscriptEventMetrics,
             transcriptIntervalMilliseconds: transcriptIntervalMilliseconds,
             averageTranscriptIntervalMilliseconds: averageTranscriptIntervalMilliseconds
         )
@@ -124,9 +171,16 @@ struct LiveASRTimingProbe {
     }
 
     mutating func reset() {
+        startRequestedAtNanoseconds = nil
+        resetRecordingMetrics()
+    }
+
+    private mutating func resetRecordingMetrics() {
         recordingStartedAtNanoseconds = nil
+        voiceOnsetAtNanoseconds = nil
         nextWindowID = 1
         hasReportedFirstTranscript = false
+        hasReportedFirstHighlight = false
         lastTranscriptFinishedAtNanoseconds = nil
         transcriptIntervalTotalMilliseconds = 0
         transcriptIntervalCount = 0

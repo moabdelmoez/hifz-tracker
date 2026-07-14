@@ -2,23 +2,23 @@ import XCTest
 @testable import HifzCore
 
 final class LocalAudioAuditTests: XCTestCase {
-    func testRollingAuditWindowsCoverLongAudioIncludingTail() {
+    func testLiveAuditWindowsMatchProductionCadenceAndEightSecondCap() {
         let sampleRate = 10
         let samples = Array(repeating: Float(0), count: 22 * sampleRate)
 
-        let windows = makeRollingAuditWindows(
+        let windows = makeLiveAuditWindows(
             samples: samples,
             sampleRate: sampleRate,
-            windowSeconds: 8,
-            hopSeconds: 4
+            chunkSampleCount: 5
         )
 
-        XCTAssertEqual(windows.map(\.startSample), [0, 40, 80, 120, 140])
-        XCTAssertEqual(windows.map(\.endSample), [80, 120, 160, 200, 220])
+        XCTAssertEqual(Array(windows.prefix(3).map(\.endSample)), [10, 15, 20])
+        XCTAssertEqual(windows.first?.durationSeconds, 1)
+        XCTAssertEqual(windows.first(where: { $0.endSample == 80 })?.startSample, 0)
+        XCTAssertEqual(windows.first(where: { $0.endSample == 85 })?.startSample, 5)
+        XCTAssertEqual(windows.last?.startSample, 140)
+        XCTAssertEqual(windows.last?.endSample, 220)
         XCTAssertEqual(windows.last?.durationSeconds, 8)
-
-        let coveredSamples = Set(windows.flatMap { $0.startSample..<$0.endSample })
-        XCTAssertEqual(coveredSamples.count, samples.count)
     }
 
     func testLocalAudioASRAudit() throws {
@@ -49,23 +49,19 @@ final class LocalAudioAuditTests: XCTestCase {
         let session = try ONNXRuntimeSession(modelURL: root.appending(path: "assets/models/model_fp32.onnx"))
         let extractor = LogMelFeatureExtractor()
         let decoder = CTCGreedyDecoder(blankID: tokenizer.blankID)
-        let auditWindowSeconds = 8.0
-        let auditHopSeconds = 4.0
-
         var results: [LocalAudioAuditResult] = []
         for url in audioURLs {
             var locator = ProgressiveTranscriptLocator()
+            var provisionalTracker = ProvisionalInitialHighlightTracker()
             let target = try targetFromFilename(url)
             let (audio, loadMS) = try timed { try WAVAudioFile(url: url) }
             let sourceDuration = Double(audio.info.frameCount) / Double(audio.info.sampleRate)
             let (samples16k, resampleMS) = timed {
                 resample(samples: audio.samples, sourceSampleRate: audio.info.sampleRate, targetSampleRate: extractor.sampleRate)
             }
-            let auditWindows = makeRollingAuditWindows(
+            let auditWindows = makeLiveAuditWindows(
                 samples: samples16k,
-                sampleRate: extractor.sampleRate,
-                windowSeconds: auditWindowSeconds,
-                hopSeconds: auditHopSeconds
+                sampleRate: extractor.sampleRate
             )
             XCTAssertFalse(auditWindows.isEmpty, "No rolling audit windows for \(url.lastPathComponent)")
 
@@ -74,7 +70,8 @@ final class LocalAudioAuditTests: XCTestCase {
                 surah: target.surah,
                 ayah: target.ayah
             )
-            let expectedReferences = try references(for: target.surah, startAyah: 1, repository: repository)
+            let expectedReferences = try references(for: target.surah, startAyah: target.ayah, repository: repository)
+            let referenceIndex = TranscriptPositionIndex(expected: expectedReferences)
             let pageNumber = repository.pageNumber(surah: target.surah, ayah: target.ayah)
             let page = try repository.mushafPage(pageNumber: pageNumber)
             let pageWords = page.lines.flatMap { $0.words }
@@ -91,6 +88,11 @@ final class LocalAudioAuditTests: XCTestCase {
             var totalWindowMS = 0.0
             var totalTokenCount = 0
             var totalFrameCount = 0
+            var firstTranscriptLatencyMS: Double?
+            var firstProvisionalHighlightLatencyMS: Double?
+            var firstAuthoritativeHighlightLatencyMS: Double?
+            var firstProvisionalLocation: TranscriptLocation?
+            var firstAuthoritativeLocation: TranscriptLocation?
 
             for auditWindow in auditWindows {
                 let auditSamples = Array(samples16k[auditWindow.startSample..<auditWindow.endSample])
@@ -114,7 +116,29 @@ final class LocalAudioAuditTests: XCTestCase {
                     .map(String.init)
                 mergedRecognizedWords = mergeRecognizedWords(mergedRecognizedWords, with: recognizedWords)
 
-                let location = locator.locate(expected: expectedReferences, recognizedWords: recognizedWords)
+                let windowTotalMS = featureMS + inferenceMS + decodeMS
+                let eventLatencyMS = auditWindow.emittedAtSeconds * 1_000 + windowTotalMS
+                if firstTranscriptLatencyMS == nil {
+                    firstTranscriptLatencyMS = eventLatencyMS
+                }
+
+                let outcome = locator.locateWithOutcome(index: referenceIndex, recognizedWords: recognizedWords)
+                let location = outcome.location
+                if let location {
+                    if firstAuthoritativeHighlightLatencyMS == nil {
+                        firstAuthoritativeHighlightLatencyMS = eventLatencyMS
+                        firstAuthoritativeLocation = location
+                    }
+                    provisionalTracker.reset()
+                } else if firstAuthoritativeHighlightLatencyMS == nil {
+                    if case .confirmed(let location, _) = provisionalTracker.evaluate(
+                        index: referenceIndex,
+                        recognizedWords: recognizedWords
+                    ), firstProvisionalHighlightLatencyMS == nil {
+                        firstProvisionalHighlightLatencyMS = eventLatencyMS
+                        firstProvisionalLocation = location
+                    }
+                }
                 let matchedReferences = location.map { Array(expectedReferences[$0.expectedRange]) } ?? []
                 for reference in matchedReferences {
                     matchedReferencesByLocation[reference.location] = reference
@@ -126,8 +150,6 @@ final class LocalAudioAuditTests: XCTestCase {
                 let matchedLocationsMappable = matchedReferences.allSatisfy { pageLocations.contains($0.location) }
                 let windowLCS = longestCommonSubsequenceLength(expectedWords, recognizedWords)
                 let windowEditDistance = levenshteinDistance(expectedWords, recognizedWords)
-                let windowTotalMS = featureMS + inferenceMS + decodeMS
-
                 totalFeatureMS += featureMS
                 totalInferenceMS += inferenceMS
                 totalDecodeMS += decodeMS
@@ -139,12 +161,14 @@ final class LocalAudioAuditTests: XCTestCase {
                     LocalAudioWindowResult(
                         windowIndex: auditWindow.index,
                         startSeconds: auditWindow.startSeconds,
+                        emittedAtSeconds: auditWindow.emittedAtSeconds,
                         durationSeconds: auditWindow.durationSeconds,
                         transcript: transcript,
                         normalizedTranscript: recognizedWords.joined(separator: " "),
                         recognizedWords: recognizedWords,
                         tokenCount: tokenIDs.count,
                         frameCount: features.frameCount,
+                        locatorOutcome: outcome.reason,
                         wordAccuracy: WordAccuracySummary(
                             expectedWordCount: expectedWords.count,
                             recognizedWordCount: recognizedWords.count,
@@ -220,6 +244,10 @@ final class LocalAudioAuditTests: XCTestCase {
                 matchedWordCount: matchedTargetReferences.count,
                 locatedAyahs: locatedAyahs
             )
+            XCTAssertTrue(locatorSummary.found, "No live locator progress for \(url.lastPathComponent)")
+            XCTAssertEqual(firstAuthoritativeLocation?.completedThrough.surah, target.surah)
+            XCTAssertEqual(firstAuthoritativeLocation?.completedThrough.ayah, target.ayah)
+            XCTAssertTrue(locatorSummary.correctTargetAyahOnly, "Locator left target ayah for \(url.lastPathComponent)")
             let highlightSummary = HighlightSummary(
                 pageNumber: pageNumber,
                 targetWordCount: targetReferences.count,
@@ -250,6 +278,17 @@ final class LocalAudioAuditTests: XCTestCase {
                 wordAccuracy: wordAccuracy,
                 locator: locatorSummary,
                 highlight: highlightSummary,
+                liveLatency: LiveLatencySummary(
+                    firstTranscriptMS: firstTranscriptLatencyMS,
+                    firstProvisionalHighlightMS: firstProvisionalHighlightLatencyMS,
+                    firstProvisionalCompletedThrough: firstProvisionalLocation.map {
+                        "\($0.completedThrough.surah):\($0.completedThrough.ayah):\($0.completedThrough.wordIndex)"
+                    },
+                    firstAuthoritativeHighlightMS: firstAuthoritativeHighlightLatencyMS,
+                    firstAuthoritativeCompletedThrough: firstAuthoritativeLocation.map {
+                        "\($0.completedThrough.surah):\($0.completedThrough.ayah):\($0.completedThrough.wordIndex)"
+                    }
+                ),
                 timing: timingSummary,
                 windows: windowResults
             )
@@ -331,6 +370,7 @@ private struct LocalAudioAuditResult: Codable {
     var wordAccuracy: WordAccuracySummary
     var locator: LocatorSummary
     var highlight: HighlightSummary
+    var liveLatency: LiveLatencySummary
     var timing: TimingSummary
     var windows: [LocalAudioWindowResult]
 }
@@ -338,12 +378,14 @@ private struct LocalAudioAuditResult: Codable {
 private struct LocalAudioWindowResult: Codable {
     var windowIndex: Int
     var startSeconds: Double
+    var emittedAtSeconds: Double
     var durationSeconds: Double
     var transcript: String
     var normalizedTranscript: String
     var recognizedWords: [String]
     var tokenCount: Int
     var frameCount: Int
+    var locatorOutcome: String
     var wordAccuracy: WordAccuracySummary
     var locator: LocatorSummary
     var highlight: HighlightSummary
@@ -386,6 +428,14 @@ private struct HighlightSummary: Codable {
     var matchedLocationsMappableToPage: Bool
 }
 
+private struct LiveLatencySummary: Codable {
+    var firstTranscriptMS: Double?
+    var firstProvisionalHighlightMS: Double?
+    var firstProvisionalCompletedThrough: String?
+    var firstAuthoritativeHighlightMS: Double?
+    var firstAuthoritativeCompletedThrough: String?
+}
+
 private struct TimingSummary: Codable {
     var loadMS: Double
     var resampleMS: Double
@@ -407,48 +457,41 @@ private struct RollingAuditWindow {
         Double(startSample) / Double(sampleRate)
     }
 
+    var emittedAtSeconds: Double {
+        Double(endSample) / Double(sampleRate)
+    }
+
     var durationSeconds: Double {
         Double(endSample - startSample) / Double(sampleRate)
     }
 }
 
-private func makeRollingAuditWindows(
+private func makeLiveAuditWindows(
     samples: [Float],
     sampleRate: Int,
-    windowSeconds: Double,
-    hopSeconds: Double
+    chunkSampleCount: Int? = nil
 ) -> [RollingAuditWindow] {
     guard !samples.isEmpty, sampleRate > 0 else { return [] }
 
-    let windowSampleCount = max(1, Int((Double(sampleRate) * windowSeconds).rounded()))
-    let hopSampleCount = max(1, Int((Double(sampleRate) * hopSeconds).rounded()))
+    let defaultChunkSampleCount = Int((Double(sampleRate) * 4_096 / 48_000).rounded())
+    let chunkSampleCount = max(1, chunkSampleCount ?? defaultChunkSampleCount)
+    var sampleWindow = LiveASRSampleWindow(sampleRate: sampleRate)
+    var windows: [RollingAuditWindow] = []
+    var chunkStart = 0
 
-    guard samples.count > windowSampleCount else {
-        return [
-            RollingAuditWindow(index: 0, startSample: 0, endSample: samples.count, sampleRate: sampleRate)
-        ]
+    while chunkStart < samples.count {
+        let chunkEnd = min(samples.count, chunkStart + chunkSampleCount)
+        if let emittedSamples = sampleWindow.append(Array(samples[chunkStart..<chunkEnd])) {
+            windows.append(RollingAuditWindow(
+                index: windows.count,
+                startSample: chunkEnd - emittedSamples.count,
+                endSample: chunkEnd,
+                sampleRate: sampleRate
+            ))
+        }
+        chunkStart = chunkEnd
     }
-
-    var starts: [Int] = []
-    var startSample = 0
-    while startSample + windowSampleCount < samples.count {
-        starts.append(startSample)
-        startSample += hopSampleCount
-    }
-
-    let finalStart = max(0, samples.count - windowSampleCount)
-    if starts.last != finalStart {
-        starts.append(finalStart)
-    }
-
-    return starts.enumerated().map { index, startSample in
-        RollingAuditWindow(
-            index: index,
-            startSample: startSample,
-            endSample: min(samples.count, startSample + windowSampleCount),
-            sampleRate: sampleRate
-        )
-    }
+    return windows
 }
 
 private func mergeRecognizedWords(_ accumulated: [String], with next: [String]) -> [String] {

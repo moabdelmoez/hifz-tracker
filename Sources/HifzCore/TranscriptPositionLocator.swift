@@ -335,7 +335,18 @@ public struct ProgressiveTranscriptLocator: Sendable {
     ) -> ProgressiveTranscriptLocatorOutcome {
         guard index.count > 0 else { return .emptyReference }
 
-        let searchRange = expectedSearchRange(totalCount: index.count)
+        let searchRange = expectedSearchRange(index: index)
+        if acceptedOffset == nil,
+           searchRange.upperBound < index.count,
+           let unrestrictedLocation = locator.locate(index: index, recognizedWords: recognizedWords),
+           unrestrictedLocation.expectedRange.lowerBound >= searchRange.upperBound {
+            return .initialMatchTooFar(
+                matchedWordCount: unrestrictedLocation.matchedWordCount,
+                startOffset: unrestrictedLocation.expectedRange.lowerBound,
+                allowedStartOffset: searchRange.upperBound - 1
+            )
+        }
+
         if let acceptedOffset,
            let advancingLocation = locator.locate(
             index: index,
@@ -405,14 +416,36 @@ public struct ProgressiveTranscriptLocator: Sendable {
         return isGuardedRelaxedInitialMatch(location: location, index: index)
     }
 
-    private func expectedSearchRange(totalCount: Int) -> Range<Int> {
+    private func expectedSearchRange(index: TranscriptPositionIndex) -> Range<Int> {
+        let totalCount = index.count
         guard let acceptedOffset else {
-            return 0..<totalCount
+            return 0..<min(totalCount, endOfNextAyah(from: 0, index: index))
         }
 
         let lowerBound = max(0, acceptedOffset - lookBehindWordCount)
         let upperBound = min(totalCount, acceptedOffset + lookAheadWordCount + 1)
-        return lowerBound..<upperBound
+        return lowerBound..<min(upperBound, endOfNextAyah(from: acceptedOffset, index: index))
+    }
+
+    private func endOfNextAyah(from offset: Int, index: TranscriptPositionIndex) -> Int {
+        guard index.expected.indices.contains(offset) else { return index.count }
+        let current = index.expected[offset]
+        let nextSurah: Int
+        let nextAyah: Int
+        if let surah = SurahCatalog.surah(current.surah), current.ayah < surah.ayahCount {
+            nextSurah = current.surah
+            nextAyah = current.ayah + 1
+        } else {
+            nextSurah = current.surah + 1
+            nextAyah = 1
+        }
+
+        return index.expected.indices.dropFirst(offset + 1).first(where: {
+            let reference = index.expected[$0]
+            let isCurrent = reference.surah == current.surah && reference.ayah == current.ayah
+            let isNext = reference.surah == nextSurah && reference.ayah == nextAyah
+            return !isCurrent && !isNext
+        }) ?? index.count
     }
 
     private func locateAdvancingAcrossSingleGap(

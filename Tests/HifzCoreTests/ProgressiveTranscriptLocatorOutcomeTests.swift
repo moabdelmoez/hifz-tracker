@@ -10,7 +10,7 @@ final class ProgressiveTranscriptLocatorOutcomeTests: XCTestCase {
         )
         let expected = references([
             (1, ["سبح", "لله", "ما", "في", "السماوات"]),
-            (22, ["هو", "الله", "الذي"])
+            (2, ["هو", "الله", "الذي"])
         ])
 
         let outcome = locator.locateWithOutcome(expected: expected, recognizedWords: ["هو", "الله"])

@@ -2,51 +2,51 @@
 
 ## Current Objective
 
-- Goal: Apply and validate all 21 cleanup findings in `docs/ponytail-audit.md`.
-- Current status: Complete. `ponytail-cleanup-001` is marked `done`.
+- Goal: Make live recitation progress follow Quran order without skipping similar ayahs.
+- Current status: Complete. `sequential-ayah-progression-001` is marked `done`.
 - Branch: `main`.
-- Publish target: `origin/main`.
+- Working tree: Uncommitted performance instrumentation, locator fix, tests, and tracker updates remain for user review.
 
-## Completed This Session
+## Implemented Behavior
 
-- [x] Applied all 21 findings serially with focused validation before advancing.
-- [x] Replaced custom audio conversion and FFT/windowing with AVFAudio and Accelerate.
-- [x] Removed duplicate assets, completed planning docs, unused facades/APIs/tests, prototype controls, and the `.claude/skills` mirror.
-- [x] Simplified locator/timing metrics, font naming/loading, toolbar tint, and ONNX bridge/package staging.
-- [x] Centralized release asset validation and Developer ID app signing in `release_checks.sh release`.
-- [x] Updated `feature_list.json`, `progress.md`, release documentation, and this handoff.
+- Progressive matching can search only the current ayah and its immediate Quran-order successor.
+- A long transcript spanning multiple ayahs is capped at the end of the immediate next ayah; the next inference window continues from there.
+- Surah boundaries follow the same rule, e.g. 100:11 → 101:1 → 101:2.
+- Initial matching still inspects the strongest full-scope candidate so a stronger distant recitation is rejected rather than misread as a weaker local similarity.
+- Nearby 2-word continuation and single-substitution recovery remain supported.
 
 ## Verification Evidence
 
 | Check | Command / Method | Result |
 |---|---|---|
-| Final local gate | `./script/release_checks.sh` | Passed: 123 tests, 1 expected skip, 0 failures; build, staged launch, signature, dylib/rpath, and checksum checks passed |
-| Release-only gate | `./script/release_checks.sh release` | Repo-controlled checks passed; stopped with `No Developer ID Application signing identity found.` |
-| Packaged fonts | `plutil -extract ATSApplicationFontsPath raw dist/HifzTracker.app/Contents/Info.plist` | Passed: `Fonts/`; 607 bundled TTF files |
-| ONNX staging | packaged framework count plus `otool -L` | Passed: one 35 MB `libonnxruntime.1.dylib` with the expected rpath |
-| Script syntax | `bash -n script/build_and_run.sh script/release_checks.sh script/package_dmg.sh` | Passed |
-| JSON lint | `jq empty feature_list.json` | Passed |
-| Cleanup sweep | `rg` for deleted APIs/types | Passed: no production/test references remain |
-| Whitespace | `git diff --check` | Passed |
+| Ordered locator tests | `swift test --filter ProgressiveTranscriptLocatorTests` | Passed: 19 tests, 0 failures |
+| Outcome tests | `swift test --filter ProgressiveTranscriptLocatorOutcomeTests` | Passed: 3 tests, 0 failures |
+| Opt-in audio replay | `HIFZ_RUN_LOCAL_AUDIO_AUDIT=1 swift test --filter LocalAudioAuditTests/testLocalAudioASRAudit` | Passed: 6 fixtures; all stayed in target ayah; 32.589 s |
+| Full tests | `swift test` | Passed: 126 tests, 1 expected opt-in skip, 0 failures, 44.005 s |
+| Build | `swift build` | Passed |
+| Static checks | `jq empty feature_list.json`; debug-marker sweep; `git diff --check` | Passed |
 
 ## Files Changed
 
-- `Sources/HifzCore/`, `Sources/COnnxRuntimeShim/` - Native audio/FFT paths and deleted or simplified core/ONNX modules.
-- `HifzTracker/` - Removed prototype/no-effect code, plist font loading, unified metrics/tint.
-- `Tests/` - Added anti-alias regression and updated focused tests for retained behavior.
-- `script/` - One ONNX dylib and centralized release validation/signing.
-- `README.md`, `docs/` - Reused the Pages icon, removed the completed plan, updated release behavior, retained the audit.
-- `feature_list.json`, `progress.md`, `session-handoff.md` - Completion state and evidence.
-- Removed root `logo.png` and untracked `.claude/skills` mirror.
+- `Sources/HifzCore/TranscriptPositionLocator.swift`
+- `Tests/HifzCoreTests/ProgressiveTranscriptLocatorTests.swift`
+- `Tests/HifzCoreTests/ProgressiveTranscriptLocatorOutcomeTests.swift`
+- `Tests/HifzCoreTests/LocalAudioAuditTests.swift`
+- `feature_list.json`
+- `progress.md`
+- `session-handoff.md`
+- Earlier uncommitted timing instrumentation files remain in the working tree.
 
 ## Restart Notes
 
 1. `cd /Users/mostafa/Downloads/Coding_Projects/hifz-tracker`
 2. Run `git status --short` and `git log --oneline -5`.
-3. Before public packaging, install/configure a Developer ID Application identity and rerun `./script/release_checks.sh release`.
+3. For live confirmation, launch the app, recite consecutive ayahs, and inspect `live_asr_locator` events for monotonic one-ayah progression.
+4. The ignored `artifacts/local-audio-audit.json` contains the latest successful six-file replay report.
 
 ## Risks / Blockers
 
-- No repo-controlled cleanup blocker remains.
+- Strict ordering may add up to one inference interval per extra ayah when a single transcript spans several short ayahs; this is intentional to prevent skips.
+- No live microphone session was automated in this implementation turn; deterministic and local-audio replays cover the locator behavior.
 - Public DMG distribution remains externally blocked by the missing Developer ID Application identity.
-- The pre-existing invalid GitHub CLI authentication for `github-pages-site-001` is unchanged and outside this cleanup.
+- The pre-existing invalid GitHub CLI authentication for `github-pages-site-001` is unchanged and outside this feature.

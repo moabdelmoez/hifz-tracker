@@ -8,6 +8,8 @@ private let asrLogger = Logger(subsystem: "dev.mostafa.HifzTracker", category: "
 @MainActor
 @Observable
 final class RecitationViewModel {
+    private static let voiceOnsetLevel = 0.02
+
     var selectedSurah: Int = 73 {
         didSet {
             invalidateReferenceScope()
@@ -92,6 +94,9 @@ final class RecitationViewModel {
     }
 
     func startRecording() {
+        let startTimestamp = nowNanoseconds()
+        liveASRTimingProbe.startRequested(atNanoseconds: startTimestamp)
+        asrLogger.info("live_asr_timing event=start_requested")
         let request = RecitationSessionRequest(surah: selectedSurah, startAyah: startAyah)
         reducer = RecitationStateReducer()
         resetAudioLevel()
@@ -99,12 +104,18 @@ final class RecitationViewModel {
         Task {
             do {
                 let service = try AppASRFactory.makeLiveService()
+                logLiveASREvent("service_ready", metrics: liveASRTimingProbe.eventMetrics(atNanoseconds: nowNanoseconds()))
                 liveASRService = service
                 liveSampleWindow.reset()
                 liveASRRequestScheduler.reset()
                 transcriptLocator.reset()
                 clearAndResetProvisionalInitialHighlightState()
-                _ = referenceIndexForSelectedSurah()
+                let referenceIndex = referenceIndexForSelectedSurah()
+                logLiveASREvent(
+                    "reference_ready",
+                    metrics: liveASRTimingProbe.eventMetrics(atNanoseconds: nowNanoseconds()),
+                    referenceCount: referenceIndex?.count ?? 0
+                )
                 transcriptionTask?.cancel()
                 transcriptionTask = nil
 
@@ -113,14 +124,15 @@ final class RecitationViewModel {
                         self?.handleMicrophoneSamples(samples)
                     }
                 }
+                logLiveASREvent("microphone_ready", metrics: liveASRTimingProbe.eventMetrics(atNanoseconds: nowNanoseconds()))
                 snapshot = reducer.reduce(.permissionGranted)
                 snapshot = reducer.reduce(.placeLocked(ayah: startAyah, word: 1))
                 isRecording = true
                 sessionStartedAt = Date()
                 lastCompletedReference = nil
                 debugTranscript = ""
-                liveASRTimingProbe.recordingStarted(atNanoseconds: nowNanoseconds())
-                asrLogger.info("live_asr_timing event=recording_started")
+                let recordingMetrics = liveASRTimingProbe.recordingStarted(atNanoseconds: nowNanoseconds())
+                logLiveASREvent("recording_started", metrics: recordingMetrics)
             } catch {
                 asrLogger.error("start_failed error=\(error.localizedDescription, privacy: .public)")
                 snapshot = reducer.reduce(.fail(error.localizedDescription))
@@ -221,6 +233,10 @@ final class RecitationViewModel {
     private func handleMicrophoneSamples(_ samples: [Float]) {
         guard isRecording, let service = liveASRService else { return }
         audioLevel = audioLevelMeter.update(with: samples)
+        if audioLevel >= Self.voiceOnsetLevel,
+           let metrics = liveASRTimingProbe.voiceOnset(atNanoseconds: nowNanoseconds()) {
+            logLiveASREvent("voice_onset", metrics: metrics)
+        }
         guard let windowSamples = liveSampleWindow.append(samples) else { return }
         submitLiveASRWindow(windowSamples, service: service)
     }
@@ -309,13 +325,30 @@ final class RecitationViewModel {
 
     private func logLiveASRTranscriptionFinished(_ metrics: LiveASRTimingProbe.TranscriptionFinishedMetrics) {
         let firstLatencyMilliseconds = metrics.firstTranscriptLatencyMilliseconds ?? -1
+        let firstSinceStartRequestMilliseconds = metrics.firstTranscriptEventMetrics?.elapsedSinceStartRequestMilliseconds ?? -1
+        let firstSinceVoiceOnsetMilliseconds = metrics.firstTranscriptEventMetrics?.elapsedSinceVoiceOnsetMilliseconds ?? -1
         let intervalMilliseconds = metrics.transcriptIntervalMilliseconds ?? -1
         let averageIntervalMilliseconds = metrics.averageTranscriptIntervalMilliseconds ?? -1
-        asrLogger.info("live_asr_timing event=transcription_finished window_id=\(metrics.windowID, privacy: .public) sample_count=\(metrics.sampleCount, privacy: .public) audio_ms=\(metrics.audioMilliseconds, privacy: .public) processing_ms=\(metrics.processingMilliseconds, privacy: .public) first_transcript_latency_ms=\(firstLatencyMilliseconds, privacy: .public) transcript_interval_ms=\(intervalMilliseconds, privacy: .public) average_transcript_interval_ms=\(averageIntervalMilliseconds, privacy: .public)")
+        asrLogger.info("live_asr_timing event=transcription_finished window_id=\(metrics.windowID, privacy: .public) sample_count=\(metrics.sampleCount, privacy: .public) audio_ms=\(metrics.audioMilliseconds, privacy: .public) processing_ms=\(metrics.processingMilliseconds, privacy: .public) first_transcript_latency_ms=\(firstLatencyMilliseconds, privacy: .public) first_transcript_since_start_request_ms=\(firstSinceStartRequestMilliseconds, privacy: .public) first_transcript_since_voice_onset_ms=\(firstSinceVoiceOnsetMilliseconds, privacy: .public) transcript_interval_ms=\(intervalMilliseconds, privacy: .public) average_transcript_interval_ms=\(averageIntervalMilliseconds, privacy: .public)")
     }
 
     private func logLiveASRHighlightApplied(windowID: Int) {
-        asrLogger.info("live_asr_timing event=highlight_applied window_id=\(windowID, privacy: .public)")
+        let metrics = liveASRTimingProbe.highlightApplied(atNanoseconds: nowNanoseconds())
+        let elapsedSinceStartRequestMilliseconds = metrics?.elapsedSinceStartRequestMilliseconds ?? -1
+        let elapsedSinceRecordingStartMilliseconds = metrics?.elapsedSinceRecordingStartMilliseconds ?? -1
+        let elapsedSinceVoiceOnsetMilliseconds = metrics?.elapsedSinceVoiceOnsetMilliseconds ?? -1
+        asrLogger.info("live_asr_timing event=highlight_applied window_id=\(windowID, privacy: .public) first_highlight_since_start_request_ms=\(elapsedSinceStartRequestMilliseconds, privacy: .public) first_highlight_since_recording_start_ms=\(elapsedSinceRecordingStartMilliseconds, privacy: .public) first_highlight_since_voice_onset_ms=\(elapsedSinceVoiceOnsetMilliseconds, privacy: .public)")
+    }
+
+    private func logLiveASREvent(
+        _ event: String,
+        metrics: LiveASRTimingProbe.EventMetrics,
+        referenceCount: Int = -1
+    ) {
+        let elapsedSinceStartRequestMilliseconds = metrics.elapsedSinceStartRequestMilliseconds ?? -1
+        let elapsedSinceRecordingStartMilliseconds = metrics.elapsedSinceRecordingStartMilliseconds ?? -1
+        let elapsedSinceVoiceOnsetMilliseconds = metrics.elapsedSinceVoiceOnsetMilliseconds ?? -1
+        asrLogger.info("live_asr_timing event=\(event, privacy: .public) elapsed_since_start_request_ms=\(elapsedSinceStartRequestMilliseconds, privacy: .public) elapsed_since_recording_start_ms=\(elapsedSinceRecordingStartMilliseconds, privacy: .public) elapsed_since_voice_onset_ms=\(elapsedSinceVoiceOnsetMilliseconds, privacy: .public) reference_count=\(referenceCount, privacy: .public)")
     }
 
     private func logLiveASRLocatorOutcome(_ metrics: LiveASRLocatorOutcomeProbe.Metrics) {

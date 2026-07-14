@@ -417,6 +417,75 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-13. Applied and serially validated all 21 findings from `docs/ponytail-audit.md`, including behavior-level red/green coverage for native microphone conversion and packaged font loading. Final `./script/release_checks.sh` passed 123 tests with 1 expected local-audio skip and 0 failures, `swift build`, staged app launch, ad-hoc signature verification, ONNX dylib/rpath checks, and bundled-data checksums. `./script/release_checks.sh release` independently passed 124 tests and all repo-controlled release checks before stopping at the known external blocker: no Developer ID Application identity. `jq empty feature_list.json`, shell syntax checks, cleanup symbol sweeps, and `git diff --check` passed."
+    },
+    {
+      "id": "live-asr-performance-assessment-001",
+      "name": "Live ASR Performance Feedback Loop",
+      "description": "Make first-highlight performance measurable with an app-faithful local replay and privacy-safe startup, voice-onset, transcript, and highlight timing events before changing ASR behavior.",
+      "dependencies": ["ponytail-cleanup-001"],
+      "status": "done",
+      "done_criteria": [
+        "The opt-in local audio audit uses the production 1-to-8-second rolling sample window and selected start ayah",
+        "The audit reports time to first transcript, provisional highlight, and authoritative highlight",
+        "Live timing distinguishes start request, ASR service readiness, reference readiness, microphone readiness, voice onset, first transcript, and first highlight",
+        "Timing logs contain no transcript text or audio",
+        "Model, inference cadence, locator acceptance, and user-facing recitation behavior remain unchanged",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter LiveASRTimingProbeTests",
+        "swift test --filter LocalAudioAuditTests/testLiveAuditWindowsMatchProductionCadenceAndEightSecondCap",
+        "HIFZ_RUN_LOCAL_AUDIO_AUDIT=1 swift test --filter LocalAudioAuditTests/testLocalAudioASRAudit",
+        "swift test",
+        "swift build",
+        "targeted unified-log review for live_asr_timing"
+      ],
+      "evidence": "Completed on 2026-07-14. Red/green coverage added an app-faithful local replay and startup-to-highlight timing boundaries. The opt-in audit passed all 6 fixtures across 341 production-shaped rolling windows in 33.696 s: first transcript was about 1.04 s, first authoritative highlight ranged from 4.148 s to 7.779 s, processing p50 was 102.21 ms, and processing p95 was 113.98 ms. Focused timing/window tests passed; final `swift test` passed 124 tests with 1 expected opt-in audit skip and 0 failures; `swift build` and `./script/build_and_run.sh --verify` passed. Logs expose only elapsed timings and counts, never transcript text or audio. No model, inference cadence, locator acceptance, or user-facing behavior changed. A targeted automated live-log capture could not send Command-R because macOS denied `osascript` Accessibility control with error 1002; the staged app launch itself passed, and manual recitation remains the next live validation step."
+    },
+    {
+      "id": "locator-jump-diagnosis-001",
+      "name": "Locator Ayah Jump Diagnosis",
+      "description": "Diagnose the reported live locator jump from ayah 3 to ayah 10 using unified logs and a deterministic replay before changing locator behavior.",
+      "dependencies": ["live-asr-performance-assessment-001"],
+      "status": "done",
+      "done_criteria": [
+        "The exact live transition from ayah 3 to ayah 10 is captured from logs",
+        "A deterministic locator replay reproduces the reported transition or the missing replay input is documented",
+        "Three to five falsifiable hypotheses are ranked and tested against evidence",
+        "The root cause and smallest safe next action are recorded without speculative locator changes",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "targeted unified-log review for locator outcomes and applied progress",
+        "focused deterministic locator replay",
+        "swift test",
+        "swift build",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-14. Unified logs reproduce the exact transition: window 18 completed 7:3:14, then monotonic window 19 reused a 14-word transcript and accepted a 2-word match at 7:10:10. A temporary deterministic test using the canonical 7:3-10 reference first failed with `expectedRange 76..<78`, `recognizedRange 11..<13`, and completed location 7:10:10. The cause probe then passed and proved the normal contiguous matcher—not the single-gap bridge or UI mapping—selects the repeated phrase `قليلا ما`; increasing the matcher minimum from 2 to 3 removes this repro. Root cause: after 7:3 is accepted, the rolling transcript still contains that completed ayah; `completingAfter` rejects its old location, while the default 96-word look-ahead accepts the repeated 2-word phrase in 7:10 as advancement. A global 3-word minimum was not applied because valid nearby post-lock progression intentionally supports 2-word matches. Baseline `swift test` passed 124 tests with 1 expected skip and 0 failures; `swift build` passed. After temporary-probe cleanup, all 17 focused locator tests, `jq empty feature_list.json`, the debug-marker sweep, and `git diff --check` passed. No runtime behavior or user audio was changed."
+    },
+    {
+      "id": "sequential-ayah-progression-001",
+      "name": "Sequential Ayah Progression",
+      "description": "Constrain live locator progress to the current ayah and its immediate Quran-order successor so repeated phrases cannot skip intervening ayahs.",
+      "dependencies": ["locator-jump-diagnosis-001"],
+      "status": "done",
+      "done_criteria": [
+        "A canonical regression prevents the observed 7:3 to 7:10 jump",
+        "Each locator call can complete only the current ayah or its immediate next ayah",
+        "Repeated rolling transcripts advance through ayahs in Quran order without skipping",
+        "The rule works across a surah boundary",
+        "Nearby two-word progression within the allowed ayah scope remains supported",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter ProgressiveTranscriptLocatorTests",
+        "HIFZ_RUN_LOCAL_AUDIO_AUDIT=1 swift test --filter LocalAudioAuditTests/testLocalAudioASRAudit",
+        "swift test",
+        "swift build",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-14. Red coverage reproduced the canonical 7:3:14 to 7:10:10 jump and showed multi-ayah skips within surah 110 and across 100:11 to 101:2. `ProgressiveTranscriptLocator` now limits every matching path to the current ayah and its immediate Quran-order successor using `SurahCatalog`, while an unrestricted initial probe still rejects a stronger distant match instead of accepting a weaker local similarity. Repeated windows therefore advance 1 to 2 to 3 one call at a time, including across a surah boundary; nearby 2-word matches and substitution recovery remain supported. The focused locator suite passed 19 tests, locator outcomes passed 3 tests, and the strengthened opt-in local-audio audit passed all 6 fixtures in 32.589 s with every located ayah confined to its target. Final `swift test` passed 126 tests with 1 expected opt-in skip and 0 failures in 44.005 s; `swift build`, `jq empty feature_list.json`, the debug-marker sweep, and `git diff --check` passed. No model, inference cadence, audio persistence, or release assets changed."
     }
   ]
 }

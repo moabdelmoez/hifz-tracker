@@ -90,7 +90,7 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         )
     }
 
-    func testPostLockCompletesSurahNasrFinalWordFromTrailingTranscript() throws {
+    func testPostLockAdvancesThroughSurahNasrOneAyahPerCall() throws {
         var locator = ProgressiveTranscriptLocator(
             minimumInitialMatchLength: 4,
             lookBehindWordCount: 4,
@@ -106,15 +106,18 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
             expected: expected,
             recognizedWords: ["اذا", "جاء", "نصر", "الله", "والفتح"]
         ))
-        let location = try XCTUnwrap(locator.locate(
+        let trailingTranscript = ["يدخلون", "في", "دين", "الله", "افواجا", "فسبح", "بحمد", "ربك", "واستغفره", "انه", "كان", "توابا"]
+        let ayahTwo = try XCTUnwrap(locator.locate(
             expected: expected,
-            recognizedWords: ["يدخلون", "في", "دين", "الله", "افواجا", "فسبح", "بحمد", "ربك", "واستغفره", "انه", "كان", "توابا"]
+            recognizedWords: trailingTranscript
         ))
+        let ayahThree = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: trailingTranscript))
 
-        XCTAssertEqual(location.completedThrough.location, "110:3:7")
+        XCTAssertEqual(ayahTwo.completedThrough.location, "110:2:7")
+        XCTAssertEqual(ayahThree.completedThrough.location, "110:3:7")
     }
 
-    func testInitialLockCompletesSurahNasrFinalWordFromTrailingTranscript() throws {
+    func testInitialLockAdvancesThroughSurahNasrOneAyahPerCall() throws {
         var locator = ProgressiveTranscriptLocator(
             minimumInitialMatchLength: 4,
             lookBehindWordCount: 4,
@@ -126,12 +129,32 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
             (3, ["فسبح", "بحمد", "ربك", "واستغفره", "انه", "كان", "توابا"])
         ], surah: 110)
 
-        let location = try XCTUnwrap(locator.locate(
+        let trailingTranscript = ["يدخلون", "في", "دين", "الله", "افواجا", "فسبح", "بحمد", "ربك", "واستغفره", "انه", "كان", "توابا"]
+        let ayahTwo = try XCTUnwrap(locator.locate(
             expected: expected,
-            recognizedWords: ["يدخلون", "في", "دين", "الله", "افواجا", "فسبح", "بحمد", "ربك", "واستغفره", "انه", "كان", "توابا"]
+            recognizedWords: trailingTranscript
         ))
+        let ayahThree = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: trailingTranscript))
 
-        XCTAssertEqual(location.completedThrough.location, "110:3:7")
+        XCTAssertEqual(ayahTwo.completedThrough.location, "110:2:7")
+        XCTAssertEqual(ayahThree.completedThrough.location, "110:3:7")
+    }
+
+    func testSequentialProgressionCrossesSurahBoundaryOneAyahPerCall() throws {
+        let expected = references([
+            (11, ["اول", "ثان", "ثالث", "رابع"])
+        ], surah: 100) + references([
+            (1, ["خامس", "سادس", "سابع", "ثامن"]),
+            (2, ["تاسع", "عاشر", "حادي", "عشر"])
+        ], surah: 101)
+        let transcript = expected.map(\.text)
+        var locator = ProgressiveTranscriptLocator()
+
+        let nextSurah = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: transcript))
+        let secondAyah = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: transcript))
+
+        XCTAssertEqual(nextSurah.completedThrough.location, "101:1:4")
+        XCTAssertEqual(secondAyah.completedThrough.location, "101:2:4")
     }
 
     func testPostLockCompletesShortAyahAcrossSingleASRSubstitutionWithMatchedSuffix() throws {
@@ -150,12 +173,15 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
             expected: expected,
             recognizedWords: ["كلا", "ان", "الانسان", "ليطغى", "ان", "راه", "استغنى", "ان", "الى"]
         ))
-        let location = try XCTUnwrap(locator.locate(
+        let recognizedWords = ["ان", "الى", "ربه", "الرجعى"]
+        let prefix = try XCTUnwrap(locator.locate(
             expected: expected,
-            recognizedWords: ["ان", "الى", "ربه", "الرجعى"]
+            recognizedWords: recognizedWords
         ))
+        let completed = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: recognizedWords))
 
-        XCTAssertEqual(location.completedThrough.location, "96:8:4")
+        XCTAssertEqual(prefix.completedThrough.location, "96:8:2")
+        XCTAssertEqual(completed.completedThrough.location, "96:8:4")
     }
 
     func testPostLockDoesNotBridgeSingleASRSubstitutionWithoutAcceptedPrefix() throws {
@@ -284,6 +310,27 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         let distantShortMatch = locator.locate(expected: expected, recognizedWords: ["هو", "الله", "الذي"])
 
         XCTAssertNil(distantShortMatch)
+    }
+
+    func testDoesNotJumpFromAyahThreeToRepeatedPhraseInAyahTen() throws {
+        let ayahs = [
+            (3, ["اتبعوا", "ما", "انزل", "اليكم", "من", "ربكم", "ولا", "تتبعوا", "من", "دونه", "اولياء", "قليلا", "ما", "تذكرون"]),
+            (4, ["وكم", "من", "قرية", "اهلكناها", "فجاءها", "باسنا", "بياتا", "او", "هم", "قائلون"]),
+            (5, ["فما", "كان", "دعواهم", "اذ", "جاءهم", "باسنا", "الا", "ان", "قالوا", "انا", "كنا", "ظالمين"]),
+            (6, ["فلنسالن", "الذين", "ارسل", "اليهم", "ولنسالن", "المرسلين"]),
+            (7, ["فلنقصن", "عليهم", "بعلم", "وما", "كنا", "غائبين"]),
+            (8, ["والوزن", "يومئذ", "الحق", "فمن", "ثقلت", "موازينه", "فاولئك", "هم", "المفلحون"]),
+            (9, ["ومن", "خفت", "موازينه", "فاولئك", "الذين", "خسروا", "انفسهم", "بما", "كانوا", "باياتنا", "يظلمون"]),
+            (10, ["ولقد", "مكناكم", "في", "الارض", "وجعلنا", "لكم", "فيها", "معايش", "قليلا", "ما", "تشكرون"])
+        ]
+        let expected = references(ayahs, surah: 7)
+        let ayahThreeTranscript = ayahs[0].1
+        var locator = ProgressiveTranscriptLocator()
+
+        let initial = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: ayahThreeTranscript))
+        XCTAssertEqual(initial.completedThrough.location, "7:3:14")
+
+        XCTAssertNil(locator.locate(expected: expected, recognizedWords: ayahThreeTranscript))
     }
 
     func testContinuesProgressWithinLockedNeighborhood() throws {

@@ -2,6 +2,35 @@ import XCTest
 @testable import HifzTracker
 
 final class LiveASRTimingProbeTests: XCTestCase {
+    func testTracksStartupVoiceFirstTranscriptAndFirstHighlightBoundaries() {
+        var probe = LiveASRTimingProbe()
+        probe.startRequested(atNanoseconds: 1_000_000_000)
+
+        let serviceReady = probe.eventMetrics(atNanoseconds: 1_400_000_000)
+        let recordingStarted = probe.recordingStarted(atNanoseconds: 2_000_000_000)
+        let voiceOnset = probe.voiceOnset(atNanoseconds: 2_200_000_000)
+        XCTAssertNil(probe.voiceOnset(atNanoseconds: 2_300_000_000))
+
+        XCTAssertEqual(serviceReady.elapsedSinceStartRequestMilliseconds ?? -1, 400, accuracy: 0.001)
+        XCTAssertEqual(recordingStarted.elapsedSinceStartRequestMilliseconds ?? -1, 1_000, accuracy: 0.001)
+        XCTAssertEqual(voiceOnset?.elapsedSinceRecordingStartMilliseconds ?? -1, 200, accuracy: 0.001)
+
+        let token = probe.transcriptionStarted(
+            sampleCount: 16_000,
+            sampleRate: 16_000,
+            atNanoseconds: 2_500_000_000
+        )
+        let transcript = probe.transcriptionFinished(token, atNanoseconds: 2_700_000_000)
+        let firstHighlight = probe.highlightApplied(atNanoseconds: 2_800_000_000)
+
+        XCTAssertEqual(transcript.firstTranscriptLatencyMilliseconds ?? -1, 700, accuracy: 0.001)
+        XCTAssertEqual(transcript.firstTranscriptEventMetrics?.elapsedSinceStartRequestMilliseconds ?? -1, 1_700, accuracy: 0.001)
+        XCTAssertEqual(transcript.firstTranscriptEventMetrics?.elapsedSinceVoiceOnsetMilliseconds ?? -1, 500, accuracy: 0.001)
+        XCTAssertEqual(firstHighlight?.elapsedSinceRecordingStartMilliseconds ?? -1, 800, accuracy: 0.001)
+        XCTAssertEqual(firstHighlight?.elapsedSinceVoiceOnsetMilliseconds ?? -1, 600, accuracy: 0.001)
+        XCTAssertNil(probe.highlightApplied(atNanoseconds: 2_900_000_000))
+    }
+
     func testReportsFirstTranscriptLatencyProcessingAndAverageIntervals() {
         var probe = LiveASRTimingProbe()
         probe.recordingStarted(atNanoseconds: 1_000_000_000)
@@ -108,6 +137,8 @@ final class LiveASRTimingProbeTests: XCTestCase {
 
         XCTAssertEqual(nextMetrics.windowID, 1)
         XCTAssertEqual(nextMetrics.firstTranscriptLatencyMilliseconds ?? -1, 500, accuracy: 0.001)
+        XCTAssertNil(nextMetrics.firstTranscriptEventMetrics?.elapsedSinceStartRequestMilliseconds)
+        XCTAssertNil(nextMetrics.firstTranscriptEventMetrics?.elapsedSinceVoiceOnsetMilliseconds)
         XCTAssertNil(nextMetrics.transcriptIntervalMilliseconds)
         XCTAssertNil(nextMetrics.averageTranscriptIntervalMilliseconds)
     }
