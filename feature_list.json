@@ -486,6 +486,31 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-14. Red coverage reproduced the canonical 7:3:14 to 7:10:10 jump and showed multi-ayah skips within surah 110 and across 100:11 to 101:2. `ProgressiveTranscriptLocator` now limits every matching path to the current ayah and its immediate Quran-order successor using `SurahCatalog`, while an unrestricted initial probe still rejects a stronger distant match instead of accepting a weaker local similarity. Repeated windows therefore advance 1 to 2 to 3 one call at a time, including across a surah boundary; nearby 2-word matches and substitution recovery remain supported. The focused locator suite passed 19 tests, locator outcomes passed 3 tests, and the strengthened opt-in local-audio audit passed all 6 fixtures in 32.589 s with every located ayah confined to its target. Final `swift test` passed 126 tests with 1 expected opt-in skip and 0 failures in 44.005 s; `swift build`, `jq empty feature_list.json`, the debug-marker sweep, and `git diff --check` passed. No model, inference cadence, audio persistence, or release assets changed."
+    },
+    {
+      "id": "mushaf-navigation-dashboard-reset-001",
+      "name": "Dashboard Reset and Mushaf Navigation",
+      "description": "Add a confirmed dashboard progress reset, a native Start ayah picker, a non-overlapping Mushaf page footer, and hover-revealed RTL page navigation.",
+      "dependencies": ["sequential-ayah-progression-001"],
+      "status": "done",
+      "done_criteria": [
+        "Dashboard can delete all saved progress after a native destructive confirmation without affecting an active in-memory recitation",
+        "Start ayah uses a numeric native menu picker for the selected surah",
+        "Mushaf page numbers retain a clear reserved footer band below the final ayah",
+        "Hover-revealed reading-pane controls and plain arrow keys browse pages in RTL direction without changing recitation setup",
+        "Manual browsing during recording yields to automatic page following on the next located progress",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter RecitationViewModelTests",
+        "swift test --filter MushafPageRendererTests",
+        "swift test",
+        "swift build",
+        "./script/build_and_run.sh --verify",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Implemented on 2026-07-14. Added a native confirmed reset that deletes all saved SwiftData session records with rollback/error handling, replaced the Start ayah Stepper with a numeric menu Picker, reserved an 80-point canonical footer band on page 574 and other dense pages, and added hover-revealed RTL page controls with plain arrow-key shortcuts. Manual browsing preserves recitation setup, respects pages 1...604, remains available while recording, and yields to live auto-follow on the next located word. Red checks initially failed for the missing reset/page commands; focused green checks passed 5 tests, relevant UI/rendering suites passed 43 tests, and final `swift test` passed 131 tests with 1 expected opt-in skip and 0 failures. `swift build` and `./script/build_and_run.sh --verify` passed. No release assets, schema, dependencies, or audio behavior changed; release checks were therefore not required. Per user instruction, no screenshot verification was performed."
     }
   ]
 }

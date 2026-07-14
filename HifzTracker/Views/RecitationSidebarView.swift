@@ -56,16 +56,16 @@ private struct RecitationSetupSection: View {
                     Text("Start ayah")
                         .foregroundStyle(.primary)
                     Spacer(minLength: 8)
-                    Text("\(viewModel.startAyah)")
-                        .font(.callout.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .frame(minWidth: 28, alignment: .trailing)
-                    Stepper(
-                        "Start ayah",
-                        value: $viewModel.startAyah,
-                        in: 1...viewModel.selectedSurahInfo.ayahCount
-                    )
+
+                    Picker("Start ayah", selection: $viewModel.startAyah) {
+                        ForEach(1...viewModel.selectedSurahInfo.ayahCount, id: \.self) { ayah in
+                            Text("\(ayah)")
+                                .tag(ayah)
+                        }
+                    }
                     .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(minWidth: 72, alignment: .trailing)
                 }
 
                 Divider()

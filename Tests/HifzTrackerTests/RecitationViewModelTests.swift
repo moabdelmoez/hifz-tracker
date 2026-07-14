@@ -200,6 +200,51 @@ final class RecitationViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testManualPageBrowsingKeepsRecitationSetupUnchanged() {
+        let viewModel = RecitationViewModel(repository: InMemoryQuranRepository())
+        viewModel.selectedSurah = 1
+        viewModel.startAyah = 1
+
+        viewModel.showNextMushafPage()
+
+        XCTAssertEqual(viewModel.pageNumber, 2)
+        XCTAssertEqual(viewModel.selectedSurah, 1)
+        XCTAssertEqual(viewModel.startAyah, 1)
+
+        viewModel.showPreviousMushafPage()
+
+        XCTAssertEqual(viewModel.pageNumber, 1)
+    }
+
+    @MainActor
+    func testManualPageBrowsingStopsAtMushafBoundaries() {
+        let viewModel = RecitationViewModel(repository: InMemoryQuranRepository())
+        viewModel.selectedSurah = 1
+
+        viewModel.showPreviousMushafPage()
+        XCTAssertEqual(viewModel.pageNumber, 1)
+
+        viewModel.selectedSurah = 114
+        XCTAssertEqual(viewModel.pageNumber, 604)
+
+        viewModel.showNextMushafPage()
+        XCTAssertEqual(viewModel.pageNumber, 604)
+    }
+
+    @MainActor
+    func testLiveProgressResumesAutoFollowAfterManualBrowsing() {
+        let viewModel = RecitationViewModel(repository: InMemoryQuranRepository())
+        viewModel.selectedSurah = 1
+        viewModel.startAyah = 1
+        viewModel.isRecording = true
+        viewModel.showNextMushafPage()
+
+        viewModel.applyLocatedProgress(through: Self.references()[0], references: Self.references())
+
+        XCTAssertEqual(viewModel.pageNumber, 1)
+    }
+
+    @MainActor
     func testProvisionalInitialHighlightDoesNotAdvanceCommittedSnapshot() {
         let repository = InMemoryQuranRepository()
         let viewModel = RecitationViewModel(repository: repository)
@@ -407,13 +452,15 @@ private final class InMemoryQuranRepository: QuranRepository {
             1: Self.makePage(pageNumber: 1, words: pageOneWords),
             2: Self.makePage(pageNumber: 2, words: pageTwoWords),
             100: Self.makePage(pageNumber: 100, words: surahOneHundredWords),
-            101: Self.makePage(pageNumber: 101, words: nextSurahWords)
+            101: Self.makePage(pageNumber: 101, words: nextSurahWords),
+            604: MushafPage(pageNumber: 604, lines: [])
         ]
         self.ayahPages = [
             "1:1": 1,
             "1:2": 2,
             "100:11": 100,
-            "101:1": 101
+            "101:1": 101,
+            "114:1": 604
         ]
         self.wordPages = [
             "1:1:1": 1,

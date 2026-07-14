@@ -488,7 +488,7 @@ private struct MushafLineLayout {
     private static let ayahToAyahStepWithoutSpecialLines: CGFloat = 88
     private static let ayahToHeaderStep: CGFloat = 147
     private static let minimumContentHeight: CGFloat = 1_366
-    private static let bottomMargin: CGFloat = 32
+    private static let bottomMargin: CGFloat = 80
     private static let surahHeaderHeight: CGFloat = 126
     private static let bismillahHeight: CGFloat = 78
     private static let ayahLineHeight: CGFloat = 130

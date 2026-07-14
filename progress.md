@@ -2,64 +2,56 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-14 10:12 EEST
+**Last Updated:** 2026-07-14 13:15 EEST
 
-**Session ID:** sequential-ayah-progression-2026-07-14
+**Session ID:** mushaf-navigation-dashboard-reset-2026-07-14
 
-**Completed Feature:** `sequential-ayah-progression-001` - Locator progress now follows Quran order one ayah per inference call.
+**Completed Feature:** `mushaf-navigation-dashboard-reset-001` - Dashboard reset, Start ayah picker, footer clearance, and RTL page browsing.
 
 ## Status
 
 ### What's Done
 
-- [x] Activated the sequential-progression feature from the completed locator diagnosis.
-- [x] Baseline `swift test`: 124 tests, 1 expected opt-in skip, 0 failures.
+- [x] Confirmed a clean working tree and reviewed the latest completed locator handoff.
+- [x] Locked the UX contract through the grilling session.
+- [x] Baseline `swift test`: 126 tests, 1 expected opt-in skip, 0 failures.
 - [x] Baseline `swift build`: completed successfully.
-- [x] Added the canonical 7:3 → 7:10 repeated-phrase regression.
-- [x] Added one-ayah-per-call coverage within surah 110 and across 100:11 → 101:1 → 101:2.
-- [x] Limited every progressive locator path to the current ayah and its immediate Quran-order successor.
-- [x] Preserved initial ambiguity rejection by checking the strongest unrestricted initial candidate before accepting an in-order candidate.
-- [x] Preserved nearby 2-word advancement and single-substitution recovery.
-- [x] Strengthened the opt-in audio audit to fail if a single-ayah fixture ever leaves its target ayah.
-- [x] Passed focused, audio-replay, full-suite, build, and static verification.
+- [x] Activated one implementation feature in `feature_list.json`.
+- [x] Added a Dashboard Reset Progress button with native destructive confirmation, persisted deletion, rollback, and error feedback.
+- [x] Replaced the Start ayah Stepper with a numeric native menu Picker.
+- [x] Increased shared Mushaf bottom clearance from 32 to 80 canonical points so page 574 has a dedicated footer band.
+- [x] Added hover-revealed reading-pane controls: left arrow advances, right arrow goes back, matching RTL page direction.
+- [x] Added plain arrow-key shortcuts, boundary disabling, accessibility labels, and reduced-motion handling.
+- [x] Kept manual browsing independent of Surah/Start ayah and preserved live auto-follow.
+- [x] Passed focused, relevant-suite, full-suite, build, and packaged-launch verification.
 
 ### What's Blocked
 
-- No feature blocker remains.
-- Release-only distribution remains externally blocked because no Developer ID Application identity is installed.
-- The pre-existing GitHub authentication blocker for `github-pages-site-001` is unchanged and outside this feature.
-
-### What's Next
-
-1. Manually recite several consecutive ayahs and confirm `live_asr_locator` events advance in Quran order in the packaged app.
-2. Commit the uncommitted performance instrumentation, diagnosis records, and sequential locator fix when ready.
+- No active feature blocker.
+- Release-only distribution remains externally blocked by the missing Developer ID Application identity; it is outside this UI feature.
+- Screenshot verification was intentionally not performed per user instruction.
 
 ## Files Modified This Session
 
-- `Sources/HifzCore/TranscriptPositionLocator.swift` - Restricted progressive search to the current and immediate next ayah.
-- `Tests/HifzCoreTests/ProgressiveTranscriptLocatorTests.swift` - Added canonical, sequential, cross-surah, nearby-match, and substitution regressions.
-- `Tests/HifzCoreTests/ProgressiveTranscriptLocatorOutcomeTests.swift` - Kept the short-match outcome fixture within the immediate next ayah.
-- `Tests/HifzCoreTests/LocalAudioAuditTests.swift` - Asserted that each single-ayah replay remains inside its target ayah.
-- `feature_list.json`, `progress.md`, `session-handoff.md` - Recorded scope, evidence, and restart context.
-- Existing uncommitted live-ASR timing changes remain intact.
+- `HifzTracker/Views/DashboardWindowView.swift` - Confirmed global progress reset.
+- `HifzTracker/Views/RecitationSidebarView.swift` - Numeric Start ayah menu.
+- `HifzTracker/Views/MushafPageView.swift` - Hover-revealed RTL page controls and keyboard shortcuts.
+- `HifzTracker/Services/RecitationViewModel.swift` - Bounded manual page loading and recitation-start page reset.
+- `Sources/HifzCore/MushafPageRenderer.swift` - Reserved page-number footer clearance.
+- Focused dashboard, view-model, and renderer tests plus harness artifacts.
 
 ## Evidence
 
-- [x] Red focused suite: 19 tests ran with 4 expected failures; the canonical replay returned 7:10:10 with expected range `76..<78` and recognized range `11..<13`.
-- [x] Red sequential cases showed direct jumps to surah 110 ayah 3 and surah 101 ayah 2.
-- [x] First green pass exposed two compatibility edges: substitution recovery needed one additional ordered window, and initial ambiguity detection needed the unrestricted strongest candidate.
-- [x] Final `swift test --filter ProgressiveTranscriptLocatorTests`: 19 tests, 0 failures in 0.029 s.
-- [x] `swift test --filter ProgressiveTranscriptLocatorOutcomeTests`: 3 tests, 0 failures.
-- [x] Strengthened `HIFZ_RUN_LOCAL_AUDIO_AUDIT=1 swift test --filter LocalAudioAuditTests/testLocalAudioASRAudit`: 6 fixtures passed in 32.589 s.
-- [x] Every replay reported `correctTargetAyahOnly: true`; the prior 004002 drift now ends at 4:2:16 and never enters a later ayah.
-- [x] Replay first authoritative highlights remained approximately 4.149–7.771 s.
-- [x] First full integration run found one outdated outcome fixture: ayah 22 was correctly classified as too far rather than too short; the short-match fixture was moved to immediate ayah 2.
-- [x] Final `swift test`: 126 tests, 1 expected opt-in skip, 0 failures in 44.005 s.
-- [x] Final `swift build`: completed successfully.
-- [x] Final `jq empty feature_list.json`, debug-marker sweep, and `git diff --check`: passed.
+- [x] `swift test` passed 126 tests with 1 expected opt-in local-audio audit skip and 0 failures in 42.968 s.
+- [x] `swift build` completed successfully in 0.11 s.
+- [x] Red focused check failed for missing `resetDashboardProgress`, `showNextMushafPage`, and `showPreviousMushafPage` behavior before implementation.
+- [x] Focused green check passed 5 tests covering persistent reset, page 574 footer space, browsing, boundaries, and live auto-follow.
+- [x] Relevant suites passed 43 tests with 0 failures.
+- [x] Final `swift test` passed 131 tests with 1 expected opt-in skip and 0 failures in 96.347 s.
+- [x] Final `swift build` completed successfully in 0.11 s.
+- [x] `./script/build_and_run.sh --verify` rebuilt, ad-hoc signed, launched, and found the packaged app process.
+- [x] Release checks skipped: no release assets, signing inputs, packaging, schema, or dependencies changed.
 
-## Notes
+## Next Step
 
-- A transcript containing several valid ayahs now advances at most one ayah per inference window; the next rolling window advances the following ayah.
-- The model, rolling audio window, half-second inference cadence, and two-word matcher threshold are unchanged.
-- No user audio is persisted.
+Manually exercise the hover controls and destructive confirmation when convenient; no implementation work remains.

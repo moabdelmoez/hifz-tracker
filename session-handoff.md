@@ -2,51 +2,48 @@
 
 ## Current Objective
 
-- Goal: Make live recitation progress follow Quran order without skipping similar ayahs.
-- Current status: Complete. `sequential-ayah-progression-001` is marked `done`.
+- Goal: Improve Dashboard reset, Start ayah selection, Mushaf footer spacing, and RTL page navigation.
+- Current status: Complete. `mushaf-navigation-dashboard-reset-001` is marked `done`.
 - Branch: `main`.
-- Working tree: Uncommitted performance instrumentation, locator fix, tests, and tracker updates remain for user review.
+- Working tree: UI implementation, focused tests, and tracker updates remain uncommitted for user review.
 
 ## Implemented Behavior
 
-- Progressive matching can search only the current ayah and its immediate Quran-order successor.
-- A long transcript spanning multiple ayahs is capped at the end of the immediate next ayah; the next inference window continues from there.
-- Surah boundaries follow the same rule, e.g. 100:11 → 101:1 → 101:2.
-- Initial matching still inspects the strongest full-scope candidate so a stronger distant recitation is rejected rather than misread as a weaker local similarity.
-- Nearby 2-word continuation and single-substitution recovery remain supported.
+- Dashboard Reset Progress deletes all saved session records only after native destructive confirmation; failures roll back and surface an error.
+- Start ayah is a numeric native menu Picker scoped to the selected surah.
+- Page 574 and other dense pages reserve 80 canonical points beneath the final ayah for the Arabic-Indic page number.
+- Hovering the reading pane reveals RTL page controls: left advances and right goes back; plain arrow keys perform the same actions.
+- Manual browsing keeps Surah and Start ayah unchanged, stops at pages 1 and 604, works while recording, and yields to live auto-follow.
 
 ## Verification Evidence
 
 | Check | Command / Method | Result |
 |---|---|---|
-| Ordered locator tests | `swift test --filter ProgressiveTranscriptLocatorTests` | Passed: 19 tests, 0 failures |
-| Outcome tests | `swift test --filter ProgressiveTranscriptLocatorOutcomeTests` | Passed: 3 tests, 0 failures |
-| Opt-in audio replay | `HIFZ_RUN_LOCAL_AUDIO_AUDIT=1 swift test --filter LocalAudioAuditTests/testLocalAudioASRAudit` | Passed: 6 fixtures; all stayed in target ayah; 32.589 s |
-| Full tests | `swift test` | Passed: 126 tests, 1 expected opt-in skip, 0 failures, 44.005 s |
+| Focused regressions | Dashboard reset, page browsing, boundaries, auto-follow, page 574 footer | Passed: 5 tests, 0 failures |
+| Relevant suites | Dashboard reset, view model, renderer, canvas | Passed: 43 tests, 0 failures |
+| Full tests | `swift test` | Passed: 131 tests, 1 expected opt-in skip, 0 failures, 96.347 s |
 | Build | `swift build` | Passed |
-| Static checks | `jq empty feature_list.json`; debug-marker sweep; `git diff --check` | Passed |
+| Packaged launch | `./script/build_and_run.sh --verify` | Passed |
 
 ## Files Changed
 
-- `Sources/HifzCore/TranscriptPositionLocator.swift`
-- `Tests/HifzCoreTests/ProgressiveTranscriptLocatorTests.swift`
-- `Tests/HifzCoreTests/ProgressiveTranscriptLocatorOutcomeTests.swift`
-- `Tests/HifzCoreTests/LocalAudioAuditTests.swift`
-- `feature_list.json`
-- `progress.md`
-- `session-handoff.md`
-- Earlier uncommitted timing instrumentation files remain in the working tree.
+- `HifzTracker/Views/DashboardWindowView.swift`
+- `HifzTracker/Views/RecitationSidebarView.swift`
+- `HifzTracker/Views/MushafPageView.swift`
+- `HifzTracker/Services/RecitationViewModel.swift`
+- `Sources/HifzCore/MushafPageRenderer.swift`
+- Focused dashboard, view-model, and renderer tests
+- `feature_list.json`, `progress.md`, `session-handoff.md`
 
 ## Restart Notes
 
 1. `cd /Users/mostafa/Downloads/Coding_Projects/hifz-tracker`
 2. Run `git status --short` and `git log --oneline -5`.
-3. For live confirmation, launch the app, recite consecutive ayahs, and inspect `live_asr_locator` events for monotonic one-ayah progression.
-4. The ignored `artifacts/local-audio-audit.json` contains the latest successful six-file replay report.
+3. Launch the app and manually exercise the hover page controls, Start ayah menu, and Dashboard reset confirmation if desired.
+4. Do not take screenshots unless the user later asks for them.
 
 ## Risks / Blockers
 
-- Strict ordering may add up to one inference interval per extra ayah when a single transcript spans several short ayahs; this is intentional to prevent skips.
-- No live microphone session was automated in this implementation turn; deterministic and local-audio replays cover the locator behavior.
+- No screenshot or automated visual capture was performed per user instruction; layout behavior is covered by renderer metrics and packaged launch verification.
 - Public DMG distribution remains externally blocked by the missing Developer ID Application identity.
 - The pre-existing invalid GitHub CLI authentication for `github-pages-site-001` is unchanged and outside this feature.

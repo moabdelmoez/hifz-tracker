@@ -9,6 +9,7 @@ private let asrLogger = Logger(subsystem: "dev.mostafa.HifzTracker", category: "
 @Observable
 final class RecitationViewModel {
     private static let voiceOnsetLevel = 0.02
+    private static let mushafPageRange = 1...604
 
     var selectedSurah: Int = 73 {
         didSet {
@@ -94,6 +95,7 @@ final class RecitationViewModel {
     }
 
     func startRecording() {
+        loadSelectedAyah()
         let startTimestamp = nowNanoseconds()
         liveASRTimingProbe.startRequested(atNanoseconds: startTimestamp)
         asrLogger.info("live_asr_timing event=start_requested")
@@ -172,6 +174,14 @@ final class RecitationViewModel {
             completedWordCount: snapshot.completedWordCount,
             correctionEvents: snapshot.correctionEvents
         )
+    }
+
+    func showNextMushafPage() {
+        displayMushafPage(displayedPageNumber + 1)
+    }
+
+    func showPreviousMushafPage() {
+        displayMushafPage(displayedPageNumber - 1)
     }
 
     func progressState(for word: QuranWord) -> WordProgressState {
@@ -764,15 +774,19 @@ final class RecitationViewModel {
             ayah: reference.ayah,
             wordIndex: reference.wordIndex
         ) else { return }
-        guard targetPageNumber != displayedPageNumber else { return }
-        guard (1...604).contains(targetPageNumber) else { return }
+        displayMushafPage(targetPageNumber)
+    }
+
+    private func displayMushafPage(_ pageNumber: Int) {
+        guard pageNumber != displayedPageNumber else { return }
+        guard Self.mushafPageRange.contains(pageNumber), let repository else { return }
 
         do {
-            let page = try repository.mushafPage(pageNumber: targetPageNumber)
-            displayedPageNumber = targetPageNumber
+            let page = try repository.mushafPage(pageNumber: pageNumber)
+            displayedPageNumber = pageNumber
             mushafPage = page
         } catch {
-            asrLogger.error("auto_page_flip_failed page=\(targetPageNumber, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
+            asrLogger.error("page_flip_failed page=\(pageNumber, privacy: .public) error=\(error.localizedDescription, privacy: .public)")
         }
     }
 

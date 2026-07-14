@@ -52,6 +52,12 @@ final class MushafPageRendererTests: XCTestCase {
         )
     }
 
+    func testPage574ReservesFooterBandBelowFinalAyah() throws {
+        let canvasSize = MushafPageRenderer.canonicalContentSize(for: try makePage574())
+
+        XCTAssertEqual(canvasSize.height, 1_422, accuracy: 0.001)
+    }
+
     func testRendersWordProgressHighlightsBehindQpcGlyphWords() throws {
         let page = try makePage574()
         let canvasSize = MushafPageRenderer.canonicalContentSize(for: page)

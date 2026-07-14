@@ -3,7 +3,10 @@ import SwiftUI
 import HifzCore
 
 struct DashboardWindowView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \StoredSessionRecord.startedAt, order: .reverse) private var records: [StoredSessionRecord]
+    @State private var isConfirmingReset = false
+    @State private var resetErrorMessage: String?
     private let repository: QuranRepository?
 
     init(repository: QuranRepository? = AppQuranRepositoryFactory.makeRepository()) {
@@ -16,6 +19,14 @@ struct DashboardWindowView: View {
                 Text("Dashboard")
                     .font(.title2.weight(.semibold))
                 Spacer()
+
+                Button {
+                    isConfirmingReset = true
+                } label: {
+                    Label("Reset Progress…", systemImage: "arrow.counterclockwise")
+                }
+                .disabled(records.isEmpty)
+                .help("Delete all saved tracking progress")
             }
             .padding()
             .background(.bar)
@@ -26,6 +37,26 @@ struct DashboardWindowView: View {
                     .padding(.vertical, 6)
             }
             .listStyle(.inset(alternatesRowBackgrounds: true))
+        }
+        .alert("Reset all progress?", isPresented: $isConfirmingReset) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset All Progress", role: .destructive) {
+                do {
+                    try resetDashboardProgress(records, in: modelContext)
+                } catch {
+                    resetErrorMessage = error.localizedDescription
+                }
+            }
+        } message: {
+            Text("This permanently deletes every saved recitation session. This action cannot be undone.")
+        }
+        .alert("Unable to reset progress", isPresented: Binding(
+            get: { resetErrorMessage != nil },
+            set: { if !$0 { resetErrorMessage = nil } }
+        )) {
+            Button("OK") {}
+        } message: {
+            Text(resetErrorMessage ?? "The saved progress could not be deleted.")
         }
     }
 
@@ -40,6 +71,17 @@ struct DashboardWindowView: View {
             records: records.map(\.coreRecord),
             repository: repository
         )
+    }
+}
+
+@MainActor
+func resetDashboardProgress(_ records: [StoredSessionRecord], in context: ModelContext) throws {
+    records.forEach { context.delete($0) }
+    do {
+        try context.save()
+    } catch {
+        context.rollback()
+        throw error
     }
 }
 

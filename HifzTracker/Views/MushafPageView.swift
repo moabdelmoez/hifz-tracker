@@ -4,6 +4,9 @@ import HifzCore
 struct MushafPageView: View {
     @Bindable var viewModel: RecitationViewModel
     @AppStorage("showDebugTranscript") private var showDebugTranscript = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isHoveringReader = false
+    @FocusState private var focusedPageControl: PageControl?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -20,12 +23,80 @@ struct MushafPageView: View {
             } isFallbackTextVisible: { word in
                 viewModel.isSelectedAyahWordTextVisible(for: word)
             }
+            .overlay {
+                HStack {
+                    MushafPageNavigationButton(
+                        label: "Next Page",
+                        systemImage: "chevron.left",
+                        shortcut: .leftArrow,
+                        action: viewModel.showNextMushafPage
+                    )
+                    .focused($focusedPageControl, equals: .next)
+                    .disabled(viewModel.pageNumber >= 604)
+
+                    Spacer()
+
+                    MushafPageNavigationButton(
+                        label: "Previous Page",
+                        systemImage: "chevron.right",
+                        shortcut: .rightArrow,
+                        action: viewModel.showPreviousMushafPage
+                    )
+                    .focused($focusedPageControl, equals: .previous)
+                    .disabled(viewModel.pageNumber <= 1)
+                }
+                .environment(\.layoutDirection, .leftToRight)
+                .padding(.horizontal, 12)
+                .opacity(showsPageControls ? 1 : 0)
+                .allowsHitTesting(showsPageControls)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: showsPageControls)
+            }
+            .onHover { isHoveringReader = $0 }
 
             if showDebugTranscript, !viewModel.debugTranscript.isEmpty {
                 DebugTranscriptPanel(transcript: viewModel.debugTranscript)
             }
         }
         .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    private var showsPageControls: Bool {
+        isHoveringReader || focusedPageControl != nil
+    }
+
+    private enum PageControl: Hashable {
+        case next
+        case previous
+    }
+}
+
+private struct MushafPageNavigationButton: View {
+    @Environment(\.isEnabled) private var isEnabled
+
+    var label: String
+    var systemImage: String
+    var shortcut: KeyEquivalent
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.title2.weight(.semibold))
+                .frame(width: 44, height: 72)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.primary)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(.quaternary, lineWidth: 0.5)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
+        .opacity(isEnabled ? 1 : 0.35)
+        .keyboardShortcut(shortcut, modifiers: [])
+        .help("\(label) (\(shortcut == .leftArrow ? "←" : "→"))")
+        .accessibilityLabel(label)
     }
 }
 
