@@ -2,48 +2,39 @@
 
 ## Current Objective
 
-- Goal: Improve Dashboard reset, Start ayah selection, Mushaf footer spacing, and RTL page navigation.
-- Current status: Complete. `mushaf-navigation-dashboard-reset-001` is marked `done`.
+- Goal: Apply subtle native polish across Recitation, Dashboard, and Settings.
+- Current status: Complete. `all-windows-interface-polish-001` is marked `done`.
 - Branch: `main`.
-- Working tree: UI implementation, focused tests, and tracker updates remain uncommitted for user review.
+- Working tree: scoped SwiftUI, one focused test, and harness updates are uncommitted; pre-existing `.claude/` remains untouched.
 
 ## Implemented Behavior
 
-- Dashboard Reset Progress deletes all saved session records only after native destructive confirmation; failures roll back and surface an error.
-- Start ayah is a numeric native menu Picker scoped to the selected surah.
-- Page 574 and other dense pages reserve 80 canonical points beneath the final ayah for the Arabic-Indic page number.
-- Hovering the reading pane reveals RTL page controls: left advances and right goes back; plain arrow keys perform the same actions.
-- Manual browsing keeps Surah and Start ayah unchanged, stops at pages 1 and 604, works while recording, and yields to live auto-follow.
+- Toolbar is the single live-status surface and no longer duplicates the app title.
+- Session metadata is one compact row with tabular ayah/page numbers; the cardless design is preserved.
+- The four-circle indicator fits the minimum sidebar width and respects Reduce Motion.
+- Page transitions and focused-ayah scrolling respect Reduce Motion; the white Mushaf page has a subtle neutral inset outline.
+- Empty Dashboard uses `ContentUnavailableView`; Settings tabs use consistent grouped forms.
 
 ## Verification Evidence
 
-| Check | Command / Method | Result |
-|---|---|---|
-| Focused regressions | Dashboard reset, page browsing, boundaries, auto-follow, page 574 footer | Passed: 5 tests, 0 failures |
-| Relevant suites | Dashboard reset, view model, renderer, canvas | Passed: 43 tests, 0 failures |
-| Full tests | `swift test` | Passed: 131 tests, 1 expected opt-in skip, 0 failures, 96.347 s |
-| Build | `swift build` | Passed |
-| Packaged launch | `./script/build_and_run.sh --verify` | Passed |
-
-## Files Changed
-
-- `HifzTracker/Views/DashboardWindowView.swift`
-- `HifzTracker/Views/RecitationSidebarView.swift`
-- `HifzTracker/Views/MushafPageView.swift`
-- `HifzTracker/Services/RecitationViewModel.swift`
-- `Sources/HifzCore/MushafPageRenderer.swift`
-- Focused dashboard, view-model, and renderer tests
-- `feature_list.json`, `progress.md`, `session-handoff.md`
+| Check | Result |
+|---|---|
+| Focused tests | Voice 4, Mushaf canvas 5, Dashboard reset 1; all passed |
+| Full tests | 132 tests, 1 expected opt-in skip, 0 failures |
+| Build | `swift build` passed |
+| Staged app | `./script/build_and_run.sh --verify` passed |
+| Static checks | Valid feature JSON, clean diff check, duplicate-symbol sweeps passed |
+| Visual capture | Blocked by macOS: `could not create image from rect` |
 
 ## Restart Notes
 
 1. `cd /Users/mostafa/Downloads/Coding_Projects/hifz-tracker`
-2. Run `git status --short` and `git log --oneline -5`.
-3. Launch the app and manually exercise the hover page controls, Start ayah menu, and Dashboard reset confirmation if desired.
-4. Do not take screenshots unless the user later asks for them.
+2. Confirm `git status --short`; preserve `.claude/` and unrelated user changes.
+3. Optionally inspect Recitation, empty Dashboard, and both Settings tabs in light/dark mode and with Reduce Motion enabled.
+4. Rerun `swift test` and `swift build` before any next feature.
 
-## Risks / Blockers
+## Risks / Out of Scope
 
-- No screenshot or automated visual capture was performed per user instruction; layout behavior is covered by renderer metrics and packaged launch verification.
-- Public DMG distribution remains externally blocked by the missing Developer ID Application identity.
-- The pre-existing invalid GitHub CLI authentication for `github-pages-site-001` is unchanged and outside this feature.
+- No automated screenshot evidence is claimed because macOS rejected app-region capture.
+- No release assets, signing, packaging, schema, dependencies, model, persistence, network, or audio behavior changed.
+- `./script/release_checks.sh` was not required for this UI-only pass.

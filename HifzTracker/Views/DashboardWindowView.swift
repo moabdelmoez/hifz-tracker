@@ -31,12 +31,21 @@ struct DashboardWindowView: View {
             .padding()
             .background(.bar)
 
-            List(summaries) { summary in
-                DashboardSurahProgressRow(summary: summary)
-                    .listRowSeparator(.hidden)
-                    .padding(.vertical, 6)
+            if records.isEmpty {
+                ContentUnavailableView(
+                    "No Saved Progress",
+                    systemImage: "chart.bar.xaxis",
+                    description: Text("Complete a recitation session to begin tracking your progress.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(summaries) { summary in
+                    DashboardSurahProgressRow(summary: summary)
+                        .listRowSeparator(.hidden)
+                        .padding(.vertical, 6)
+                }
+                .listStyle(.inset(alternatesRowBackgrounds: true))
             }
-            .listStyle(.inset(alternatesRowBackgrounds: true))
         }
         .alert("Reset all progress?", isPresented: $isConfirmingReset) {
             Button("Cancel", role: .cancel) {}

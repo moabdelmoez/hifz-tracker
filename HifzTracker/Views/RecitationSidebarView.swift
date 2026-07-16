@@ -86,10 +86,6 @@ private struct RecitationSetupSection: View {
 private struct SessionSummarySection: View {
     var viewModel: RecitationViewModel
 
-    private var visualState: RecitationVisualState {
-        RecitationVisualState(phase: viewModel.snapshot.phase, wordProgress: viewModel.wordProgress)
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Session")
@@ -98,24 +94,22 @@ private struct SessionSummarySection: View {
                 .textCase(.uppercase)
 
             VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    RecitationStatusPill(text: viewModel.statusText, visualState: visualState)
+                HStack(alignment: .top, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\(viewModel.selectedSurahInfo.arabicName) · \(viewModel.selectedSurahInfo.englishName)")
+                            .font(.callout.weight(.medium))
+                            .lineLimit(1)
+
+                        Text("Ayah \(viewModel.displayedAyah)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
 
                     Spacer(minLength: 8)
 
                     Text("Page \(viewModel.pageNumber)")
                         .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("\(viewModel.selectedSurahInfo.arabicName) · \(viewModel.selectedSurahInfo.englishName)")
-                        .font(.callout.weight(.medium))
-                        .lineLimit(1)
-
-                    Text("Ayah \(viewModel.displayedAyah)")
-                        .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -140,9 +134,9 @@ private struct SessionSummarySection: View {
 
 struct VoiceActivityIndicatorMetrics {
     static let circleCount = 4
-    static let circleSize: CGFloat = 58
-    static let circleSpacing: CGFloat = 16
-    static let frameHeight: CGFloat = 86
+    static let circleSize: CGFloat = 42
+    static let circleSpacing: CGFloat = 12
+    static let frameHeight: CGFloat = 64
     static let activeScale: CGFloat = 1.06
     static let stepIntervalNanoseconds: UInt64 = 320_000_000
 
@@ -169,7 +163,7 @@ private struct VoiceActivityIndicator: View {
                         height: VoiceActivityIndicatorMetrics.circleSize
                     )
                     .scaleEffect(isActive && index == highlightedIndex ? VoiceActivityIndicatorMetrics.activeScale : 1.0)
-                    .animation(.easeInOut(duration: 0.22), value: highlightedIndex)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: highlightedIndex)
             }
         }
         .frame(maxWidth: .infinity)
@@ -195,31 +189,6 @@ private struct VoiceActivityIndicator: View {
         }
 
         return Color(red: 0.77, green: 0.86, blue: 0.89)
-    }
-}
-
-private struct RecitationStatusPill: View {
-    var text: String
-    var visualState: RecitationVisualState
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(visualState.tint)
-                .frame(width: 7, height: 7)
-
-            Text(text)
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 5)
-        .background(visualState.tint.opacity(0.10), in: Capsule())
-        .overlay {
-            Capsule()
-                .stroke(visualState.tint.opacity(0.16), lineWidth: 0.5)
-        }
-        .accessibilityLabel("Status: \(text)")
     }
 }
 

@@ -6,6 +6,13 @@ final class VoiceActivityIndicatorTests: XCTestCase {
         XCTAssertEqual(VoiceActivityIndicatorMetrics.circleCount, 4)
     }
 
+    func testIndicatorFitsMinimumSidebarContentWidth() {
+        let width = Double(VoiceActivityIndicatorMetrics.circleCount) * Double(VoiceActivityIndicatorMetrics.circleSize)
+            + Double(VoiceActivityIndicatorMetrics.circleCount - 1) * Double(VoiceActivityIndicatorMetrics.circleSpacing)
+
+        XCTAssertLessThanOrEqual(width, 208)
+    }
+
     func testHighlightCycleWrapsAfterLastCircle() {
         XCTAssertEqual(VoiceActivityIndicatorMetrics.nextIndex(after: 0), 1)
         XCTAssertEqual(VoiceActivityIndicatorMetrics.nextIndex(after: 1), 2)

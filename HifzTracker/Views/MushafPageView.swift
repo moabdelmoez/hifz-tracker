@@ -101,6 +101,8 @@ private struct MushafPageNavigationButton: View {
 }
 
 private struct MushafContentView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var page: MushafPage?
     var pageNumber: Int
     var selectedSurah: Int
@@ -138,11 +140,13 @@ private struct MushafContentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .animation(.easeInOut(duration: 0.18), value: pageNumber)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: pageNumber)
     }
 }
 
 private struct MushafPageStage: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var page: MushafPage
     var pageNumber: Int
     var selectedSurah: Int
@@ -197,8 +201,12 @@ private struct MushafPageStage: View {
         guard focusCanonicalY != nil else { return }
 
         DispatchQueue.main.async {
-            withAnimation(.easeInOut(duration: 0.16)) {
+            if reduceMotion {
                 scrollProxy.scrollTo(MushafFocusMarker.selectedAyah, anchor: .center)
+            } else {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    scrollProxy.scrollTo(MushafFocusMarker.selectedAyah, anchor: .center)
+                }
             }
         }
     }
@@ -226,6 +234,10 @@ private struct MushafPageCanvasStack: View {
             )
                 .frame(width: pageSize.width, height: pageSize.height)
                 .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .strokeBorder(Color.black.opacity(0.10), lineWidth: 0.5)
+                }
                 .shadow(color: Color.black.opacity(0.10), radius: 14, y: 4)
 
             MushafPageNumberFooter(pageNumber: page.pageNumber, pageSize: pageSize)

@@ -17,7 +17,6 @@ struct RecitationRootView: View {
             .navigationSplitViewColumnWidth(min: 240, ideal: 288, max: 340)
         } detail: {
             MushafPageView(viewModel: viewModel)
-                .navigationTitle("Hifz Tracker")
                 .toolbar {
                     ToolbarItem(placement: .navigation) {
                         Button {
