@@ -5,6 +5,7 @@ struct LiveASRLocatorOutcomeProbe {
         case notRecording = "not_recording"
         case emptyTranscript = "empty_transcript"
         case referenceUnavailable = "reference_unavailable"
+        case invalidWordTiming = "invalid_word_timing"
     }
 
     struct Metrics: Equatable {
@@ -42,7 +43,7 @@ struct LiveASRLocatorOutcomeProbe {
                 completedAyah: location.completedThrough.ayah,
                 completedWord: location.completedThrough.wordIndex
             )
-        case .emptyReference, .noMatch:
+        case .emptyReference, .noMatch, .freshEvidenceRequired:
             return metrics(
                 windowID: windowID,
                 reason: outcome.reason,

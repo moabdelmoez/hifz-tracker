@@ -104,10 +104,15 @@ final class LocalAudioAuditTests: XCTestCase {
                         frameCount: features.frameCount
                     )
                 }
-                let ((tokenIDs, transcript), decodeMS) = try timed {
+                let ((tokenIDs, transcript, timedWords), decodeMS) = try timed {
                     let tokenIDsByFrame = logProbabilities.argmaxTokenIDs()
-                    let tokenIDs = decoder.decode(tokenIDsByFrame: tokenIDsByFrame)
-                    return (tokenIDs, try tokenizer.decode(tokenIDs: tokenIDs))
+                    let decodedTokens = decoder.decodeTimed(tokenIDsByFrame: tokenIDsByFrame)
+                    let tokenIDs = decodedTokens.map(\.tokenID)
+                    return (
+                        tokenIDs,
+                        try tokenizer.decode(tokenIDs: tokenIDs),
+                        try tokenizer.decodeTimedWords(tokens: decodedTokens)
+                    )
                 }
 
                 let recognizedWords = QuranTextNormalizer
@@ -122,7 +127,16 @@ final class LocalAudioAuditTests: XCTestCase {
                     firstTranscriptLatencyMS = eventLatencyMS
                 }
 
-                let outcome = locator.locateWithOutcome(index: referenceIndex, recognizedWords: recognizedWords)
+                let transcriptResult = QuranSTTTranscript(
+                    text: transcript,
+                    tokenIDs: tokenIDs,
+                    timedWords: timedWords,
+                    logProbabilities: logProbabilities
+                )
+                let evidence = (try? transcriptResult.wordEvidence(
+                    in: auditWindow.startSample..<auditWindow.endSample
+                )) ?? []
+                let outcome = locator.locateWithOutcome(index: referenceIndex, evidence: evidence)
                 let location = outcome.location
                 if let location {
                     if firstAuthoritativeHighlightLatencyMS == nil {
@@ -481,11 +495,11 @@ private func makeLiveAuditWindows(
 
     while chunkStart < samples.count {
         let chunkEnd = min(samples.count, chunkStart + chunkSampleCount)
-        if let emittedSamples = sampleWindow.append(Array(samples[chunkStart..<chunkEnd])) {
+        if let emittedWindow = sampleWindow.append(Array(samples[chunkStart..<chunkEnd])) {
             windows.append(RollingAuditWindow(
                 index: windows.count,
-                startSample: chunkEnd - emittedSamples.count,
-                endSample: chunkEnd,
+                startSample: emittedWindow.sampleRange.lowerBound,
+                endSample: emittedWindow.sampleRange.upperBound,
                 sampleRate: sampleRate
             ))
         }

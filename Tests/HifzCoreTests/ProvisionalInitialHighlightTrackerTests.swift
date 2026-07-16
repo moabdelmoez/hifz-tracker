@@ -45,14 +45,14 @@ final class ProvisionalInitialHighlightTrackerTests: XCTestCase {
         }
         XCTAssertEqual(firstCount, 1)
 
-        let changed = tracker.evaluate(index: index, recognizedWords: ["الليل", "الا"])
+        let changed = tracker.evaluate(index: index, recognizedWords: ["ايها", "المزمل"])
         XCTAssertEqual(changed, .cleared)
 
-        let confirmed = tracker.evaluate(index: index, recognizedWords: ["الليل", "الا"])
+        let confirmed = tracker.evaluate(index: index, recognizedWords: ["ايها", "المزمل"])
         guard case .confirmed(let changedLocation, let changedCount) = confirmed else {
             return XCTFail("Expected changed candidate to confirm after restart, got \(confirmed)")
         }
-        XCTAssertEqual(changedLocation.completedThrough.location, "73:2:3")
+        XCTAssertEqual(changedLocation.completedThrough.location, "73:1:3")
         XCTAssertEqual(changedLocation.matchedWordCount, 2)
         XCTAssertEqual(changedCount, 2)
     }

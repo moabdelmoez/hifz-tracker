@@ -1,30 +1,32 @@
+import HifzCore
+
 struct LiveASRRequestScheduler {
     private var hasActiveRequest = false
-    private var pendingSamples: [Float]?
+    private var pendingWindow: LiveASRAudioWindow?
 
-    mutating func submit(_ samples: [Float]) -> [Float]? {
+    mutating func submit(_ window: LiveASRAudioWindow) -> LiveASRAudioWindow? {
         guard !hasActiveRequest else {
-            pendingSamples = samples
+            pendingWindow = window
             return nil
         }
 
         hasActiveRequest = true
-        return samples
+        return window
     }
 
-    mutating func completeActiveRequest() -> [Float]? {
-        guard let pendingSamples else {
+    mutating func completeActiveRequest() -> LiveASRAudioWindow? {
+        guard let pendingWindow else {
             hasActiveRequest = false
             return nil
         }
 
-        self.pendingSamples = nil
+        self.pendingWindow = nil
         hasActiveRequest = true
-        return pendingSamples
+        return pendingWindow
     }
 
     mutating func reset() {
         hasActiveRequest = false
-        pendingSamples = nil
+        pendingWindow = nil
     }
 }

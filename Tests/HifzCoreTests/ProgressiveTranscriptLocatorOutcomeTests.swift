@@ -13,7 +13,7 @@ final class ProgressiveTranscriptLocatorOutcomeTests: XCTestCase {
             (2, ["هو", "الله", "الذي"])
         ])
 
-        let outcome = locator.locateWithOutcome(expected: expected, recognizedWords: ["هو", "الله"])
+        let outcome = locator.locateWithOutcome(expected: expected, recognizedWords: ["سبح", "لله"])
 
         XCTAssertEqual(outcome, .initialMatchTooShort(matchedWordCount: 2, requiredWordCount: 4))
     }

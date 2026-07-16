@@ -2,54 +2,57 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-16 14:44 EEST
+**Last Updated:** 2026-07-16 21:34 EEST
 
-**Session ID:** all-windows-interface-polish-2026-07-16
+**Session ID:** strict-fresh-ayah-order-2026-07-16
 
-**Completed Feature:** `all-windows-interface-polish-001` - Native polish across Recitation, Dashboard, and Settings.
+**Completed Feature:** `strict-fresh-ayah-order-001` - Strict fresh evidence at every ayah boundary.
 
 ## Status
 
 ### What's Done
 
-- [x] Confirmed repo root at `/Users/mostafa/Downloads/Coding_Projects/hifz-tracker`.
-- [x] Preserved the pre-existing harness changes and untracked `.claude/` directory.
-- [x] Baseline `swift test` passed 131 tests with 1 expected skip; baseline `swift build` passed.
-- [x] Registered one active feature before source edits.
-- [x] Removed duplicate recitation title/status chrome and consolidated Session metadata.
-- [x] Reduced the voice indicator from 280 to 204 points so it fits the minimum sidebar width.
-- [x] Added tabular ayah digits and Reduce Motion handling for voice, page, and focus transitions.
-- [x] Added a neutral inset Mushaf page outline, native Dashboard empty state, and consistent grouped Settings forms.
-- [x] Passed focused, full-suite, build, and staged app launch verification.
+- [x] Confirmed repo root and preserved the untracked `.claude/` directory.
+- [x] Reviewed the live Surah 72 locator session and reproduced the unfinished-ayah jump in a deterministic core replay.
+- [x] Confirmed the normal contiguous matcher and current-or-successor search boundary are the cause; gap recovery and UI mapping are not.
+- [x] Baseline `swift test` passed 132 tests with 1 expected skip; baseline `swift build` passed.
+- [x] Registered the active feature before source edits.
+- [x] Restricted initial/provisional matching to the selected start ayah and every later update to one ayah.
+- [x] Preserved CTC frame ranges through SentencePiece word decoding and mapped them to absolute rolling-window sample ranges.
+- [x] Required next-ayah evidence to start after the accepted final word while retaining same-window post-boundary words for later updates.
+- [x] Added privacy-safe `fresh_evidence_required` and `invalid_word_timing` diagnostics; invalid timing holds progress without an error UI.
+- [x] Updated the local-audio audit to exercise the production timed-evidence path.
+- [x] Passed focused tests, opt-in local-audio/model replay, full tests, and build verification.
 
 ### What's Blocked
 
-- No implementation or automated verification blocker.
-- Automated visual capture is unavailable in this macOS session: `screencapture` returned `could not create image from rect` for the app-only region.
-- Manual light/dark and Reduce Motion review is the remaining optional visual check.
+- No current blocker.
 
 ## Files Modified This Session
 
-- `HifzTracker/Views/RecitationRootView.swift` - Removed duplicate navigation title.
-- `HifzTracker/Views/RecitationSidebarView.swift` - Consolidated metadata, removed duplicate status, fitted the indicator, and honored Reduce Motion.
-- `HifzTracker/Views/MushafPageView.swift` - Honored Reduce Motion and added the page outline.
-- `HifzTracker/Views/DashboardWindowView.swift` - Added the empty state.
-- `HifzTracker/Views/SettingsView.swift` - Standardized grouped forms.
-- `Tests/HifzTrackerTests/VoiceActivityIndicatorTests.swift` - Added the minimum-width regression check.
-- `feature_list.json`, `progress.md`, and `session-handoff.md` - Recorded scope and evidence.
+- `Sources/HifzCore/TranscriptPositionLocator.swift` - Enforced one-ayah search and fresh sample-boundary evidence.
+- `Sources/HifzCore/RecitationCore.swift`, `QuranSTTTokenizer.swift`, `QuranSTTTranscriber.swift` - Preserved CTC token/word timing and validated absolute word evidence.
+- `Sources/HifzCore/LiveASRSampleWindow.swift` - Added absolute sample ranges to emitted rolling windows.
+- `HifzTracker/Services/LiveASRRequestScheduler.swift`, `RecitationViewModel.swift`, `LiveASRLocatorOutcomeProbe.swift` - Carried timing through live inference and logged fail-closed outcomes.
+- Locator, transcriber, sample-window, scheduler, view-model, audit, and outcome tests - Added strict-order, stale-overlap, timing, and integration regressions.
+- `feature_list.json`, `progress.md`, `session-handoff.md` - Recorded scope, implementation, and evidence.
 
 ## Evidence
 
-- [x] Red check: voice indicator width was 280 points, exceeding the 208-point minimum content width.
-- [x] `swift test --filter VoiceActivityIndicatorTests`: 4 passed.
-- [x] `swift test --filter MushafPageCanvasViewTests`: 5 passed.
-- [x] `swift test --filter DashboardProgressResetTests`: 1 passed.
-- [x] Final `swift test`: 132 tests, 1 expected opt-in skip, 0 failures in 45.052 s.
-- [x] Final `swift build`: passed.
-- [x] `./script/build_and_run.sh --verify`: rebuilt, staged, ad-hoc signed, launched, and confirmed the app process.
-- [x] `jq empty feature_list.json`, scoped symbol sweeps, and `git diff --check`: passed.
-- [x] Release checks skipped: no release-sensitive inputs changed.
+- [x] Live logs: `72:4:6 -> 72:5:9`, `72:5:9 -> 72:6:2`, and `72:6:2 -> 72:7:6` crossed unfinished ayah boundaries.
+- [x] Deterministic replay: `FAIL premature ayah advance: first=72:1:5 second=72:2:4`.
+- [x] Cause probe: wide search returned `72:2:4`; current-ayah-only search returned `nil`.
+- [x] Baseline full tests and build passed.
+- [x] Regression: unfinished `72:1:5` no longer advances into the repeated phrase at `72:2:4`.
+- [x] Timed locator regressions prove stale pre-boundary words are rejected and same-window post-boundary words are reusable on the next update.
+- [x] CTC/tokenizer/model fixture tests prove token frames become validated absolute word sample ranges.
+- [x] Focused locator/provisional suites passed 30 tests; focused ASR/view-model suites passed.
+- [x] Opt-in `LocalAudioAuditTests/testLocalAudioASRAudit` passed in 32.703 s using local WAV/model fixtures.
+- [x] Final `swift test` passed 140 tests with 1 expected opt-in skip and 0 failures in 45.244 s.
+- [x] Final `swift build` passed.
+- [x] No audio or transcript persistence was introduced; runtime remains offline.
+- [x] Release checks skipped because no release assets, signing, packaging, dependencies, or distribution inputs changed.
 
 ## Next Step
 
-Optionally review the staged app in light/dark appearances and with Reduce Motion enabled; no implementation work remains.
+No implementation work remains. A manual live Surah 72 recitation is optional confirmation of microphone-session behavior.

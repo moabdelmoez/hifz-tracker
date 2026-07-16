@@ -64,6 +64,13 @@ final class LiveASRLocatorOutcomeProbeTests: XCTestCase {
                 matchedWordCount: 8,
                 completedOffset: 48,
                 acceptedOffset: 31
+            )),
+            (6, 4, 8, .freshEvidenceRequired, .init(
+                windowID: 6,
+                reason: "fresh_evidence_required",
+                recognizedWordCount: 4,
+                expectedReferenceCount: 120,
+                completedWordCountBefore: 8
             ))
         ]
 
@@ -96,5 +103,13 @@ final class LiveASRLocatorOutcomeProbeTests: XCTestCase {
             expectedReferenceCount: 0,
             completedWordCountBefore: 0
         ))
+
+        XCTAssertEqual(probe.metrics(
+            windowID: 2,
+            recognizedWordCount: 4,
+            expectedReferenceCount: 0,
+            completedWordCountBefore: 0,
+            failureReason: .invalidWordTiming
+        ).reason, "invalid_word_timing")
     }
 }

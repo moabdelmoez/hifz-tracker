@@ -61,6 +61,44 @@ public struct QuranSTTTokenizer: Sendable {
 
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    public func decodeTimedWords(tokens: [CTCDecodedToken]) throws -> [QuranSTTTimedWord] {
+        var words: [QuranSTTTimedWord] = []
+        var text = ""
+        var lowerBound: Int?
+        var upperBound: Int?
+
+        func appendCurrentWord() {
+            guard !text.isEmpty, let lowerBound, let upperBound else { return }
+            words.append(QuranSTTTimedWord(
+                text: text,
+                timeStepRange: lowerBound..<upperBound
+            ))
+        }
+
+        for decodedToken in tokens {
+            guard let token = tokensByID[decodedToken.tokenID] else {
+                throw QuranSTTTokenizerError.unknownTokenID(decodedToken.tokenID)
+            }
+            guard token != "<blk>" else { continue }
+
+            if token.hasPrefix("▁"), !text.isEmpty {
+                appendCurrentWord()
+                text = ""
+                lowerBound = nil
+                upperBound = nil
+            }
+
+            if lowerBound == nil {
+                lowerBound = decodedToken.timeStepRange.lowerBound
+            }
+            upperBound = decodedToken.timeStepRange.upperBound
+            text += token.replacingOccurrences(of: "▁", with: "")
+        }
+
+        appendCurrentWord()
+        return words
+    }
 }
 
 public enum QuranSTTTokenizerError: Error, Equatable {

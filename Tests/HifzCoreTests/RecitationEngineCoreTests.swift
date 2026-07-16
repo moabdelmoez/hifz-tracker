@@ -10,6 +10,19 @@ final class RecitationEngineCoreTests: XCTestCase {
         XCTAssertEqual(decoded, [4, 5, 5, 6])
     }
 
+    func testGreedyCtcDecodePreservesFrameRanges() {
+        let decoder = CTCGreedyDecoder(blankID: 0)
+
+        let decoded = decoder.decodeTimed(tokenIDsByFrame: [0, 4, 4, 0, 5, 0, 5, 6, 6, 0])
+
+        XCTAssertEqual(decoded, [
+            CTCDecodedToken(tokenID: 4, timeStepRange: 1..<3),
+            CTCDecodedToken(tokenID: 5, timeStepRange: 4..<5),
+            CTCDecodedToken(tokenID: 5, timeStepRange: 6..<7),
+            CTCDecodedToken(tokenID: 6, timeStepRange: 7..<9)
+        ])
+    }
+
     func testCorrectionGateRequiresTwoStableStrongMismatches() {
         var gate = CorrectionGate(requiredStableChunks: 2)
         let mismatch = AlignmentMismatch(expectedWordIndex: 3, expectedWord: "الرحمن", recognizedWord: "العالمين")

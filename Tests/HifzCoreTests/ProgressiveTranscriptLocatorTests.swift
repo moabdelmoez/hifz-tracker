@@ -117,7 +117,7 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         XCTAssertEqual(ayahThree.completedThrough.location, "110:3:7")
     }
 
-    func testInitialLockAdvancesThroughSurahNasrOneAyahPerCall() throws {
+    func testInitialLockDoesNotSkipSelectedStartAyah() {
         var locator = ProgressiveTranscriptLocator(
             minimumInitialMatchLength: 4,
             lookBehindWordCount: 4,
@@ -130,14 +130,14 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         ], surah: 110)
 
         let trailingTranscript = ["يدخلون", "في", "دين", "الله", "افواجا", "فسبح", "بحمد", "ربك", "واستغفره", "انه", "كان", "توابا"]
-        let ayahTwo = try XCTUnwrap(locator.locate(
+        let ayahTwo = locator.locate(
             expected: expected,
             recognizedWords: trailingTranscript
-        ))
-        let ayahThree = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: trailingTranscript))
+        )
+        let ayahThree = locator.locate(expected: expected, recognizedWords: trailingTranscript)
 
-        XCTAssertEqual(ayahTwo.completedThrough.location, "110:2:7")
-        XCTAssertEqual(ayahThree.completedThrough.location, "110:3:7")
+        XCTAssertNil(ayahTwo)
+        XCTAssertNil(ayahThree)
     }
 
     func testSequentialProgressionCrossesSurahBoundaryOneAyahPerCall() throws {
@@ -150,9 +150,11 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         let transcript = expected.map(\.text)
         var locator = ProgressiveTranscriptLocator()
 
+        let selectedSurah = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: transcript))
         let nextSurah = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: transcript))
         let secondAyah = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: transcript))
 
+        XCTAssertEqual(selectedSurah.completedThrough.location, "100:11:4")
         XCTAssertEqual(nextSurah.completedThrough.location, "101:1:4")
         XCTAssertEqual(secondAyah.completedThrough.location, "101:2:4")
     }
@@ -171,7 +173,11 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
 
         _ = try XCTUnwrap(locator.locate(
             expected: expected,
-            recognizedWords: ["كلا", "ان", "الانسان", "ليطغى", "ان", "راه", "استغنى", "ان", "الى"]
+            recognizedWords: ["كلا", "ان", "الانسان", "ليطغى"]
+        ))
+        _ = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["ان", "راه", "استغنى"]
         ))
         let recognizedWords = ["ان", "الى", "ربه", "الرجعى"]
         let prefix = try XCTUnwrap(locator.locate(
@@ -198,7 +204,11 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
 
         _ = try XCTUnwrap(locator.locate(
             expected: expected,
-            recognizedWords: ["كلا", "ان", "الانسان", "ليطغى", "ان", "راه", "استغنى", "ان", "الى"]
+            recognizedWords: ["كلا", "ان", "الانسان", "ليطغى"]
+        ))
+        _ = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["ان", "راه", "استغنى"]
         ))
         let location = locator.locate(
             expected: expected,
@@ -208,7 +218,7 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         XCTAssertNil(location)
     }
 
-    func testAcceptsNearbyCompleteShortAyahBeforeInitialLock() throws {
+    func testRejectsNearbyCompleteShortAyahBeforeInitialLock() {
         var locator = ProgressiveTranscriptLocator(
             minimumInitialMatchLength: 4,
             lookBehindWordCount: 4,
@@ -220,12 +230,12 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
             (3, ["عاملة", "ناصبة"])
         ], surah: 88)
 
-        let location = try XCTUnwrap(locator.locate(
+        let location = locator.locate(
             expected: expected,
             recognizedWords: ["وجوه", "يومئذ", "خاشعة"]
-        ))
+        )
 
-        XCTAssertEqual(location.completedThrough.location, "88:2:3")
+        XCTAssertNil(location)
     }
 
     func testAcceptsUniqueThreeWordInitialMatchNearStart() throws {
@@ -333,6 +343,85 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         XCTAssertNil(locator.locate(expected: expected, recognizedWords: ayahThreeTranscript))
     }
 
+    func testDoesNotEnterNextAyahBeforeCurrentFinalWord() throws {
+        let expected = references([
+            (1, ["start", "same1", "same2", "same3", "same4", "unfinished"]),
+            (2, ["same1", "same2", "same3", "same4"])
+        ], surah: 72)
+        var locator = ProgressiveTranscriptLocator()
+
+        let current = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["start", "same1", "same2", "same3", "same4"]
+        ))
+        let prematureNextAyah = locator.locate(
+            expected: expected,
+            recognizedWords: ["same1", "same2", "same3", "same4"]
+        )
+
+        XCTAssertEqual(current.completedThrough.location, "72:1:5")
+        XCTAssertNil(prematureNextAyah)
+    }
+
+    func testTimedEvidenceUsesOnlyWordsAfterCompletedAyahBoundary() throws {
+        let expected = references([
+            (1, ["start", "same1", "same2", "same3", "same4", "final"]),
+            (2, ["same1", "same2", "same3", "same4"])
+        ], surah: 72)
+        var locator = ProgressiveTranscriptLocator()
+        let firstWindow = [
+            TranscriptWordEvidence(text: "start", sampleRange: 0..<10),
+            TranscriptWordEvidence(text: "same1", sampleRange: 10..<20),
+            TranscriptWordEvidence(text: "same2", sampleRange: 20..<30),
+            TranscriptWordEvidence(text: "same3", sampleRange: 30..<40),
+            TranscriptWordEvidence(text: "same4", sampleRange: 40..<50),
+            TranscriptWordEvidence(text: "final", sampleRange: 50..<60),
+            TranscriptWordEvidence(text: "same1", sampleRange: 60..<70),
+            TranscriptWordEvidence(text: "same2", sampleRange: 70..<80),
+            TranscriptWordEvidence(text: "same3", sampleRange: 80..<90),
+            TranscriptWordEvidence(text: "same4", sampleRange: 90..<100)
+        ]
+
+        let completedFirstAyah = try XCTUnwrap(locator.locate(expected: expected, evidence: firstWindow))
+        let completedSecondAyah = try XCTUnwrap(locator.locate(expected: expected, evidence: firstWindow))
+
+        XCTAssertEqual(completedFirstAyah.completedThrough.location, "72:1:6")
+        XCTAssertEqual(completedSecondAyah.completedThrough.location, "72:2:4")
+    }
+
+    func testTimedEvidenceRejectsStaleOverlapUntilNextAyahIsRecitedAgain() throws {
+        let expected = references([
+            (1, ["start", "same1", "same2", "same3", "same4", "final"]),
+            (2, ["same1", "same2", "same3", "same4"])
+        ], surah: 72)
+        var locator = ProgressiveTranscriptLocator()
+
+        _ = try XCTUnwrap(locator.locate(expected: expected, evidence: [
+            TranscriptWordEvidence(text: "start", sampleRange: 0..<10),
+            TranscriptWordEvidence(text: "same1", sampleRange: 10..<20),
+            TranscriptWordEvidence(text: "same2", sampleRange: 20..<30),
+            TranscriptWordEvidence(text: "same3", sampleRange: 30..<40),
+            TranscriptWordEvidence(text: "same4", sampleRange: 40..<50),
+            TranscriptWordEvidence(text: "final", sampleRange: 100..<110)
+        ]))
+
+        let stale = locator.locateWithOutcome(expected: expected, evidence: [
+            TranscriptWordEvidence(text: "same1", sampleRange: 10..<20),
+            TranscriptWordEvidence(text: "same2", sampleRange: 20..<30),
+            TranscriptWordEvidence(text: "same3", sampleRange: 30..<40),
+            TranscriptWordEvidence(text: "same4", sampleRange: 40..<50)
+        ])
+        let fresh = try XCTUnwrap(locator.locate(expected: expected, evidence: [
+            TranscriptWordEvidence(text: "same1", sampleRange: 110..<120),
+            TranscriptWordEvidence(text: "same2", sampleRange: 120..<130),
+            TranscriptWordEvidence(text: "same3", sampleRange: 130..<140),
+            TranscriptWordEvidence(text: "same4", sampleRange: 140..<150)
+        ]))
+
+        XCTAssertEqual(stale, .freshEvidenceRequired)
+        XCTAssertEqual(fresh.completedThrough.location, "72:2:4")
+    }
+
     func testContinuesProgressWithinLockedNeighborhood() throws {
         var locator = ProgressiveTranscriptLocator(
             minimumInitialMatchLength: 4,
@@ -345,8 +434,13 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         ])
 
         _ = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: ["سبح", "لله", "ما", "في"]))
+        let completedCurrentAyah = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["السماوات", "وما", "في", "الارض"]
+        ))
         let nextLocation = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: ["هو", "الذي", "اخرج", "الذين"]))
 
+        XCTAssertEqual(completedCurrentAyah.completedThrough.location, "59:1:8")
         XCTAssertEqual(nextLocation.completedThrough.location, "59:2:4")
     }
 
@@ -405,8 +499,8 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         }
 
         let firstLocation = try XCTUnwrap(locator.locate(index: index, recognizedWords: firstChunk))
-        XCTAssertEqual(firstLocation.completedThrough.location, "2:2:6")
-        XCTAssertEqual(firstLocation.matchedWordCount, 16)
+        XCTAssertEqual(firstLocation.completedThrough.location, "2:1:10")
+        XCTAssertEqual(firstLocation.matchedWordCount, 10)
 
         let startedAt = ContinuousClock.now
         for chunk in liveChunks {

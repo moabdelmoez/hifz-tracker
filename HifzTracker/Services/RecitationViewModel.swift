@@ -247,35 +247,38 @@ final class RecitationViewModel {
            let metrics = liveASRTimingProbe.voiceOnset(atNanoseconds: nowNanoseconds()) {
             logLiveASREvent("voice_onset", metrics: metrics)
         }
-        guard let windowSamples = liveSampleWindow.append(samples) else { return }
-        submitLiveASRWindow(windowSamples, service: service)
+        guard let window = liveSampleWindow.append(samples) else { return }
+        submitLiveASRWindow(window, service: service)
     }
 
-    private func submitLiveASRWindow(_ samples: [Float], service: LiveQuranTranscriptionService) {
-        guard let requestSamples = liveASRRequestScheduler.submit(samples) else {
+    private func submitLiveASRWindow(_ window: LiveASRAudioWindow, service: LiveQuranTranscriptionService) {
+        guard let requestWindow = liveASRRequestScheduler.submit(window) else {
             let metrics = liveASRTimingProbe.pendingWindow(
                 .stored,
-                sampleCount: samples.count,
+                sampleCount: window.samples.count,
                 sampleRate: liveSampleWindow.sampleRate,
                 atNanoseconds: nowNanoseconds()
             )
             logLiveASRPendingWindow(metrics)
             return
         }
-        startLiveASRTranscription(samples: requestSamples, service: service)
+        startLiveASRTranscription(window: requestWindow, service: service)
     }
 
-    private func startLiveASRTranscription(samples: [Float], service: LiveQuranTranscriptionService) {
+    private func startLiveASRTranscription(
+        window: LiveASRAudioWindow,
+        service: LiveQuranTranscriptionService
+    ) {
         let timingToken = liveASRTimingProbe.transcriptionStarted(
-            sampleCount: samples.count,
+            sampleCount: window.samples.count,
             sampleRate: liveSampleWindow.sampleRate,
             atNanoseconds: nowNanoseconds()
         )
         logLiveASRTranscriptionStarted(timingToken)
 
-        transcriptionTask = Task { [weak self, service, samples, timingToken] in
+        transcriptionTask = Task { [weak self, service, window, timingToken] in
             do {
-                let transcript = try await service.transcribe(samples: samples)
+                let transcript = try await service.transcribe(samples: window.samples)
                 guard let self else { return }
                 let metrics = self.liveASRTimingProbe.transcriptionFinished(
                     timingToken,
@@ -284,7 +287,8 @@ final class RecitationViewModel {
                 self.logLiveASRTranscriptionFinished(metrics)
                 let didApplyHighlight = self.applyASRTranscript(
                     transcript,
-                    windowID: timingToken.windowID
+                    windowID: timingToken.windowID,
+                    sampleRange: window.sampleRange
                 )
                 if didApplyHighlight {
                     self.logLiveASRHighlightApplied(windowID: timingToken.windowID)
@@ -304,15 +308,15 @@ final class RecitationViewModel {
             liveASRRequestScheduler.reset()
             return
         }
-        guard let pendingSamples = liveASRRequestScheduler.completeActiveRequest() else { return }
+        guard let pendingWindow = liveASRRequestScheduler.completeActiveRequest() else { return }
         let metrics = liveASRTimingProbe.pendingWindow(
             .handoffStarted,
-            sampleCount: pendingSamples.count,
+            sampleCount: pendingWindow.samples.count,
             sampleRate: liveSampleWindow.sampleRate,
             atNanoseconds: nowNanoseconds()
         )
         logLiveASRPendingWindow(metrics)
-        startLiveASRTranscription(samples: pendingSamples, service: service)
+        startLiveASRTranscription(window: pendingWindow, service: service)
     }
 
     private func nowNanoseconds() -> UInt64 {
@@ -386,7 +390,11 @@ final class RecitationViewModel {
     }
 
     @discardableResult
-    func applyASRTranscript(_ transcript: QuranSTTTranscript, windowID: Int) -> Bool {
+    func applyASRTranscript(
+        _ transcript: QuranSTTTranscript,
+        windowID: Int,
+        sampleRange: Range<Int>? = nil
+    ) -> Bool {
         let recognizedWords = QuranTextNormalizer
             .asrComparable(transcript.text)
             .split(separator: " ")
@@ -412,6 +420,21 @@ final class RecitationViewModel {
                 expectedReferenceCount: 0,
                 completedWordCountBefore: snapshot.completedWordCount,
                 failureReason: .emptyTranscript
+            )
+            logLiveASRLocatorOutcome(metrics)
+            clearAndResetProvisionalInitialHighlightState()
+            _ = markFindingPlaceIfNeeded()
+            return false
+        }
+
+        guard let sampleRange,
+              let wordEvidence = try? transcript.wordEvidence(in: sampleRange) else {
+            let metrics = liveASRLocatorOutcomeProbe.metrics(
+                windowID: windowID,
+                recognizedWordCount: recognizedWords.count,
+                expectedReferenceCount: 0,
+                completedWordCountBefore: snapshot.completedWordCount,
+                failureReason: .invalidWordTiming
             )
             logLiveASRLocatorOutcome(metrics)
             clearAndResetProvisionalInitialHighlightState()
@@ -447,7 +470,7 @@ final class RecitationViewModel {
             return false
         }
 
-        let outcome = transcriptLocator.locateWithOutcome(index: referenceIndex, recognizedWords: recognizedWords)
+        let outcome = transcriptLocator.locateWithOutcome(index: referenceIndex, evidence: wordEvidence)
         let metrics = liveASRLocatorOutcomeProbe.metrics(
             windowID: windowID,
             recognizedWordCount: recognizedWords.count,

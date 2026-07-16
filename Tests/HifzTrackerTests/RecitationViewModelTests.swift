@@ -97,8 +97,16 @@ final class RecitationViewModelTests: XCTestCase {
         viewModel.hideRecitationText = true
         viewModel.isRecording = true
 
-        XCTAssertTrue(viewModel.applyASRTranscript(Self.transcript("hundred final one two"), windowID: 1))
-        XCTAssertTrue(viewModel.applyASRTranscript(Self.transcript("next surah one two"), windowID: 2))
+        XCTAssertTrue(viewModel.applyASRTranscript(
+            Self.transcript("hundred final one two"),
+            windowID: 1,
+            sampleRange: 0..<400
+        ))
+        XCTAssertTrue(viewModel.applyASRTranscript(
+            Self.transcript("next surah one two"),
+            windowID: 2,
+            sampleRange: 400..<800
+        ))
 
         XCTAssertTrue(viewModel.isMushafTextVisible(for: repository.word(surah: 101, ayah: 1, wordIndex: 1)))
         XCTAssertTrue(viewModel.isMushafTextVisible(for: repository.word(surah: 101, ayah: 1, wordIndex: 4)))
@@ -351,10 +359,18 @@ final class RecitationViewModelTests: XCTestCase {
         viewModel.startAyah = 11
         viewModel.isRecording = true
 
-        XCTAssertTrue(viewModel.applyASRTranscript(Self.transcript("hundred final one two"), windowID: 1))
+        XCTAssertTrue(viewModel.applyASRTranscript(
+            Self.transcript("hundred final one two"),
+            windowID: 1,
+            sampleRange: 0..<400
+        ))
         XCTAssertEqual(viewModel.snapshot.currentAyah, 11)
 
-        XCTAssertTrue(viewModel.applyASRTranscript(Self.transcript("next surah one two"), windowID: 2))
+        XCTAssertTrue(viewModel.applyASRTranscript(
+            Self.transcript("next surah one two"),
+            windowID: 2,
+            sampleRange: 400..<800
+        ))
 
         XCTAssertEqual(viewModel.snapshot.currentAyah, 1)
         XCTAssertEqual(viewModel.snapshot.completedWordCount, 4)
@@ -374,8 +390,16 @@ final class RecitationViewModelTests: XCTestCase {
         viewModel.isRecording = true
         viewModel.sessionStartedAt = Date(timeIntervalSince1970: 1_700_000_000)
 
-        XCTAssertTrue(viewModel.applyASRTranscript(Self.transcript("hundred final one two"), windowID: 1))
-        XCTAssertTrue(viewModel.applyASRTranscript(Self.transcript("next surah one two"), windowID: 2))
+        XCTAssertTrue(viewModel.applyASRTranscript(
+            Self.transcript("hundred final one two"),
+            windowID: 1,
+            sampleRange: 0..<400
+        ))
+        XCTAssertTrue(viewModel.applyASRTranscript(
+            Self.transcript("next surah one two"),
+            windowID: 2,
+            sampleRange: 400..<800
+        ))
 
         let record = viewModel.makeSessionRecord()
 
@@ -383,6 +407,26 @@ final class RecitationViewModelTests: XCTestCase {
         XCTAssertEqual(record?.lastSurah, 101)
         XCTAssertEqual(record?.lastAyah, 1)
         XCTAssertEqual(record?.lastWord, 4)
+    }
+
+    @MainActor
+    func testLiveASRHoldsProgressWhenWordTimingIsMissing() {
+        let viewModel = RecitationViewModel(repository: InMemoryQuranRepository())
+        viewModel.selectedSurah = 100
+        viewModel.startAyah = 11
+        viewModel.isRecording = true
+        let transcript = QuranSTTTranscript(
+            text: "hundred final one two",
+            tokenIDs: [],
+            logProbabilities: ONNXLogProbabilities(values: [], timeStepCount: 0, vocabularySize: 0)
+        )
+
+        XCTAssertFalse(viewModel.applyASRTranscript(
+            transcript,
+            windowID: 1,
+            sampleRange: 0..<400
+        ))
+        XCTAssertEqual(viewModel.snapshot.completedWordCount, 0)
     }
 
     private static func references() -> [RecitationWordReference] {
@@ -407,10 +451,18 @@ final class RecitationViewModelTests: XCTestCase {
     }
 
     private static func transcript(_ text: String) -> QuranSTTTranscript {
-        QuranSTTTranscript(
+        let words = text.split(separator: " ").map(String.init)
+        return QuranSTTTranscript(
             text: text,
             tokenIDs: [],
-            logProbabilities: ONNXLogProbabilities(values: [], timeStepCount: 0, vocabularySize: 0)
+            timedWords: words.enumerated().map { index, word in
+                QuranSTTTimedWord(text: word, timeStepRange: index..<(index + 1))
+            },
+            logProbabilities: ONNXLogProbabilities(
+                values: [],
+                timeStepCount: words.count,
+                vocabularySize: 0
+            )
         )
     }
 }

@@ -1,5 +1,15 @@
 import Foundation
 
+public struct LiveASRAudioWindow: Equatable, Sendable {
+    public var samples: [Float]
+    public var sampleRange: Range<Int>
+
+    public init(samples: [Float], sampleRange: Range<Int>) {
+        self.samples = samples
+        self.sampleRange = sampleRange
+    }
+}
+
 public struct LiveASRSampleWindow: Sendable {
     public let sampleRate: Int
     public let minimumSampleCount: Int
@@ -9,6 +19,7 @@ public struct LiveASRSampleWindow: Sendable {
     private var bufferedSamples: [Float]
     private var samplesSinceLastEmission: Int
     private var hasEmitted: Bool
+    private var totalSampleCount: Int
 
     public init(
         sampleRate: Int = 16_000,
@@ -28,17 +39,19 @@ public struct LiveASRSampleWindow: Sendable {
         self.bufferedSamples = []
         self.samplesSinceLastEmission = 0
         self.hasEmitted = false
+        self.totalSampleCount = 0
     }
 
     public var bufferedSampleCount: Int {
         bufferedSamples.count
     }
 
-    public mutating func append(_ samples: [Float]) -> [Float]? {
+    public mutating func append(_ samples: [Float]) -> LiveASRAudioWindow? {
         guard !samples.isEmpty else { return nil }
 
         bufferedSamples.append(contentsOf: samples)
         samplesSinceLastEmission += samples.count
+        totalSampleCount += samples.count
 
         if bufferedSamples.count > maximumSampleCount {
             bufferedSamples.removeFirst(bufferedSamples.count - maximumSampleCount)
@@ -54,12 +67,16 @@ public struct LiveASRSampleWindow: Sendable {
 
         hasEmitted = true
         samplesSinceLastEmission = 0
-        return bufferedSamples
+        return LiveASRAudioWindow(
+            samples: bufferedSamples,
+            sampleRange: (totalSampleCount - bufferedSamples.count)..<totalSampleCount
+        )
     }
 
     public mutating func reset() {
         bufferedSamples.removeAll(keepingCapacity: true)
         samplesSinceLastEmission = 0
         hasEmitted = false
+        totalSampleCount = 0
     }
 }

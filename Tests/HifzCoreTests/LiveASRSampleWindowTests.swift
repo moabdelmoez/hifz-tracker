@@ -8,12 +8,14 @@ final class LiveASRSampleWindowTests: XCTestCase {
         XCTAssertNil(window.append(Array(repeating: Float(0.1), count: 8_000)))
 
         let firstEmission = window.append(Array(repeating: Float(0.2), count: 8_000))
-        XCTAssertEqual(firstEmission?.count, 16_000)
+        XCTAssertEqual(firstEmission?.samples.count, 16_000)
+        XCTAssertEqual(firstEmission?.sampleRange, 0..<16_000)
 
         XCTAssertNil(window.append(Array(repeating: Float(0.3), count: 7_999)))
 
         let secondEmission = window.append([0.4])
-        XCTAssertEqual(secondEmission?.count, 24_000)
+        XCTAssertEqual(secondEmission?.samples.count, 24_000)
+        XCTAssertEqual(secondEmission?.sampleRange, 0..<24_000)
     }
 
     func testDefaultCadenceKeepsEightSecondMaximumWindow() {
@@ -23,7 +25,8 @@ final class LiveASRSampleWindowTests: XCTestCase {
         _ = window.append(eightSeconds)
         let emission = window.append(Array(repeating: Float(0.2), count: 16_000))
 
-        XCTAssertEqual(emission?.count, 128_000)
+        XCTAssertEqual(emission?.samples.count, 128_000)
+        XCTAssertEqual(emission?.sampleRange, 16_000..<144_000)
         XCTAssertEqual(window.bufferedSampleCount, 128_000)
     }
 
@@ -38,12 +41,12 @@ final class LiveASRSampleWindowTests: XCTestCase {
         XCTAssertNil(window.append(Array(repeating: Float(0.1), count: 8_000)))
 
         let firstEmission = window.append(Array(repeating: Float(0.2), count: 8_000))
-        XCTAssertEqual(firstEmission?.count, 16_000)
+        XCTAssertEqual(firstEmission?.samples.count, 16_000)
 
         XCTAssertNil(window.append(Array(repeating: Float(0.3), count: 4_000)))
 
         let secondEmission = window.append(Array(repeating: Float(0.4), count: 4_000))
-        XCTAssertEqual(secondEmission?.count, 24_000)
+        XCTAssertEqual(secondEmission?.samples.count, 24_000)
     }
 
     func testTrimsBufferedAudioToMaximumWindow() {
@@ -59,7 +62,8 @@ final class LiveASRSampleWindowTests: XCTestCase {
 
         let emission = window.append([3, 3, 3, 3])
 
-        XCTAssertEqual(emission, [2, 2, 2, 2, 3, 3, 3, 3])
+        XCTAssertEqual(emission?.samples, [2, 2, 2, 2, 3, 3, 3, 3])
+        XCTAssertEqual(emission?.sampleRange, 4..<12)
         XCTAssertEqual(window.bufferedSampleCount, 8)
     }
 
@@ -76,6 +80,8 @@ final class LiveASRSampleWindowTests: XCTestCase {
 
         XCTAssertEqual(window.bufferedSampleCount, 0)
         XCTAssertNil(window.append([2, 2]))
-        XCTAssertEqual(window.append([2, 2]), [2, 2, 2, 2])
+        let emission = window.append([2, 2])
+        XCTAssertEqual(emission?.samples, [2, 2, 2, 2])
+        XCTAssertEqual(emission?.sampleRange, 0..<4)
     }
 }

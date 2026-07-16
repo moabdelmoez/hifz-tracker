@@ -2,39 +2,40 @@
 
 ## Current Objective
 
-- Goal: Apply subtle native polish across Recitation, Dashboard, and Settings.
-- Current status: Complete. `all-windows-interface-polish-001` is marked `done`.
+- Goal: Prevent the live locator from skipping unfinished ayahs or reusing repeated words from overlapping ASR audio as next-ayah evidence.
+- Current status: Complete. `strict-fresh-ayah-order-001` is marked `done`.
 - Branch: `main`.
-- Working tree: scoped SwiftUI, one focused test, and harness updates are uncommitted; pre-existing `.claude/` remains untouched.
+- Working tree: scoped core/live-ASR tests and harness updates are uncommitted; pre-existing `.claude/` remains untouched.
 
 ## Implemented Behavior
 
-- Toolbar is the single live-status surface and no longer duplicates the app title.
-- Session metadata is one compact row with tabular ayah/page numbers; the cardless design is preserved.
-- The four-circle indicator fits the minimum sidebar width and respects Reduce Motion.
-- Page transitions and focused-ayah scrolling respect Reduce Motion; the white Mushaf page has a subtle neutral inset outline.
-- Empty Dashboard uses `ContentUnavailableView`; Settings tabs use consistent grouped forms.
+- Initial and provisional matches stay inside the selected start ayah.
+- Each update searches only the unfinished current ayah, or its immediate successor after the current final word was accepted.
+- The live path carries CTC frame ranges through timed tokenizer words and absolute rolling-window sample ranges.
+- Successor evidence must begin after the accepted final-word sample boundary, so stale repeated phrases cannot be reused.
+- Post-boundary words from the same rolling window remain eligible on a later ASR update.
+- Missing/inconsistent timing holds progress and logs a privacy-safe diagnostic; audio and transcripts are not persisted.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
-| Focused tests | Voice 4, Mushaf canvas 5, Dashboard reset 1; all passed |
-| Full tests | 132 tests, 1 expected opt-in skip, 0 failures |
+| Strict locator/provisional regressions | 30 passed |
+| Timed ASR and view-model regressions | Passed |
+| Local audio/model audit | 1 passed in 32.703 s |
+| Full tests | 140 tests, 1 expected opt-in skip, 0 failures |
 | Build | `swift build` passed |
-| Staged app | `./script/build_and_run.sh --verify` passed |
-| Static checks | Valid feature JSON, clean diff check, duplicate-symbol sweeps passed |
-| Visual capture | Blocked by macOS: `could not create image from rect` |
+| Static checks | Valid feature JSON and clean diff check |
 
 ## Restart Notes
 
 1. `cd /Users/mostafa/Downloads/Coding_Projects/hifz-tracker`
 2. Confirm `git status --short`; preserve `.claude/` and unrelated user changes.
-3. Optionally inspect Recitation, empty Dashboard, and both Settings tabs in light/dark mode and with Reduce Motion enabled.
-4. Rerun `swift test` and `swift build` before any next feature.
+3. Rerun `swift test` and `swift build` before starting another feature.
+4. Optionally perform a live Surah 72 recitation to confirm the microphone-session behavior manually.
 
 ## Risks / Out of Scope
 
-- No automated screenshot evidence is claimed because macOS rejected app-region capture.
-- No release assets, signing, packaging, schema, dependencies, model, persistence, network, or audio behavior changed.
-- `./script/release_checks.sh` was not required for this UI-only pass.
+- Frame timing is inferred from CTC output positions across each rolling window; the local model/audio audit validates the pipeline, but a live microphone confirmation remains optional.
+- No UI, persistence, network, model asset, signing, packaging, or dependency changes were made.
+- Release checks were skipped because distribution-sensitive inputs did not change.

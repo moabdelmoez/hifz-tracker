@@ -1,5 +1,15 @@
 import Foundation
 
+public struct CTCDecodedToken: Equatable, Sendable {
+    public var tokenID: Int
+    public var timeStepRange: Range<Int>
+
+    public init(tokenID: Int, timeStepRange: Range<Int>) {
+        self.tokenID = tokenID
+        self.timeStepRange = timeStepRange
+    }
+}
+
 public struct CTCGreedyDecoder: Sendable {
     public var blankID: Int
 
@@ -8,14 +18,32 @@ public struct CTCGreedyDecoder: Sendable {
     }
 
     public func decode(tokenIDsByFrame: [Int]) -> [Int] {
-        var decoded: [Int] = []
-        var previous = blankID
+        decodeTimed(tokenIDsByFrame: tokenIDsByFrame).map(\.tokenID)
+    }
 
-        for token in tokenIDsByFrame {
-            if token != previous && token != blankID {
-                decoded.append(token)
+    public func decodeTimed(tokenIDsByFrame: [Int]) -> [CTCDecodedToken] {
+        var decoded: [CTCDecodedToken] = []
+        var previous = blankID
+        var tokenStart = 0
+
+        for (timeStep, token) in tokenIDsByFrame.enumerated() where token != previous {
+            if previous != blankID {
+                decoded.append(CTCDecodedToken(
+                    tokenID: previous,
+                    timeStepRange: tokenStart..<timeStep
+                ))
+            }
+            if token != blankID {
+                tokenStart = timeStep
             }
             previous = token
+        }
+
+        if previous != blankID {
+            decoded.append(CTCDecodedToken(
+                tokenID: previous,
+                timeStepRange: tokenStart..<tokenIDsByFrame.count
+            ))
         }
 
         return decoded

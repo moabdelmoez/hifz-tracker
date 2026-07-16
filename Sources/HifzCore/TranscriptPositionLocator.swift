@@ -41,6 +41,16 @@ public struct TranscriptLocation: Equatable, Sendable {
     }
 }
 
+public struct TranscriptWordEvidence: Equatable, Sendable {
+    public var text: String
+    public var sampleRange: Range<Int>
+
+    public init(text: String, sampleRange: Range<Int>) {
+        self.text = text
+        self.sampleRange = sampleRange
+    }
+}
+
 public struct TranscriptPositionIndex: Sendable {
     public let expected: [RecitationWordReference]
     fileprivate let normalizedExpected: [String]
@@ -59,6 +69,18 @@ public struct TranscriptPositionIndex: Sendable {
 
     public var count: Int {
         expected.count
+    }
+
+    fileprivate func ayahRange(containing offset: Int) -> Range<Int>? {
+        guard expected.indices.contains(offset) else { return nil }
+        let word = expected[offset]
+        let lowerBound = expected[..<offset].lastIndex {
+            $0.surah != word.surah || $0.ayah != word.ayah
+        }.map { $0 + 1 } ?? 0
+        let upperBound = expected[(offset + 1)...].firstIndex {
+            $0.surah != word.surah || $0.ayah != word.ayah
+        } ?? count
+        return lowerBound..<upperBound
     }
 }
 
@@ -214,7 +236,7 @@ public struct ProvisionalInitialHighlightTracker: Sendable {
         index: TranscriptPositionIndex,
         recognizedWords: [String]
     ) -> (location: TranscriptLocation, key: CandidateKey)? {
-        let searchUpperBound = min(index.count, initialStartLimit + 2)
+        let searchUpperBound = min(index.ayahRange(containing: 0)?.upperBound ?? 0, initialStartLimit + 2)
         guard searchUpperBound > 0,
               let location = locator.locate(
                 index: index,
@@ -260,6 +282,7 @@ public enum ProgressiveTranscriptLocatorOutcome: Equatable, Sendable {
     case initialMatchTooShort(matchedWordCount: Int, requiredWordCount: Int)
     case initialMatchTooFar(matchedWordCount: Int, startOffset: Int, allowedStartOffset: Int)
     case notAdvancing(completedOffset: Int, acceptedOffset: Int)
+    case freshEvidenceRequired
 
     public var reason: String {
         switch self {
@@ -269,6 +292,7 @@ public enum ProgressiveTranscriptLocatorOutcome: Equatable, Sendable {
         case .initialMatchTooShort: "initial_match_too_short"
         case .initialMatchTooFar: "initial_match_too_far"
         case .notAdvancing: "not_advancing"
+        case .freshEvidenceRequired: "fresh_evidence_required"
         }
     }
 
@@ -290,6 +314,7 @@ public struct ProgressiveTranscriptLocator: Sendable {
     public var lookAheadWordCount: Int
 
     private var acceptedOffset: Int?
+    private var freshEvidenceBoundary: Int?
 
     public init(
         locator: TranscriptPositionLocator = TranscriptPositionLocator(minimumRunLength: 2),
@@ -302,10 +327,12 @@ public struct ProgressiveTranscriptLocator: Sendable {
         self.lookBehindWordCount = max(0, lookBehindWordCount)
         self.lookAheadWordCount = max(1, lookAheadWordCount)
         self.acceptedOffset = nil
+        self.freshEvidenceBoundary = nil
     }
 
     public mutating func reset() {
         acceptedOffset = nil
+        freshEvidenceBoundary = nil
     }
 
     public mutating func locate(
@@ -320,6 +347,54 @@ public struct ProgressiveTranscriptLocator: Sendable {
         recognizedWords: [String]
     ) -> TranscriptLocation? {
         locateWithOutcome(index: index, recognizedWords: recognizedWords).location
+    }
+
+    public mutating func locate(
+        expected: [RecitationWordReference],
+        evidence: [TranscriptWordEvidence]
+    ) -> TranscriptLocation? {
+        locateWithOutcome(expected: expected, evidence: evidence).location
+    }
+
+    public mutating func locate(
+        index: TranscriptPositionIndex,
+        evidence: [TranscriptWordEvidence]
+    ) -> TranscriptLocation? {
+        locateWithOutcome(index: index, evidence: evidence).location
+    }
+
+    public mutating func locateWithOutcome(
+        expected: [RecitationWordReference],
+        evidence: [TranscriptWordEvidence]
+    ) -> ProgressiveTranscriptLocatorOutcome {
+        locateWithOutcome(index: TranscriptPositionIndex(expected: expected), evidence: evidence)
+    }
+
+    public mutating func locateWithOutcome(
+        index: TranscriptPositionIndex,
+        evidence: [TranscriptWordEvidence]
+    ) -> ProgressiveTranscriptLocatorOutcome {
+        let eligibleEvidence: [TranscriptWordEvidence]
+        if let freshEvidenceBoundary {
+            eligibleEvidence = evidence.filter { $0.sampleRange.lowerBound >= freshEvidenceBoundary }
+            guard !eligibleEvidence.isEmpty else { return .freshEvidenceRequired }
+        } else {
+            eligibleEvidence = evidence
+        }
+
+        let outcome = locateWithOutcome(
+            index: index,
+            recognizedWords: eligibleEvidence.map(\.text)
+        )
+        guard case .located(let location) = outcome,
+              let ayahRange = index.ayahRange(containing: location.expectedRange.upperBound - 1),
+              location.expectedRange.upperBound == ayahRange.upperBound,
+              eligibleEvidence.indices.contains(location.recognizedRange.upperBound - 1) else {
+            return outcome
+        }
+
+        freshEvidenceBoundary = eligibleEvidence[location.recognizedRange.upperBound - 1].sampleRange.upperBound
+        return outcome
     }
 
     public mutating func locateWithOutcome(
@@ -417,35 +492,19 @@ public struct ProgressiveTranscriptLocator: Sendable {
     }
 
     private func expectedSearchRange(index: TranscriptPositionIndex) -> Range<Int> {
-        let totalCount = index.count
         guard let acceptedOffset else {
-            return 0..<min(totalCount, endOfNextAyah(from: 0, index: index))
+            return index.ayahRange(containing: 0) ?? 0..<0
         }
-
-        let lowerBound = max(0, acceptedOffset - lookBehindWordCount)
-        let upperBound = min(totalCount, acceptedOffset + lookAheadWordCount + 1)
-        return lowerBound..<min(upperBound, endOfNextAyah(from: acceptedOffset, index: index))
-    }
-
-    private func endOfNextAyah(from offset: Int, index: TranscriptPositionIndex) -> Int {
-        guard index.expected.indices.contains(offset) else { return index.count }
-        let current = index.expected[offset]
-        let nextSurah: Int
-        let nextAyah: Int
-        if let surah = SurahCatalog.surah(current.surah), current.ayah < surah.ayahCount {
-            nextSurah = current.surah
-            nextAyah = current.ayah + 1
-        } else {
-            nextSurah = current.surah + 1
-            nextAyah = 1
+        guard let currentAyah = index.ayahRange(containing: acceptedOffset) else { return 0..<0 }
+        if acceptedOffset < currentAyah.upperBound - 1 {
+            let lowerBound = max(currentAyah.lowerBound, acceptedOffset - lookBehindWordCount)
+            let upperBound = min(currentAyah.upperBound, acceptedOffset + lookAheadWordCount + 1)
+            return lowerBound..<upperBound
         }
-
-        return index.expected.indices.dropFirst(offset + 1).first(where: {
-            let reference = index.expected[$0]
-            let isCurrent = reference.surah == current.surah && reference.ayah == current.ayah
-            let isNext = reference.surah == nextSurah && reference.ayah == nextAyah
-            return !isCurrent && !isNext
-        }) ?? index.count
+        guard let nextAyah = index.ayahRange(containing: currentAyah.upperBound) else {
+            return index.count..<index.count
+        }
+        return nextAyah.lowerBound..<min(nextAyah.upperBound, acceptedOffset + lookAheadWordCount + 1)
     }
 
     private func locateAdvancingAcrossSingleGap(

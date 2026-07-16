@@ -1,15 +1,71 @@
 import Foundation
 
+public struct QuranSTTTimedWord: Equatable, Sendable {
+    public var text: String
+    public var timeStepRange: Range<Int>
+
+    public init(text: String, timeStepRange: Range<Int>) {
+        self.text = text
+        self.timeStepRange = timeStepRange
+    }
+}
+
 public struct QuranSTTTranscript: Equatable, Sendable {
     public var text: String
     public var tokenIDs: [Int]
+    public var timedWords: [QuranSTTTimedWord]
     public var logProbabilities: ONNXLogProbabilities
 
-    public init(text: String, tokenIDs: [Int], logProbabilities: ONNXLogProbabilities) {
+    public init(
+        text: String,
+        tokenIDs: [Int],
+        timedWords: [QuranSTTTimedWord] = [],
+        logProbabilities: ONNXLogProbabilities
+    ) {
         self.text = text
         self.tokenIDs = tokenIDs
+        self.timedWords = timedWords
         self.logProbabilities = logProbabilities
     }
+
+    public func wordEvidence(in sampleRange: Range<Int>) throws -> [TranscriptWordEvidence] {
+        let timeStepCount = logProbabilities.timeStepCount
+        guard timeStepCount > 0, !sampleRange.isEmpty, !timedWords.isEmpty else {
+            throw QuranSTTWordTimingError.missingTiming
+        }
+
+        let normalizedTranscript = QuranTextNormalizer.asrComparable(text)
+        let normalizedWords = timedWords.map { QuranTextNormalizer.asrComparable($0.text) }
+        guard normalizedWords.allSatisfy({ !$0.isEmpty && !$0.contains(" ") }),
+              normalizedWords.joined(separator: " ") == normalizedTranscript else {
+            throw QuranSTTWordTimingError.inconsistentTiming
+        }
+
+        var previousUpperBound = 0
+        let sampleCount = sampleRange.count
+        return try zip(timedWords, normalizedWords).map { timedWord, normalizedWord in
+            let range = timedWord.timeStepRange
+            guard !range.isEmpty,
+                  range.lowerBound >= previousUpperBound,
+                  range.upperBound <= timeStepCount else {
+                throw QuranSTTWordTimingError.inconsistentTiming
+            }
+            previousUpperBound = range.upperBound
+
+            let lowerBound = sampleRange.lowerBound + (range.lowerBound * sampleCount / timeStepCount)
+            let upperOffset = (range.upperBound * sampleCount + timeStepCount - 1) / timeStepCount
+            let upperBound = sampleRange.lowerBound + upperOffset
+            return TranscriptWordEvidence(
+                text: normalizedWord,
+                sampleRange: lowerBound..<upperBound
+            )
+        }
+    }
+}
+
+public enum QuranSTTWordTimingError: Error, Equatable {
+    case missingTiming
+    case inconsistentTiming
 }
 
 public struct QuranSTTTranscriber {
@@ -40,10 +96,14 @@ public struct QuranSTTTranscriber {
             frameCount: features.frameCount
         )
         let tokenIDsByFrame = logProbabilities.argmaxTokenIDs()
-        let tokenIDs = CTCGreedyDecoder(blankID: tokenizer.blankID).decode(tokenIDsByFrame: tokenIDsByFrame)
+        let decodedTokens = CTCGreedyDecoder(blankID: tokenizer.blankID).decodeTimed(
+            tokenIDsByFrame: tokenIDsByFrame
+        )
+        let tokenIDs = decodedTokens.map(\.tokenID)
         return QuranSTTTranscript(
             text: try tokenizer.decode(tokenIDs: tokenIDs),
             tokenIDs: tokenIDs,
+            timedWords: try tokenizer.decodeTimedWords(tokens: decodedTokens),
             logProbabilities: logProbabilities
         )
     }
