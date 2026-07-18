@@ -18,15 +18,6 @@ struct RecitationRootView: View {
         } detail: {
             MushafPageView(viewModel: viewModel)
                 .toolbar {
-                    ToolbarItem(placement: .navigation) {
-                        Button {
-                            toggleSidebar()
-                        } label: {
-                            Label("Toggle Sidebar", systemImage: "sidebar.left")
-                        }
-                        .help("Toggle Sidebar")
-                    }
-
                     ToolbarItem(placement: .principal) {
                         VStack(spacing: 1) {
                             Text("Hifz Tracker")
@@ -73,12 +64,6 @@ struct RecitationRootView: View {
         guard let record = viewModel.makeSessionRecord() else { return }
         modelContext.insert(StoredSessionRecord(record: record))
         try? modelContext.save()
-    }
-
-    private func toggleSidebar() {
-        withAnimation(.smooth(duration: 0.18)) {
-            columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
-        }
     }
 
 }

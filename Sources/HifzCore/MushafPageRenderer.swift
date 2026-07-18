@@ -484,8 +484,7 @@ private struct MushafLineLayout {
     private static let headerToBismillahStep: CGFloat = 136
     private static let headerToAyahStep: CGFloat = 148
     private static let bismillahToAyahStep: CGFloat = 92
-    private static let ayahToAyahStepWithSpecialLines: CGFloat = 80.5
-    private static let ayahToAyahStepWithoutSpecialLines: CGFloat = 88
+    private static let ayahToAyahStep: CGFloat = 88
     private static let ayahToHeaderStep: CGFloat = 147
     private static let minimumContentHeight: CGFloat = 1_366
     private static let bottomMargin: CGFloat = 80
@@ -508,7 +507,7 @@ private struct MushafLineLayout {
         for line in sortedLines {
             let y: CGFloat
             if let previousLine, let previousY {
-                y = Self.yPosition(after: previousLine, previousY: previousY, before: line, containsSpecialLines: containsSpecialLines)
+                y = Self.yPosition(after: previousLine, previousY: previousY, before: line)
             } else {
                 y = Self.firstLineY(for: line)
             }
@@ -551,8 +550,7 @@ private struct MushafLineLayout {
     private static func yPosition(
         after previousLine: MushafPageLine,
         previousY: CGFloat,
-        before line: MushafPageLine,
-        containsSpecialLines: Bool
+        before line: MushafPageLine
     ) -> CGFloat {
         switch (previousLine.lineType, line.lineType) {
         case (.surahName, .basmallah):
@@ -564,9 +562,9 @@ private struct MushafLineLayout {
         case (.ayah, .surahName), (.unknown, .surahName):
             previousY + ayahToHeaderStep
         case (.ayah, .ayah), (.ayah, .unknown), (.unknown, .ayah), (.unknown, .unknown):
-            previousY + (containsSpecialLines ? ayahToAyahStepWithSpecialLines : ayahToAyahStepWithoutSpecialLines)
+            previousY + ayahToAyahStep
         default:
-            previousY + (containsSpecialLines ? ayahToAyahStepWithSpecialLines : ayahToAyahStepWithoutSpecialLines)
+            previousY + ayahToAyahStep
         }
     }
 }

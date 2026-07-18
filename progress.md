@@ -2,57 +2,46 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-16 21:34 EEST
+**Last Updated:** 2026-07-18 09:56 EEST
 
-**Session ID:** strict-fresh-ayah-order-2026-07-16
+**Session ID:** mushaf-ui-free-dmg-refresh-2026-07-18
 
-**Completed Feature:** `strict-fresh-ayah-order-001` - Strict fresh evidence at every ayah boundary.
+**Completed Feature:** `mushaf-ui-free-dmg-refresh-001` - Rebuilt the staged app and refreshed the free/manual DMG.
 
 ## Status
 
 ### What's Done
 
-- [x] Confirmed repo root and preserved the untracked `.claude/` directory.
-- [x] Reviewed the live Surah 72 locator session and reproduced the unfinished-ayah jump in a deterministic core replay.
-- [x] Confirmed the normal contiguous matcher and current-or-successor search boundary are the cause; gap recovery and UI mapping are not.
-- [x] Baseline `swift test` passed 132 tests with 1 expected skip; baseline `swift build` passed.
-- [x] Registered the active feature before source edits.
-- [x] Restricted initial/provisional matching to the selected start ayah and every later update to one ayah.
-- [x] Preserved CTC frame ranges through SentencePiece word decoding and mapped them to absolute rolling-window sample ranges.
-- [x] Required next-ayah evidence to start after the accepted final word while retaining same-window post-boundary words for later updates.
-- [x] Added privacy-safe `fresh_evidence_required` and `invalid_word_timing` diagnostics; invalid timing holds progress without an error UI.
-- [x] Updated the local-audio audit to exercise the production timed-evidence path.
-- [x] Passed focused tests, opt-in local-audio/model replay, full tests, and build verification.
+- [x] Confirmed the target is the existing free/manual ad-hoc distribution path and preserved unrelated `.claude/` content.
+- [x] Ran the local release gate; tests, builds, staged launch, assets, rpaths, and ad-hoc signing checks passed.
+- [x] Created the replacement DMG in a temporary path and verified it before replacing the old image.
+- [x] Mounted the new image read-only, verified the bundle signature and executable hash, and launched the mounted app.
+- [x] Detached the image, replaced `dist/HifzTracker-0.1.0-arm64.dmg`, and verified the final checksum.
+- [x] Removed the temporary packaging directory and relaunched the refreshed staged app.
 
 ### What's Blocked
 
-- No current blocker.
+- No blocker.
 
 ## Files Modified This Session
 
-- `Sources/HifzCore/TranscriptPositionLocator.swift` - Enforced one-ayah search and fresh sample-boundary evidence.
-- `Sources/HifzCore/RecitationCore.swift`, `QuranSTTTokenizer.swift`, `QuranSTTTranscriber.swift` - Preserved CTC token/word timing and validated absolute word evidence.
-- `Sources/HifzCore/LiveASRSampleWindow.swift` - Added absolute sample ranges to emitted rolling windows.
-- `HifzTracker/Services/LiveASRRequestScheduler.swift`, `RecitationViewModel.swift`, `LiveASRLocatorOutcomeProbe.swift` - Carried timing through live inference and logged fail-closed outcomes.
-- Locator, transcriber, sample-window, scheduler, view-model, audit, and outcome tests - Added strict-order, stale-overlap, timing, and integration regressions.
-- `feature_list.json`, `progress.md`, `session-handoff.md` - Recorded scope, implementation, and evidence.
+- `dist/HifzTracker.app` - Rebuilt from current source and ad-hoc signed.
+- `dist/HifzTracker-0.1.0-arm64.dmg` - Replaced with the refreshed free-distribution image.
+- `feature_list.json`, `progress.md`, `session-handoff.md` - Recorded packaging scope and evidence.
+- No additional Swift source, tests, models, fonts, databases, dependencies, or signing configuration changed during packaging.
 
 ## Evidence
 
-- [x] Live logs: `72:4:6 -> 72:5:9`, `72:5:9 -> 72:6:2`, and `72:6:2 -> 72:7:6` crossed unfinished ayah boundaries.
-- [x] Deterministic replay: `FAIL premature ayah advance: first=72:1:5 second=72:2:4`.
-- [x] Cause probe: wide search returned `72:2:4`; current-ayah-only search returned `nil`.
-- [x] Baseline full tests and build passed.
-- [x] Regression: unfinished `72:1:5` no longer advances into the repeated phrase at `72:2:4`.
-- [x] Timed locator regressions prove stale pre-boundary words are rejected and same-window post-boundary words are reusable on the next update.
-- [x] CTC/tokenizer/model fixture tests prove token frames become validated absolute word sample ranges.
-- [x] Focused locator/provisional suites passed 30 tests; focused ASR/view-model suites passed.
-- [x] Opt-in `LocalAudioAuditTests/testLocalAudioASRAudit` passed in 32.703 s using local WAV/model fixtures.
-- [x] Final `swift test` passed 140 tests with 1 expected opt-in skip and 0 failures in 45.244 s.
-- [x] Final `swift build` passed.
-- [x] No audio or transcript persistence was introduced; runtime remains offline.
-- [x] Release checks skipped because no release assets, signing, packaging, dependencies, or distribution inputs changed.
+- [x] `./script/release_checks.sh` passed 140 tests with 1 expected opt-in local-audio skip and 0 failures.
+- [x] Staged executable timestamp: `2026-07-18 09:50:10 +0300`; SHA-256: `ce33a19a8f57d0ba1dca1560f07354ce4a8f41a7ae97cc00c98cfcf0b008990e`.
+- [x] Mounted app passed `codesign --verify --deep --strict`; its executable hash matched the staged app.
+- [x] Launch-from-DMG smoke test ran PID 37920 from the read-only temporary mount.
+- [x] Final DMG timestamp: `2026-07-18 09:51:11 +0300`; size: 521,239,846 bytes.
+- [x] Final DMG SHA-256: `cac264fc1055695b65d9969446139adce70ab194db8ea675448c288ac3267bcd`.
+- [x] `hdiutil verify` reported checksum VALID with final CRC32 `$37D15C4A`.
+- [x] Verification image was detached, the temporary directory was removed, and staged app PID 37936 is running from `dist/HifzTracker.app`.
+- [x] Artifact is ad-hoc signed, not Developer ID signed, and not notarized.
 
 ## Next Step
 
-No implementation work remains. A manual live Surah 72 recitation is optional confirmation of microphone-session behavior.
+Use `dist/HifzTracker-0.1.0-arm64.dmg` for the existing manual GitHub upload path.
