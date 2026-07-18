@@ -650,6 +650,29 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-18 for the existing free/manual GitHub distribution path. `./script/release_checks.sh` passed 140 tests with 1 expected opt-in local-audio skip and 0 failures, rebuilt and launched the staged app, validated assets and rpaths, and verified the ad-hoc bundle signature. The staged executable SHA-256 is `ce33a19a8f57d0ba1dca1560f07354ce4a8f41a7ae97cc00c98cfcf0b008990e`. Created the replacement DMG in a temporary path and verified it before replacing the previous `e824ab0f404b8974f5a2d5a287c77bcbd9118fc26d25365e3493063e8fd3df22` artifact. The mounted app passed `codesign --verify --deep --strict`, its executable matched the staged binary, and it launched from the read-only mount as PID 37920. The image was detached, moved to `dist/HifzTracker-0.1.0-arm64.dmg`, and `hdiutil verify` reported checksum VALID with CRC32 `$37D15C4A`. Final size is 521,239,846 bytes and SHA-256 is `cac264fc1055695b65d9969446139adce70ab194db8ea675448c288ac3267bcd`. The temporary directory was removed and the refreshed staged app was relaunched as PID 37936. The artifact remains ad-hoc signed, not Developer ID signed, and not notarized."
+    },
+    {
+      "id": "live-asr-cadence-001",
+      "name": "Lower-Latency Live ASR Cadence",
+      "description": "Reduce perceived live locator latency by emitting ASR windows every quarter second and limiting rolling audio context to five seconds, without weakening strict ayah-order safeguards.",
+      "dependencies": ["strict-fresh-ayah-order-001"],
+      "status": "done",
+      "done_criteria": [
+        "Default live ASR windows emit after one second and every quarter second thereafter",
+        "Default rolling audio context is capped at five seconds",
+        "Custom window configuration and strict fresh-ayah locator behavior remain unchanged",
+        "Focused and full SwiftPM verification passes",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter LiveASRSampleWindowTests",
+        "swift test --filter ProgressiveTranscriptLocatorTests",
+        "swift test",
+        "swift build",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Implemented on 2026-07-18 after live Surah 6 diagnosis measured 568.7 ms transcript cadence with 128.8 ms average inference, no pending-window backlog, and 131 rejected locator outcomes across 174 windows. The prepared 6,000-word locator benchmark passed 360 locates in 25 ms, isolating rolling ASR freshness and acceptance outcomes rather than locator compute as the latency source. Baseline `swift test` passed 140 tests with 1 expected skip and 0 failures; baseline `swift build` passed. Red checks proved the old defaults: the quarter-second test received no second window at 20,000 samples, and the five-second-cap test retained 96,000 rather than 80,000 samples. Changed only `LiveASRSampleWindow` defaults from 8 to 5 seconds and from 0.5 to 0.25 seconds; custom configuration and strict locator logic are unchanged. Final focused checks passed 5 sample-window tests, the production audit-window check, and 22 strict locator tests. Final `swift test` passed 140 tests with 1 expected opt-in local-audio audit skip and 0 failures; `swift build` passed. The opt-in model/audio audit was skipped because it rewrites the tracked generated audit artifact; live Surah 6 log comparison remains the next validation. Release checks were skipped because no assets, signing, packaging, dependencies, or distribution artifacts changed."
     }
   ]
 }

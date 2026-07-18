@@ -2,46 +2,46 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-18 09:56 EEST
+**Last Updated:** 2026-07-18 18:14 EEST
 
-**Session ID:** mushaf-ui-free-dmg-refresh-2026-07-18
+**Session ID:** live-asr-cadence-2026-07-18
 
-**Completed Feature:** `mushaf-ui-free-dmg-refresh-001` - Rebuilt the staged app and refreshed the free/manual DMG.
+**Completed Feature:** `live-asr-cadence-001` - Reduced default live ASR context and update interval.
 
 ## Status
 
 ### What's Done
 
-- [x] Confirmed the target is the existing free/manual ad-hoc distribution path and preserved unrelated `.claude/` content.
-- [x] Ran the local release gate; tests, builds, staged launch, assets, rpaths, and ad-hoc signing checks passed.
-- [x] Created the replacement DMG in a temporary path and verified it before replacing the old image.
-- [x] Mounted the new image read-only, verified the bundle signature and executable hash, and launched the mounted app.
-- [x] Detached the image, replaced `dist/HifzTracker-0.1.0-arm64.dmg`, and verified the final checksum.
-- [x] Removed the temporary packaging directory and relaunched the refreshed staged app.
+- [x] Diagnosed the live Surah 6 delay as ASR freshness and locator acceptance rather than locator compute.
+- [x] Changed the default rolling audio cap from 8 seconds to 5 seconds.
+- [x] Changed the default inference interval from 0.5 seconds to 0.25 seconds.
+- [x] Preserved custom window configuration and strict fresh-ayah ordering.
+- [x] Added focused default-cadence and production-audit regression coverage.
 
 ### What's Blocked
 
-- No blocker.
+- No blocker. Live before/after Surah 6 latency evidence requires a new recitation run.
 
 ## Files Modified This Session
 
-- `dist/HifzTracker.app` - Rebuilt from current source and ad-hoc signed.
-- `dist/HifzTracker-0.1.0-arm64.dmg` - Replaced with the refreshed free-distribution image.
-- `feature_list.json`, `progress.md`, `session-handoff.md` - Recorded packaging scope and evidence.
-- No additional Swift source, tests, models, fonts, databases, dependencies, or signing configuration changed during packaging.
+- `Sources/HifzCore/LiveASRSampleWindow.swift` - Lower-latency defaults.
+- `Tests/HifzCoreTests/LiveASRSampleWindowTests.swift` - Default cadence and cap coverage.
+- `Tests/HifzCoreTests/LocalAudioAuditTests.swift` - Production audit-window expectations.
+- `feature_list.json`, `progress.md`, `session-handoff.md` - Scope, evidence, and handoff.
+- Existing untracked `.claude/` content was preserved.
 
 ## Evidence
 
-- [x] `./script/release_checks.sh` passed 140 tests with 1 expected opt-in local-audio skip and 0 failures.
-- [x] Staged executable timestamp: `2026-07-18 09:50:10 +0300`; SHA-256: `ce33a19a8f57d0ba1dca1560f07354ce4a8f41a7ae97cc00c98cfcf0b008990e`.
-- [x] Mounted app passed `codesign --verify --deep --strict`; its executable hash matched the staged app.
-- [x] Launch-from-DMG smoke test ran PID 37920 from the read-only temporary mount.
-- [x] Final DMG timestamp: `2026-07-18 09:51:11 +0300`; size: 521,239,846 bytes.
-- [x] Final DMG SHA-256: `cac264fc1055695b65d9969446139adce70ab194db8ea675448c288ac3267bcd`.
-- [x] `hdiutil verify` reported checksum VALID with final CRC32 `$37D15C4A`.
-- [x] Verification image was detached, the temporary directory was removed, and staged app PID 37936 is running from `dist/HifzTracker.app`.
-- [x] Artifact is ad-hoc signed, not Developer ID signed, and not notarized.
+- [x] Quarter-second red check failed because no window emitted at 20,000 samples under the old 0.5-second default; it passed after the cadence change.
+- [x] Five-second-cap red check retained 96,000 samples under the old 8-second default; it passed with the 80,000-sample cap.
+- [x] `swift test --filter LiveASRSampleWindowTests` passed 5 tests.
+- [x] Production audit-window cadence/cap check passed.
+- [x] `swift test --filter ProgressiveTranscriptLocatorTests` passed 22 tests.
+- [x] `swift test` passed 140 tests with 1 expected opt-in local-audio audit skip and 0 failures.
+- [x] `swift build` completed successfully.
+- [ ] Opt-in model/audio audit skipped because it rewrites the tracked generated audit artifact.
+- [ ] Release checks skipped because no release assets, signing, packaging, dependencies, or distribution artifacts changed.
 
 ## Next Step
 
-Use `dist/HifzTracker-0.1.0-arm64.dmg` for the existing manual GitHub upload path.
+Run a fresh Surah 6 recitation and compare `average_transcript_interval_ms`, pending-window counts, locator outcomes, and ayah-boundary delays with the 2026-07-18 baseline.

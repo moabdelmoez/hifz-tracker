@@ -2,23 +2,23 @@ import XCTest
 @testable import HifzCore
 
 final class LocalAudioAuditTests: XCTestCase {
-    func testLiveAuditWindowsMatchProductionCadenceAndEightSecondCap() {
+    func testLiveAuditWindowsMatchProductionCadenceAndFiveSecondCap() {
         let sampleRate = 10
         let samples = Array(repeating: Float(0), count: 22 * sampleRate)
 
         let windows = makeLiveAuditWindows(
             samples: samples,
             sampleRate: sampleRate,
-            chunkSampleCount: 5
+            chunkSampleCount: 1
         )
 
-        XCTAssertEqual(Array(windows.prefix(3).map(\.endSample)), [10, 15, 20])
+        XCTAssertEqual(Array(windows.prefix(3).map(\.endSample)), [10, 13, 16])
         XCTAssertEqual(windows.first?.durationSeconds, 1)
-        XCTAssertEqual(windows.first(where: { $0.endSample == 80 })?.startSample, 0)
-        XCTAssertEqual(windows.first(where: { $0.endSample == 85 })?.startSample, 5)
-        XCTAssertEqual(windows.last?.startSample, 140)
+        XCTAssertEqual(windows.first(where: { $0.endSample == 49 })?.startSample, 0)
+        XCTAssertEqual(windows.first(where: { $0.endSample == 52 })?.startSample, 2)
+        XCTAssertEqual(windows.last?.startSample, 170)
         XCTAssertEqual(windows.last?.endSample, 220)
-        XCTAssertEqual(windows.last?.durationSeconds, 8)
+        XCTAssertEqual(windows.last?.durationSeconds, 5)
     }
 
     func testLocalAudioASRAudit() throws {

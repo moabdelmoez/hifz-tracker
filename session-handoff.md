@@ -2,39 +2,31 @@
 
 ## Current Objective
 
-- Goal: Refresh the free/manual DMG with the completed sidebar-toggle and Mushaf spacing changes.
-- Current status: Complete. `mushaf-ui-free-dmg-refresh-001` is marked done.
-- Branch: `main`.
-- Working tree: scoped Swift UI/renderer/test changes and packaging evidence plus untracked `.claude/`; changes are uncommitted.
-
-## Artifact
-
-- Path: `dist/HifzTracker-0.1.0-arm64.dmg`
-- Size: 521,239,846 bytes
-- SHA-256: `cac264fc1055695b65d9969446139adce70ab194db8ea675448c288ac3267bcd`
-- Distribution mode: ad-hoc signed, not Developer ID signed, and not notarized
+- Goal: Reduce live recitation latency without weakening strict ayah ordering.
+- Current status: Complete. `live-asr-cadence-001` is marked done.
+- Branch: `main`; implementation is committed after required review.
+- Working tree: preserve unrelated untracked `.claude/` content.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
-| Local release gate | 140 tests, 1 expected skip, build/assets/rpath/signature passed |
-| Staged executable | SHA-256 `ce33a19a8f57d0ba1dca1560f07354ce4a8f41a7ae97cc00c98cfcf0b008990e` |
-| DMG integrity | `hdiutil verify` checksum VALID; CRC32 `$37D15C4A` |
-| Mounted bundle signature | `codesign --verify --deep --strict` passed |
-| Embedded executable | SHA-256 matched staged app |
-| Launch-from-DMG smoke test | Passed from read-only temporary mount, PID 37920 |
-| Cleanup | Verification image detached; temporary directory removed |
-| Final running app | PID 37936 from `dist/HifzTracker.app` |
+| Default sample-window tests | 5 passed |
+| Production audit-window check | Passed |
+| Strict locator regressions | 22 passed |
+| Full test suite | 140 tests, 1 expected skip, 0 failures |
+| Swift build | Passed |
+| Release checks | Skipped; no release or packaging inputs changed |
 
 ## Restart Notes
 
-1. `cd /Users/mostafa/Downloads/Coding_Projects/hifz-tracker`
-2. Confirm `git status --short`; preserve `.claude/` and existing release-evidence changes.
-3. Use the refreshed DMG for manual GitHub upload.
-4. Run the local release gate again if source changes before upload.
+1. Run the standard startup checks and preserve unrelated `.claude/` content.
+2. Launch a current-source app build and recite Surah 6 from a known start ayah.
+3. Compare live timing/locator logs against the 568.7 ms cadence and 174-window baseline recorded in `feature_list.json`.
+4. Watch for pending-window backlog; average prior inference was 128.8 ms, below the new 250 ms interval.
 
 ## Risks / Out of Scope
 
-- The replaced July 17 DMG was not retained; its prior SHA-256 was `e824ab0f404b8974f5a2d5a287c77bcbd9118fc26d25365e3493063e8fd3df22`.
-- The refreshed artifact uses the existing free/manual path and will trigger normal Gatekeeper friction because it is not Developer ID signed or notarized.
+- The strict fresh-evidence and exact-match locator rules are unchanged; this change improves input freshness but does not make matching more tolerant.
+- No live post-change Surah 6 run or opt-in model/audio audit has been completed yet.
+- Existing staged app and DMG were not rebuilt, so they do not include this source change.

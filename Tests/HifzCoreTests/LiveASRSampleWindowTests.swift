@@ -2,7 +2,7 @@ import XCTest
 @testable import HifzCore
 
 final class LiveASRSampleWindowTests: XCTestCase {
-    func testDefaultCadenceEmitsAfterOneSecondAndThenHalfSecond() {
+    func testDefaultCadenceEmitsAfterOneSecondAndThenQuarterSecond() {
         var window = LiveASRSampleWindow()
 
         XCTAssertNil(window.append(Array(repeating: Float(0.1), count: 8_000)))
@@ -11,23 +11,23 @@ final class LiveASRSampleWindowTests: XCTestCase {
         XCTAssertEqual(firstEmission?.samples.count, 16_000)
         XCTAssertEqual(firstEmission?.sampleRange, 0..<16_000)
 
-        XCTAssertNil(window.append(Array(repeating: Float(0.3), count: 7_999)))
+        XCTAssertNil(window.append(Array(repeating: Float(0.3), count: 3_999)))
 
         let secondEmission = window.append([0.4])
-        XCTAssertEqual(secondEmission?.samples.count, 24_000)
-        XCTAssertEqual(secondEmission?.sampleRange, 0..<24_000)
+        XCTAssertEqual(secondEmission?.samples.count, 20_000)
+        XCTAssertEqual(secondEmission?.sampleRange, 0..<20_000)
     }
 
-    func testDefaultCadenceKeepsEightSecondMaximumWindow() {
+    func testDefaultCadenceKeepsFiveSecondMaximumWindow() {
         var window = LiveASRSampleWindow()
-        let eightSeconds = Array(repeating: Float(0.1), count: 128_000)
+        let fiveSeconds = Array(repeating: Float(0.1), count: 80_000)
 
-        _ = window.append(eightSeconds)
+        _ = window.append(fiveSeconds)
         let emission = window.append(Array(repeating: Float(0.2), count: 16_000))
 
-        XCTAssertEqual(emission?.samples.count, 128_000)
-        XCTAssertEqual(emission?.sampleRange, 16_000..<144_000)
-        XCTAssertEqual(window.bufferedSampleCount, 128_000)
+        XCTAssertEqual(emission?.samples.count, 80_000)
+        XCTAssertEqual(emission?.sampleRange, 16_000..<96_000)
+        XCTAssertEqual(window.bufferedSampleCount, 80_000)
     }
 
     func testEmitsOnlyAfterMinimumWindowAndThenAtInferenceInterval() {
