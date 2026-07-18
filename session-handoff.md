@@ -2,31 +2,31 @@
 
 ## Current Objective
 
-- Goal: Reduce live recitation latency without weakening strict ayah ordering.
-- Current status: Complete. `live-asr-cadence-001` is marked done.
-- Branch: `main`; implementation is committed after required review.
+- Goal: Remove avoidable extra ASR cycles at ayah boundaries without weakening strict ordering.
+- Current status: Complete. `same-window-ayah-transition-001` is marked done.
+- Branch: `main`; changes are verified for publication.
 - Working tree: preserve unrelated untracked `.claude/` content.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
-| Default sample-window tests | 5 passed |
-| Production audit-window check | Passed |
-| Strict locator regressions | 22 passed |
-| Full test suite | 140 tests, 1 expected skip, 0 failures |
+| Same-window cross-surah regression | Passed after expected red failure |
+| View-model and strict locator suites | 47 passed |
+| Full test suite | 142 tests, 1 expected skip, 0 failures |
 | Swift build | Passed |
+| Post-change Surah 10 manual run | Sequential 10:1 through 10:10; no skips; no eligible same-window opportunity observed |
 | Release checks | Skipped; no release or packaging inputs changed |
 
 ## Restart Notes
 
-1. Run the standard startup checks and preserve unrelated `.claude/` content.
-2. Launch a current-source app build and recite Surah 6 from a known start ayah.
-3. Compare live timing/locator logs against the 568.7 ms cadence and 174-window baseline recorded in `feature_list.json`.
-4. Watch for pending-window backlog; average prior inference was 128.8 ms, below the new 250 ms interval.
+1. Preserve unrelated `.claude/` content.
+2. Keep ASR recognition-stability work separate from this completed transition feature.
+3. If that work is activated, compare greedy decoding with a small CTC beam in the opt-in local audit harness before changing production.
 
 ## Risks / Out of Scope
 
-- The strict fresh-evidence and exact-match locator rules are unchanged; this change improves input freshness but does not make matching more tolerant.
-- No live post-change Surah 6 run or opt-in model/audio audit has been completed yet.
-- Existing staged app and DMG were not rebuilt, so they do not include this source change.
+- The change helps only when a transcript already contains eligible post-boundary successor words; it does not make ASR recognition faster or more tolerant.
+- The post-change Surah 10 run did not contain eligible same-window successor evidence, so the fast path remains covered by automated integration tests rather than a live observation.
+- The opt-in model/audio audit has not been run.
+- Existing staged app and DMG were not rebuilt, so they do not include this change.

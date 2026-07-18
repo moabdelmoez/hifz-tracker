@@ -382,6 +382,47 @@ final class RecitationViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testLiveASRUsesFreshSameWindowEvidenceAcrossSurahBoundary() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 100
+        viewModel.startAyah = 11
+        viewModel.isRecording = true
+
+        XCTAssertTrue(viewModel.applyASRTranscript(
+            Self.transcript("hundred final one two next surah one two"),
+            windowID: 1,
+            sampleRange: 0..<800
+        ))
+
+        XCTAssertEqual(viewModel.snapshot.currentAyah, 1)
+        XCTAssertEqual(viewModel.snapshot.completedWordCount, 4)
+        XCTAssertEqual(viewModel.pageNumber, 101)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 4)), .completed)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 5)), .current)
+    }
+
+    @MainActor
+    func testLiveASRStopsAfterOneSameWindowAyahBoundary() {
+        let repository = InMemoryQuranRepository()
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 101
+        viewModel.startAyah = 1
+        viewModel.isRecording = true
+
+        XCTAssertTrue(viewModel.applyASRTranscript(
+            Self.transcript("next surah one two three second ayah one two third ayah one two"),
+            windowID: 1,
+            sampleRange: 0..<1_300
+        ))
+
+        XCTAssertEqual(viewModel.snapshot.currentAyah, 2)
+        XCTAssertEqual(viewModel.snapshot.completedWordCount, 4)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 2, wordIndex: 4)), .completed)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 3, wordIndex: 2)), .pending)
+    }
+
+    @MainActor
     func testSessionRecordStoresLastSurahAfterCrossSurahProgress() {
         let repository = InMemoryQuranRepository()
         let viewModel = RecitationViewModel(repository: repository)
@@ -496,7 +537,20 @@ private final class InMemoryQuranRepository: QuranRepository {
             Self.makeWord(id: 1014, surah: 101, ayah: 1, wordIndex: 4, text: "two"),
             Self.makeWord(id: 1015, surah: 101, ayah: 1, wordIndex: 5, text: "three")
         ]
-        let allWords = pageOneWords + pageTwoWords + surahOneHundredWords + nextSurahWords
+        let nextSurahSecondAyahWords = [
+            Self.makeWord(id: 1021, surah: 101, ayah: 2, wordIndex: 1, text: "second"),
+            Self.makeWord(id: 1022, surah: 101, ayah: 2, wordIndex: 2, text: "ayah"),
+            Self.makeWord(id: 1023, surah: 101, ayah: 2, wordIndex: 3, text: "one"),
+            Self.makeWord(id: 1024, surah: 101, ayah: 2, wordIndex: 4, text: "two")
+        ]
+        let nextSurahThirdAyahWords = [
+            Self.makeWord(id: 1031, surah: 101, ayah: 3, wordIndex: 1, text: "third"),
+            Self.makeWord(id: 1032, surah: 101, ayah: 3, wordIndex: 2, text: "ayah"),
+            Self.makeWord(id: 1033, surah: 101, ayah: 3, wordIndex: 3, text: "one"),
+            Self.makeWord(id: 1034, surah: 101, ayah: 3, wordIndex: 4, text: "two")
+        ]
+        let nextSurahPageWords = nextSurahWords + nextSurahSecondAyahWords + nextSurahThirdAyahWords
+        let allWords = pageOneWords + pageTwoWords + surahOneHundredWords + nextSurahPageWords
 
         self.wordsByLocation = Dictionary(uniqueKeysWithValues: allWords.map { ($0.location, $0) })
         self.wordsByAyah = Dictionary(grouping: allWords) { "\($0.surah):\($0.ayah)" }
@@ -504,7 +558,7 @@ private final class InMemoryQuranRepository: QuranRepository {
             1: Self.makePage(pageNumber: 1, words: pageOneWords),
             2: Self.makePage(pageNumber: 2, words: pageTwoWords),
             100: Self.makePage(pageNumber: 100, words: surahOneHundredWords),
-            101: Self.makePage(pageNumber: 101, words: nextSurahWords),
+            101: Self.makePage(pageNumber: 101, words: nextSurahPageWords),
             604: MushafPage(pageNumber: 604, lines: [])
         ]
         self.ayahPages = [
@@ -512,6 +566,8 @@ private final class InMemoryQuranRepository: QuranRepository {
             "1:2": 2,
             "100:11": 100,
             "101:1": 101,
+            "101:2": 101,
+            "101:3": 101,
             "114:1": 604
         ]
         self.wordPages = [
@@ -527,7 +583,15 @@ private final class InMemoryQuranRepository: QuranRepository {
             "101:1:2": 101,
             "101:1:3": 101,
             "101:1:4": 101,
-            "101:1:5": 101
+            "101:1:5": 101,
+            "101:2:1": 101,
+            "101:2:2": 101,
+            "101:2:3": 101,
+            "101:2:4": 101,
+            "101:3:1": 101,
+            "101:3:2": 101,
+            "101:3:3": 101,
+            "101:3:4": 101
         ]
     }
 

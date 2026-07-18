@@ -470,7 +470,21 @@ final class RecitationViewModel {
             return false
         }
 
-        let outcome = transcriptLocator.locateWithOutcome(index: referenceIndex, evidence: wordEvidence)
+        var outcome = transcriptLocator.locateWithOutcome(index: referenceIndex, evidence: wordEvidence)
+        if case .located(let location) = outcome,
+           expectedReferences.indices.contains(location.expectedRange.upperBound) {
+            let nextReference = expectedReferences[location.expectedRange.upperBound]
+            if nextReference.surah != location.completedThrough.surah
+                || nextReference.ayah != location.completedThrough.ayah {
+                let successorOutcome = transcriptLocator.locateWithOutcome(
+                    index: referenceIndex,
+                    evidence: wordEvidence
+                )
+                if case .located = successorOutcome {
+                    outcome = successorOutcome
+                }
+            }
+        }
         let metrics = liveASRLocatorOutcomeProbe.metrics(
             windowID: windowID,
             recognizedWordCount: recognizedWords.count,
