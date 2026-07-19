@@ -2,11 +2,11 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-19 19:22 EEST
+**Last Updated:** 2026-07-19 19:40 EEST
 
 **Session ID:** live-recitation-performance-dmg-2026-07-19
 
-**Active Feature:** `live-recitation-performance-dmg-001` - publish the completed work and refresh the local ad-hoc DMG.
+**Active Feature:** None. `live-recitation-performance-dmg-001` is complete.
 
 ## Status
 
@@ -18,6 +18,8 @@
 - [x] Isolated a repeated-phrase locator continuity defect in ayah 1.
 - [x] Saved a privacy-safe report at `docs/surah-60-1-5-offline-replay.md`.
 - [x] Removed the temporary WAV, symlink, and transcript-bearing generated audit; preserved the original M4A unchanged.
+- [x] Pushed commit `5df4ee9` directly to `origin/main`, excluding unrelated `.claude/` content.
+- [x] Rebuilt, verified, mounted, and launched the replacement ad-hoc DMG.
 
 ### What's Blocked
 
@@ -29,7 +31,7 @@
 - `Tests/HifzCoreTests/LocalAudioAuditTests.swift` - Add a validated end-ayah selector and range-aware audit summaries.
 - `docs/surah-60-1-5-offline-replay.md` - Record the privacy-safe evidence, diagnosis, and next step.
 - `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, evidence, and continuity.
-- Existing uncommitted performance changes and unrelated `.claude/` content were preserved.
+- The performance changes were published; unrelated `.claude/` content was preserved and excluded.
 
 ## Evidence
 
@@ -42,8 +44,10 @@
 - [x] Outcome counts: 79 progress applied, 189 not advancing, 78 no match, 31 fresh evidence required.
 - [x] Full `swift test`: 143 tests, 1 expected skip, 0 failures.
 - [x] `swift build`: passed.
-- [ ] Release checks skipped: no bundled assets, signing, packaging, dependencies, schema, model, or distribution inputs changed.
+- [x] Release gate: 143 tests, 1 expected skip, staged build/launch, assets, rpaths, and ad-hoc signature passed.
+- [x] DMG: 521,225,149 bytes; SHA-256 `a168dbc13c029c0b05944bfd331f9e73b4261031441d1bf52563cbc014dcbdc0`; `hdiutil verify` CRC32 `$71AD1D79`.
+- [x] Mounted executable matched staged SHA-256 `1445e0ef8b40c6ac476150dc75123e18204c1ac3181dd7aaf0a98e7471b35dad` and launched as PID 69425.
 
 ## Next Step
 
-Commit and push the intended changes to `main`, run the local release gate, then build and verify the replacement ad-hoc DMG.
+Open a locator-correctness feature for the within-ayah repeated-phrase jump. The refreshed local DMG is ready at `dist/HifzTracker-0.1.0-arm64.dmg`.
