@@ -1,4 +1,5 @@
 import AppKit
+import HifzCore
 import XCTest
 @testable import HifzTracker
 
@@ -14,6 +15,30 @@ final class MushafPageCanvasViewTests: XCTestCase {
 
         XCTAssertEqual(view.intrinsicContentSize.width, NSView.noIntrinsicMetric)
         XCTAssertEqual(view.intrinsicContentSize.height, NSView.noIntrinsicMetric)
+    }
+
+    @MainActor
+    func testDrawingViewInvalidatesOnlyWhenPresentationChanges() {
+        let word = QuranWord(id: 1, location: "1:1:1", surah: 1, ayah: 1, wordIndex: 1, text: "word")
+        let page = MushafPage(pageNumber: 1, lines: [
+            MushafPageLine(
+                pageNumber: 1,
+                lineNumber: 1,
+                lineType: .ayah,
+                isCentered: false,
+                firstWordID: 1,
+                lastWordID: 1,
+                surahNumber: 1,
+                words: [word]
+            )
+        ])
+        let pending = MushafPagePresentation(page: page, state: { _ in .pending }, isTextVisible: { _ in true })
+        let completed = MushafPagePresentation(page: page, state: { _ in .completed }, isTextVisible: { _ in true })
+        let view = MushafPageDrawingView()
+
+        XCTAssertTrue(view.update(page: page, pageNumber: 1, presentation: pending, fontDirectory: nil))
+        XCTAssertFalse(view.update(page: page, pageNumber: 1, presentation: pending, fontDirectory: nil))
+        XCTAssertTrue(view.update(page: page, pageNumber: 1, presentation: completed, fontDirectory: nil))
     }
 
     func testViewportMetricsFitWidthAndOverflowVerticallyInShortWindows() {

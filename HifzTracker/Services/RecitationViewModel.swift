@@ -4,6 +4,7 @@ import HifzCore
 import OSLog
 
 private let asrLogger = Logger(subsystem: "dev.mostafa.HifzTracker", category: "ASR")
+private let asrSignposter = OSSignposter(logger: asrLogger)
 
 @MainActor
 @Observable
@@ -105,7 +106,7 @@ final class RecitationViewModel {
         snapshot = reducer.reduce(.startRequested(request))
         Task {
             do {
-                let service = try AppASRFactory.makeLiveService()
+                let service = try await AppASRFactory.warmedLiveService.value
                 logLiveASREvent("service_ready", metrics: liveASRTimingProbe.eventMetrics(atNanoseconds: nowNanoseconds()))
                 liveASRService = service
                 liveSampleWindow.reset()
@@ -241,6 +242,9 @@ final class RecitationViewModel {
     }
 
     private func handleMicrophoneSamples(_ samples: [Float]) {
+        let interval = asrSignposter.beginInterval("MicrophoneSamples")
+        defer { asrSignposter.endInterval("MicrophoneSamples", interval) }
+
         guard isRecording, let service = liveASRService else { return }
         audioLevel = audioLevelMeter.update(with: samples)
         if audioLevel >= Self.voiceOnsetLevel,
@@ -395,6 +399,9 @@ final class RecitationViewModel {
         windowID: Int,
         sampleRange: Range<Int>? = nil
     ) -> Bool {
+        let interval = asrSignposter.beginInterval("ApplyASRTranscript")
+        defer { asrSignposter.endInterval("ApplyASRTranscript", interval) }
+
         let recognizedWords = QuranTextNormalizer
             .asrComparable(transcript.text)
             .split(separator: " ")

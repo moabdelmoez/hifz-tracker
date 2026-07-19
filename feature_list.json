@@ -697,6 +697,98 @@
         "git diff --check"
       ],
       "evidence": "Implemented on 2026-07-18 for GitHub issue #1. Baseline `swift test` passed 140 tests with 1 expected opt-in skip and 0 failures; baseline `swift build` passed. The focused red check failed because one timed transcript spanning surah 100:11 into 101:1 left the snapshot at ayah 11 and successor words pending. The live transcript path now evaluates the same timed evidence once more only after an ayah-final result, keeps the original result unless the second evaluation locates the immediate successor, and logs/applies only the furthest valid outcome. Cross-surah and same-surah integration regressions prove immediate fresh progress and the one-boundary ceiling. Focused view-model and strict locator suites passed 47 tests; final `swift test` passed 142 tests with 1 expected opt-in skip and 0 failures; `swift build`, `jq empty feature_list.json`, and `git diff --check` passed. A post-change Surah 10 manual run progressed sequentially from 10:1 through 10:10 with no skips; median ayah-boundary delay was 2.104 seconds, average was 2.529 seconds, and the 6.600-second worst case coincided with repeated `no_match` and `fresh_evidence_required` outcomes. No transcript in that run both completed an ayah and supplied an eligible successor match, so it verified safety but did not exercise the same-window fast path. The opt-in model/audio audit and release checks were skipped because no model, audio fixture, asset, signing, packaging, dependency, or distribution inputs changed."
+    },
+    {
+      "id": "asr-free-dmg-refresh-001",
+      "name": "ASR Improvements Free DMG Refresh",
+      "description": "Rebuild and replace the existing ad-hoc signed DMG with the live ASR cadence and same-window ayah-transition changes.",
+      "dependencies": ["same-window-ayah-transition-001"],
+      "status": "done",
+      "done_criteria": [
+        "The local release gate passes and stages current main",
+        "dist/HifzTracker-0.1.0-arm64.dmg is replaced only after verification",
+        "The final DMG checksum, mounted app signature, and executable hash verify",
+        "The mounted app launches from the read-only image",
+        "Artifact evidence and free-path limitations are recorded"
+      ],
+      "verification": [
+        "./script/release_checks.sh",
+        "hdiutil verify dist/HifzTracker-0.1.0-arm64.dmg",
+        "mount DMG, verify HifzTracker.app signature and executable hash, launch mounted app, detach DMG",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-18 from main commit `8acd319` using the existing free/manual ad-hoc distribution path because no Developer ID identity or notarization profile is installed. `./script/release_checks.sh` passed 142 tests with 1 expected opt-in local-audio skip and 0 failures, rebuilt and launched the staged app, validated release assets and rpaths, and verified its ad-hoc signature. The staged executable SHA-256 is `eae7fc208a64ff1915558456266f903c7f9450a636a6c203da6fcd8b9c489915`. A temporary DMG was created and verified before replacing the prior `cac264fc1055695b65d9969446139adce70ab194db8ea675448c288ac3267bcd` artifact. The mounted app passed deep strict codesign verification, matched the staged executable hash, and launched from the read-only image as PID 56050. The image was detached and the final `dist/HifzTracker-0.1.0-arm64.dmg` passed `hdiutil verify` with CRC32 `$49A6533E`. Final size is 519,908,180 bytes and SHA-256 is `3749f1be2ad0d159df33fa8c09112c30da4ed0cac12a9214ed76004c18ea1530`. The artifact is ad-hoc signed, not Developer ID signed, and not notarized."
+    },
+    {
+      "id": "live-recitation-performance-002",
+      "name": "Live Recitation Performance Pass",
+      "description": "Measure the current five-second/quarter-second live pipeline and apply only threshold-justified launch and rendering improvements while leaving unproven ASR and audio changes out of scope.",
+      "dependencies": ["live-asr-cadence-001", "same-window-ayah-transition-001"],
+      "status": "done",
+      "done_criteria": [
+        "Instruments can identify microphone handling, transcript application, and Mushaf drawing intervals",
+        "Existing privacy-safe startup, transcription, cadence, backlog, and locator logs remain available",
+        "No transcript text, audio, or user data is added to telemetry",
+        "Current runtime evidence is compared with explicit smoothness thresholds before any optimization is selected",
+        "A measured cold ONNX setup above 200 milliseconds is moved into one reusable launch task",
+        "Mushaf canvas updates invalidate drawing only when page presentation or size changes",
+        "Focused and full SwiftPM verification passes",
+        "A live microphone trace verifies the new sample and transcript intervals before completion"
+      ],
+      "verification": [
+        "swift test --filter LiveASRTimingProbeTests",
+        "swift test",
+        "swift build",
+        "targeted Instruments/unified-log review",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-19. Baseline `swift test` passed 142 tests with 1 expected skip and `swift build` passed. Added privacy-safe Instruments intervals for microphone handling, transcript application, and Mushaf drawing. Three fresh ONNX test processes took 345, 335, and 333 ms, exceeding the 200 ms warm-up gate; the app now starts one reusable utility-priority ASR task and exercises it with one second of zeros. Replaced closure-identity invalidation with an equatable word-presentation snapshot; all 6 canvas tests pass. A 128-second live Surah 8 trace from the current instrumented build recorded 426 windows: processing p50 92.961 ms, p95 96.389 ms, max 117.552 ms; transcript cadence p50 299.101 ms and p95 311.659 ms; no pending-window backlog and no failures. Main-thread intervals were small: microphone/apply p95 at most 1 ms and Mushaf draw p95 3 ms; one progress application took 18 ms. Launch warm-up completed in 385.684 ms and made service acquisition 9.775 ms; reference preparation reached 262.593 ms and microphone readiness 1,803.074 ms. The first authoritative highlight arrived 7,096.941 ms after voice onset after early `no_match` outcomes. Reused the existing opt-in local audio audit, adding `HIFZ_LOCAL_AUDIO_AUDIT_FILE` to select one fixture. A deterministic 37.928-second Alafasy Basmallah plus Surah 8:1 fixture reproduced the boundary: first transcript 1,044.130 ms, first authoritative progress at 11,066.791 ms on normalized `يسالونك عن الانفال`, then correct completion through 8:1:18. The ayah-only control produced a provisional highlight at 2,338.223 ms and authoritative progress at 4,147.655 ms, isolating roughly 6.92 seconds of leading Basmallah/transition rather than compute or locator runtime. Final focused replay passed; final `swift test` passed 143 tests with 1 expected skip and 0 failures; `swift build`, JSON validation, and diff checks passed. The ignored local fixture has SHA-256 `c76b8542f346ee35eb1bdab11a56498fbd86bf70934c4d922e15c2ca86b7b0fb`. No user audio was persisted and no production locator, audio, model, asset, signing, packaging, or release behavior changed."
+    },
+    {
+      "id": "surah-60-offline-replay-001",
+      "name": "Surah 60:1-5 Offline Replay Report",
+      "description": "Replay the supplied local Surah 60 ayahs 1-5 recording through production ASR windows and identify whether latency is caused by recognition, locating, cadence, or compute.",
+      "dependencies": ["live-recitation-performance-002"],
+      "status": "done",
+      "done_criteria": [
+        "The existing audit supports a bounded ayah range without changing single-ayah behavior",
+        "The supplied M4A is replayed through production rolling windows without retaining a duplicate audio file",
+        "First transcript, provisional highlight, authoritative highlight, ayah progression, accuracy, and processing timing are measured",
+        "A privacy-safe Markdown report states the main bottleneck and next step",
+        "Focused and full SwiftPM verification passes"
+      ],
+      "verification": [
+        "focused Surah 60 local audio replay",
+        "swift test",
+        "swift build",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-19. Extended the opt-in local audio audit with `HIFZ_LOCAL_AUDIO_AUDIT_END_AYAH` while preserving its single-ayah default, and corrected the range summary to include matched references from every requested ayah. Replayed the supplied 97.408-second Surah 60:1-5 M4A as a temporary mono 16 kHz PCM fixture across 377 production-style rolling windows. The focused replay passed in 24.375 seconds; summed ASR work was 23.469 seconds (0.241x realtime), first transcript was 1,046.378 ms, and first authoritative highlight was 5,952.165 ms. The locator ended at 60:5:13 and merged expected-word LCS recall was 139/140. Per-window total p50/p95/max was 62.947/65.131/72.509 ms against a 255.938 ms cadence, so compute, rendering, and cadence are not the primary bottleneck. At 11.835 seconds the locator reached 60:1:12, then at 12.348 seconds a repeated two-word phrase falsely advanced it to 60:1:36 and caused a 15.356-second stall before 60:1:38. The diagnosis is a locator continuity/candidate-selection defect, not primarily model/decoder or normalization. The privacy-safe report is `docs/surah-60-1-5-offline-replay.md`; it recommends a focused repeated-phrase regression before the smallest locator fix. The temporary WAV, symlink, and transcript-bearing generated report were removed; the original source remained unchanged with SHA-256 `aeb8145107c6a9b48fc9b8f8c07fcc466462b970c3604744695083f21028351a`. Final `swift test` passed 143 tests with 1 expected skip and 0 failures; `swift build` passed. Release checks were skipped because no bundled asset, signing, packaging, or distribution input changed."
+    },
+    {
+      "id": "live-recitation-performance-dmg-001",
+      "name": "Live Recitation Performance DMG Refresh",
+      "description": "Publish the completed launch, rendering, and offline-audit changes to main, then replace the local ad-hoc DMG with a verified build from that commit.",
+      "dependencies": ["live-recitation-performance-002", "surah-60-offline-replay-001"],
+      "status": "in_progress",
+      "done_criteria": [
+        "Only the intended app, test, report, and harness artifacts are committed and pushed to main",
+        "The local release gate passes from the pushed commit",
+        "The existing ignored DMG is replaced with an ad-hoc build because no Developer ID identity is installed",
+        "The DMG verifies, mounts, contains the staged executable, and launches",
+        "Final artifact checksums and limitations are recorded"
+      ],
+      "verification": [
+        "./script/release_checks.sh",
+        "hdiutil verify dist/HifzTracker-0.1.0-arm64.dmg",
+        "mount, verify app signature and executable checksum, launch, detach",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "In progress. Direct push to main was explicitly requested. No Developer ID identity is installed, so the existing free ad-hoc distribution path will be preserved."
     }
   ]
 }

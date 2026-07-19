@@ -29,9 +29,12 @@ final class LocalAudioAuditTests: XCTestCase {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let audioDirectory = root.appending(path: "local audio")
         let outputURL = root.appending(path: "artifacts/local-audio-audit.json")
+        let selectedFilename = ProcessInfo.processInfo.environment["HIFZ_LOCAL_AUDIO_AUDIT_FILE"]
+        let selectedEndAyah = ProcessInfo.processInfo.environment["HIFZ_LOCAL_AUDIO_AUDIT_END_AYAH"].flatMap(Int.init)
         let audioURLs = try FileManager.default
             .contentsOfDirectory(at: audioDirectory, includingPropertiesForKeys: nil)
             .filter { $0.pathExtension.lowercased() == "wav" }
+            .filter { selectedFilename == nil || $0.lastPathComponent == selectedFilename }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
         XCTAssertFalse(audioURLs.isEmpty, "No WAV files found in \(audioDirectory.path)")
@@ -54,6 +57,12 @@ final class LocalAudioAuditTests: XCTestCase {
             var locator = ProgressiveTranscriptLocator()
             var provisionalTracker = ProvisionalInitialHighlightTracker()
             let target = try targetFromFilename(url)
+            let endAyah = selectedEndAyah ?? target.ayah
+            guard let surah = SurahCatalog.surah(target.surah),
+                  (target.ayah...surah.ayahCount).contains(endAyah) else {
+                throw LocalAudioAuditError.invalidAyahRange(start: target.ayah, end: endAyah)
+            }
+            let targetAyahs = Set(target.ayah...endAyah)
             let (audio, loadMS) = try timed { try WAVAudioFile(url: url) }
             let sourceDuration = Double(audio.info.frameCount) / Double(audio.info.sampleRate)
             let (samples16k, resampleMS) = timed {
@@ -65,18 +74,24 @@ final class LocalAudioAuditTests: XCTestCase {
             )
             XCTAssertFalse(auditWindows.isEmpty, "No rolling audit windows for \(url.lastPathComponent)")
 
-            let expectedWords = try QuranReferenceWords.wordsForAyah(
-                repository.referenceText(surah: target.surah, ayah: target.ayah),
-                surah: target.surah,
-                ayah: target.ayah
-            )
+            let expectedWords = try (target.ayah...endAyah).flatMap { ayah in
+                QuranReferenceWords.wordsForAyah(
+                    try repository.referenceText(surah: target.surah, ayah: ayah),
+                    surah: target.surah,
+                    ayah: ayah
+                )
+            }
             let expectedReferences = try references(for: target.surah, startAyah: target.ayah, repository: repository)
             let referenceIndex = TranscriptPositionIndex(expected: expectedReferences)
             let pageNumber = repository.pageNumber(surah: target.surah, ayah: target.ayah)
-            let page = try repository.mushafPage(pageNumber: pageNumber)
-            let pageWords = page.lines.flatMap { $0.words }
+            let pageNumbers = Set((target.ayah...endAyah).map {
+                repository.pageNumber(surah: target.surah, ayah: $0)
+            })
+            let pageWords = try pageNumbers.flatMap {
+                try repository.mushafPage(pageNumber: $0).lines.flatMap(\.words)
+            }
             let pageLocations = Set(pageWords.map { $0.location })
-            let targetReferences = expectedReferences.filter { $0.ayah == target.ayah }
+            let targetReferences = expectedReferences.filter { targetAyahs.contains($0.ayah) }
             let targetWordsMappable = targetReferences.allSatisfy { pageLocations.contains($0.location) }
 
             var windowResults: [LocalAudioWindowResult] = []
@@ -222,9 +237,9 @@ final class LocalAudioAuditTests: XCTestCase {
             }
 
             let matchedReferences = matchedReferencesByLocation.values.sorted(by: precedes)
-            let matchedTargetReferences = matchedReferences.filter { $0.ayah == target.ayah }
+            let matchedTargetReferences = matchedReferences.filter { targetAyahs.contains($0.ayah) }
             let locatedAyahs = Set(matchedReferences.map { $0.ayah }).sorted()
-            let locationCorrect = !matchedReferences.isEmpty && locatedAyahs == [target.ayah]
+            let locationCorrect = !matchedReferences.isEmpty && Set(locatedAyahs).isSubset(of: targetAyahs)
             let highlightedLocations = Set(matchedReferences.map { $0.location })
             let matchedTargetHighlightCount = targetReferences.filter { highlightedLocations.contains($0.location) }.count
             let matchedLocationsMappable = matchedReferences.allSatisfy { pageLocations.contains($0.location) }
@@ -260,8 +275,10 @@ final class LocalAudioAuditTests: XCTestCase {
             )
             XCTAssertTrue(locatorSummary.found, "No live locator progress for \(url.lastPathComponent)")
             XCTAssertEqual(firstAuthoritativeLocation?.completedThrough.surah, target.surah)
-            XCTAssertEqual(firstAuthoritativeLocation?.completedThrough.ayah, target.ayah)
-            XCTAssertTrue(locatorSummary.correctTargetAyahOnly, "Locator left target ayah for \(url.lastPathComponent)")
+            XCTAssertTrue(
+                (target.ayah...endAyah).contains(firstAuthoritativeLocation?.completedThrough.ayah ?? -1)
+            )
+            XCTAssertTrue(locatorSummary.correctTargetAyahOnly, "Locator left target ayah range for \(url.lastPathComponent)")
             let highlightSummary = HighlightSummary(
                 pageNumber: pageNumber,
                 targetWordCount: targetReferences.count,
@@ -281,7 +298,9 @@ final class LocalAudioAuditTests: XCTestCase {
             )
             let result = LocalAudioAuditResult(
                 file: url.lastPathComponent,
-                target: "\(target.surah):\(target.ayah)",
+                target: endAyah == target.ayah
+                    ? "\(target.surah):\(target.ayah)"
+                    : "\(target.surah):\(target.ayah)-\(endAyah)",
                 audio: audioSummary,
                 transcript: windowResults.map(\.transcript).joined(separator: " | "),
                 normalizedTranscript: mergedRecognizedWords.joined(separator: " "),
@@ -360,6 +379,7 @@ final class LocalAudioAuditTests: XCTestCase {
 
 private enum LocalAudioAuditError: Error {
     case invalidFilename(String)
+    case invalidAyahRange(start: Int, end: Int)
 }
 
 private struct LocalAudioAuditReport: Codable {
