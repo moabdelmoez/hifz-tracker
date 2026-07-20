@@ -789,6 +789,31 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-19. Commit `5df4ee9` (`Improve live recitation performance`) contains only the intended app, test, report, and harness files and was pushed directly to `origin/main`; unrelated `.claude/` content was excluded. `./script/release_checks.sh` passed 143 tests with 1 expected opt-in skip and 0 failures, rebuilt and launched the staged app, validated assets and rpaths, and verified its ad-hoc signature. No Developer ID identity is installed, so the ignored `dist/HifzTracker-0.1.0-arm64.dmg` was replaced through the existing free path with an unsigned DMG containing the ad-hoc-signed app. The DMG is 521,225,149 bytes, SHA-256 `a168dbc13c029c0b05944bfd331f9e73b4261031441d1bf52563cbc014dcbdc0`, and passed `hdiutil verify` with CRC32 `$71AD1D79`. The mounted app passed deep strict codesign verification, its executable matched the staged SHA-256 `1445e0ef8b40c6ac476150dc75123e18204c1ac3181dd7aaf0a98e7471b35dad`, and it launched from the read-only image as PID 69425. The verification instance was stopped and the image detached. The artifact is not Developer ID signed or notarized."
+    },
+    {
+      "id": "same-ayah-repeated-phrase-continuity-001",
+      "name": "Same-Ayah Repeated-Phrase Continuity",
+      "description": "Prevent stale rolling transcripts from advancing to a later occurrence of the same phrase within one ayah while preserving adjacent repeated phrases and unique post-lock catch-up.",
+      "dependencies": ["surah-60-offline-replay-001"],
+      "status": "done",
+      "done_criteria": [
+        "A canonical Surah 60:1 regression prevents the observed word 12 to word 36 jump",
+        "Adjacent repeated phrases and unique post-lock advancing matches remain supported",
+        "Existing sequential-ayah and strict fresh-evidence behavior remains unchanged",
+        "The Surah 60:1-5 replay advances without the repeated-phrase stall and still reaches 60:5:13",
+        "Focused and full SwiftPM verification passes",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter ProgressiveTranscriptLocatorTests",
+        "swift test --filter ProgressiveTranscriptLocatorOutcomeTests",
+        "focused Surah 60 local audio replay",
+        "swift test",
+        "swift build",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Implemented on 2026-07-20. The focused red regression reproduced the exact defect by locating the stale first-occurrence transcript at 60:1:36 with expected range 34..<36 after progress had reached word 12. Added one private post-lock guard that rejects only discontinuous matches whose complete normalized phrase occurs more than once in the current search range; adjacent repeated phrases, unique catch-up matches, ayah ordering, and fresh-evidence behavior are unchanged. The regression passed after the fix; all 23 ProgressiveTranscriptLocatorTests and 3 outcome tests passed. The deterministic 377-window Surah 60:1-5 replay passed in 24.546 seconds with zero false 60:1:36 outcomes, resumed from word 12 to word 15 in 1.536 seconds, retained 139/140 expected-word LCS coverage, and finished at 60:5:13. Final `swift test` passed 144 tests with 1 expected opt-in skip and 0 failures; `swift build`, JSON validation, and diff checks passed. The source M4A hash remained `aeb8145107c6a9b48fc9b8f8c07fcc466462b970c3604744695083f21028351a`; the temporary WAV was removed and the generated audit JSON was restored byte-for-byte. Release checks were skipped because no assets, signing, packaging, dependencies, model, audio persistence, or distribution inputs changed."
     }
   ]
 }

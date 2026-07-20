@@ -428,6 +428,12 @@ public struct ProgressiveTranscriptLocator: Sendable {
             recognizedWords: recognizedWords,
             expectedRange: searchRange,
             completingAfter: acceptedOffset
+           ),
+           !isAmbiguousDiscontinuousAdvance(
+            advancingLocation,
+            acceptedOffset: acceptedOffset,
+            index: index,
+            searchRange: searchRange
            ) {
             self.acceptedOffset = advancingLocation.expectedRange.upperBound - 1
             return .located(advancingLocation)
@@ -478,6 +484,19 @@ public struct ProgressiveTranscriptLocator: Sendable {
 
         acceptedOffset = completedOffset
         return .located(location)
+    }
+
+    private func isAmbiguousDiscontinuousAdvance(
+        _ location: TranscriptLocation,
+        acceptedOffset: Int,
+        index: TranscriptPositionIndex,
+        searchRange: Range<Int>
+    ) -> Bool {
+        guard location.expectedRange.lowerBound > acceptedOffset + 1 else { return false }
+
+        let phrase = Array(index.normalizedExpected[location.expectedRange])
+        let searchableWords = Array(index.normalizedExpected[searchRange])
+        return occurrenceCount(of: phrase, in: searchableWords) > 1
     }
 
     private func isAllowedShortInitialMatch(

@@ -343,6 +343,43 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         XCTAssertNil(locator.locate(expected: expected, recognizedWords: ayahThreeTranscript))
     }
 
+    func testPostLockDoesNotJumpToLaterOccurrenceOfRepeatedPhraseWithinAyah() throws {
+        let expected = references([
+            (1, [
+                "يا", "ايها", "الذين", "امنوا", "لا", "تتخذوا", "عدوي", "وعدوكم", "اولياء", "تلقون",
+                "اليهم", "بالمودة", "وقد", "كفروا", "بما", "جاءكم", "من", "الحق", "يخرجون", "الرسول",
+                "واياكم", "ان", "تؤمنوا", "بالله", "ربكم", "ان", "كنتم", "خرجتم", "جهادا", "في",
+                "سبيلي", "وابتغاء", "مرضاتي", "تسرون", "اليهم", "بالمودة", "وانا", "اعلم", "بما", "اخفيتم",
+                "وما", "اعلنتم", "ومن", "يفعله", "منكم", "فقد", "ضل", "سواء", "السبيل"
+            ])
+        ], surah: 60)
+        var locator = ProgressiveTranscriptLocator()
+
+        let throughWordTen = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: Array(expected[0..<10].map(\.text))
+        ))
+        let firstOccurrence = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["اليهم", "بالمودة"]
+        ))
+        let staleFirstOccurrence = locator.locateWithOutcome(
+            expected: expected,
+            recognizedWords: ["اولياء", "تلقون", "اليهم", "بالمودة"]
+        )
+
+        XCTAssertEqual(throughWordTen.completedThrough.location, "60:1:10")
+        XCTAssertEqual(firstOccurrence.completedThrough.location, "60:1:12")
+        XCTAssertEqual(staleFirstOccurrence, .notAdvancing(completedOffset: 11, acceptedOffset: 11))
+        guard staleFirstOccurrence == .notAdvancing(completedOffset: 11, acceptedOffset: 11) else { return }
+
+        let resumed = try XCTUnwrap(locator.locate(
+            expected: expected,
+            recognizedWords: ["وقد", "كفروا", "بما", "جاءكم"]
+        ))
+        XCTAssertEqual(resumed.completedThrough.location, "60:1:16")
+    }
+
     func testDoesNotEnterNextAyahBeforeCurrentFinalWord() throws {
         let expected = references([
             (1, ["start", "same1", "same2", "same3", "same4", "unfinished"]),
