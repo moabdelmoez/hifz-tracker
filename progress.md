@@ -2,11 +2,11 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-20 13:16 EEST
+**Last Updated:** 2026-07-20 13:47 EEST
 
-**Session ID:** same-ayah-repeated-phrase-continuity-2026-07-20
+**Session ID:** same-ayah-repeated-phrase-dmg-2026-07-20
 
-**Active Feature:** None. `same-ayah-repeated-phrase-continuity-001` is complete.
+**Active Feature:** None. `same-ayah-repeated-phrase-dmg-001` is complete.
 
 ## Status
 
@@ -17,6 +17,9 @@
 - [x] Preserved adjacent repeated phrases, unique catch-up, sequential ayah ordering, and timed fresh-evidence behavior.
 - [x] Replayed the supplied Surah 60:1–5 recording through 377 production-style rolling windows.
 - [x] Removed the temporary WAV and restored the transcript-bearing generated audit to its previous contents.
+- [x] Committed the locator fix as `1d87647` and pushed it to `origin/main`.
+- [x] Passed the local release gate and replaced the ignored DMG with the updated ad-hoc app.
+- [x] Verified, mounted, inspected, and launched the updated DMG, then detached it and removed temporary packaging directories.
 
 ### What's Blocked
 
@@ -27,6 +30,7 @@
 - `Sources/HifzCore/TranscriptPositionLocator.swift` - Reject ambiguous discontinuous repeated-phrase advancement before mutating accepted progress.
 - `Tests/HifzCoreTests/ProgressiveTranscriptLocatorTests.swift` - Cover adjacent acceptance, stale-repeat rejection, and normal resumption with Surah 60:1.
 - `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
+- `dist/HifzTracker-0.1.0-arm64.dmg` - Rebuilt ignored distribution artifact containing the pushed locator fix.
 - Unrelated `.claude/` content and `docs/realtime-performance-audit-2026-07-20.md` were preserved untouched.
 
 ## Evidence
@@ -40,8 +44,13 @@
 - [x] `swift build`: passed.
 - [x] Original M4A SHA-256 remained `aeb8145107c6a9b48fc9b8f8c07fcc466462b970c3604744695083f21028351a`.
 - [x] Temporary `060001.wav` was removed; `artifacts/local-audio-audit.json` was restored to SHA-256 `39065d03ba913449291c8b9bd29e306e964f58c74b9277db04903cb7648dd896`.
-- [x] Release checks were skipped because no release-sensitive inputs changed.
+- [x] Source commit `1d87647` was pushed directly to `origin/main`.
+- [x] `./script/release_checks.sh`: 144 tests, 1 expected skip, 0 failures; build, staged launch, assets, rpaths, and ad-hoc signature checks passed.
+- [x] Updated DMG: 520,849,620 bytes; SHA-256 `5d0de05df139b0c52438f7913ed19df017a7c81da1e36aec771ba2d2c2867ad0`; `hdiutil verify` CRC32 `$87E875E6`.
+- [x] Mounted app passed deep strict codesign verification and its executable matched the staged SHA-256 `8f9693f1336da055c4b17d117fede96d2a62921cab7941dffe94cc42ee34df52`.
+- [x] The app launched directly from the read-only DMG as PID 73847; the verification instance was stopped and the image detached.
+- [x] No Developer ID identity is installed; the app remains ad-hoc signed and the DMG is unsigned and not notarized.
 
 ## Next Step
 
-No active feature. The generic same-ayah repeated-phrase fix is ready for review or commit; rebuild distribution artifacts only if a new release is requested.
+No active feature. The pushed locator fix and refreshed local DMG are ready for use; a Developer ID identity is still required for signed and notarized public distribution.

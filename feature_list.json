@@ -814,6 +814,28 @@
         "git diff --check"
       ],
       "evidence": "Implemented on 2026-07-20. The focused red regression reproduced the exact defect by locating the stale first-occurrence transcript at 60:1:36 with expected range 34..<36 after progress had reached word 12. Added one private post-lock guard that rejects only discontinuous matches whose complete normalized phrase occurs more than once in the current search range; adjacent repeated phrases, unique catch-up matches, ayah ordering, and fresh-evidence behavior are unchanged. The regression passed after the fix; all 23 ProgressiveTranscriptLocatorTests and 3 outcome tests passed. The deterministic 377-window Surah 60:1-5 replay passed in 24.546 seconds with zero false 60:1:36 outcomes, resumed from word 12 to word 15 in 1.536 seconds, retained 139/140 expected-word LCS coverage, and finished at 60:5:13. Final `swift test` passed 144 tests with 1 expected opt-in skip and 0 failures; `swift build`, JSON validation, and diff checks passed. The source M4A hash remained `aeb8145107c6a9b48fc9b8f8c07fcc466462b970c3604744695083f21028351a`; the temporary WAV was removed and the generated audit JSON was restored byte-for-byte. Release checks were skipped because no assets, signing, packaging, dependencies, model, audio persistence, or distribution inputs changed."
+    },
+    {
+      "id": "same-ayah-repeated-phrase-dmg-001",
+      "name": "Same-Ayah Repeated-Phrase DMG Refresh",
+      "description": "Publish the completed locator fix and replace the local free-path DMG with a verified ad-hoc build from the pushed source commit.",
+      "dependencies": ["same-ayah-repeated-phrase-continuity-001"],
+      "status": "done",
+      "done_criteria": [
+        "The locator fix is committed and pushed to origin/main",
+        "The local release gate passes and stages the current app",
+        "The existing ignored DMG is replaced with the updated ad-hoc app",
+        "The DMG checksum, mounted signature, executable hash, and launch verify",
+        "Artifact evidence and free-path limitations are recorded"
+      ],
+      "verification": [
+        "./script/release_checks.sh",
+        "hdiutil verify dist/HifzTracker-0.1.0-arm64.dmg",
+        "mount, verify app signature and executable checksum, launch, detach",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-20. Commit `1d87647` (`Fix same-ayah repeated phrase jumps`) was pushed directly to `origin/main`; unrelated untracked `.claude/` and performance-audit content remained untouched. `./script/release_checks.sh` passed 144 tests with 1 expected opt-in skip and 0 failures, rebuilt and launched the staged app, validated assets and rpaths, and verified its ad-hoc signature. No Developer ID identity is installed, so the ignored `dist/HifzTracker-0.1.0-arm64.dmg` was replaced through the existing free path with an unsigned DMG containing the ad-hoc-signed app. The final image is 520,849,620 bytes, SHA-256 `5d0de05df139b0c52438f7913ed19df017a7c81da1e36aec771ba2d2c2867ad0`, and passed `hdiutil verify` with CRC32 `$87E875E6`. The mounted app passed deep strict codesign verification, its executable matched the staged SHA-256 `8f9693f1336da055c4b17d117fede96d2a62921cab7941dffe94cc42ee34df52`, and it launched directly from the read-only image as PID 73847. The verification instance was stopped, the image was detached, and temporary packaging directories were removed. The artifact is not Developer ID signed or notarized."
     }
   ]
 }

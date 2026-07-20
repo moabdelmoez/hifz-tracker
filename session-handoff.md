@@ -2,9 +2,9 @@
 
 ## Current Objective
 
-- Goal: No active feature; `same-ayah-repeated-phrase-continuity-001` is complete.
-- Current status: The generic same-ayah locator guard and its Surah 60 regression are implemented and verified but not committed.
-- Working tree: intended source, test, and harness changes plus unrelated untracked `.claude/` and performance-audit content.
+- Goal: No active feature; `same-ayah-repeated-phrase-dmg-001` is complete.
+- Current status: The generic same-ayah locator fix is committed and pushed, and the local free-path DMG has been rebuilt and verified from that source.
+- Working tree: packaging evidence updates plus unrelated untracked `.claude/` and performance-audit content.
 
 ## Verification Evidence
 
@@ -21,6 +21,12 @@
 | Swift build | Passed |
 | Source audio | Original SHA-256 unchanged |
 | Generated audit | Restored to prior SHA-256 `39065d03ba913449291c8b9bd29e306e964f58c74b9277db04903cb7648dd896` |
+| Source commit | `1d87647`, pushed to `origin/main` |
+| Release gate | Passed 144 tests with 1 expected skip; build, launch, assets, rpaths, and signature checks passed |
+| Updated DMG | 520,849,620 bytes; SHA-256 `5d0de05df139b0c52438f7913ed19df017a7c81da1e36aec771ba2d2c2867ad0` |
+| Image verification | `hdiutil verify` passed, CRC32 `$87E875E6` |
+| Mounted app | Deep strict signature valid; executable SHA-256 matched staged build |
+| Mounted launch | Launched from read-only image as PID 73847, then stopped and detached |
 
 ## Restart Notes
 
@@ -28,10 +34,11 @@
 2. Adjacent repeated phrases and unique discontinuous catch-up candidates remain eligible.
 3. The temporary `060001.wav` and conversion directory are gone; the original M4A was unchanged.
 4. The tracked audit JSON contains its prior public fixture, not the supplied Surah 60 transcript.
-5. Release checks and DMG rebuilding were intentionally skipped because this feature changed only locator code, tests, and harness evidence.
+5. The ignored `dist/HifzTracker-0.1.0-arm64.dmg` now contains the pushed locator fix.
+6. The app is ad-hoc signed and the DMG is unsigned and not notarized because no Developer ID identity is installed.
 
 ## Risks / Out of Scope
 
 - The fix does not impose a global distance threshold or change the two-word minimum.
-- ASR, audio, cadence, rendering, model assets, signing, packaging, and distribution artifacts are unchanged.
-- The existing ad-hoc DMG predates this source fix; rebuild it only when a new distribution artifact is requested.
+- ASR, audio, cadence, rendering, model assets, and release-signing configuration are unchanged.
+- Public distribution remains out of scope until Developer ID signing and notarization credentials are available.
