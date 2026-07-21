@@ -570,17 +570,9 @@ final class RecitationViewModel {
         }
         lastCompletedReference = completedWord
 
-        let focusedReference: RecitationWordReference
-        if references.indices.contains(completedOffset + 1) {
-            focusedReference = references[completedOffset + 1]
-            wordStatesByLocation[focusedReference.location] = .current
-        } else {
-            focusedReference = completedWord
-        }
-
-        self.focusedReference = focusedReference
+        self.focusedReference = completedWord
         syncSelectedAyahWordProgress(through: completedWord)
-        autoFlipDisplayedPageIfNeeded(toFollow: focusedReference)
+        autoFlipDisplayedPageIfNeeded(toFollow: completedWord)
     }
 
     func applyAuthoritativeLocatedProgress(
@@ -616,12 +608,6 @@ final class RecitationViewModel {
         for reference in provisionalReferences {
             wordStatesByLocation[reference.location] = .provisional
             visualLocations.insert(reference.location)
-        }
-
-        if references.indices.contains(location.expectedRange.upperBound) {
-            let nextReference = references[location.expectedRange.upperBound]
-            wordStatesByLocation[nextReference.location] = .current
-            visualLocations.insert(nextReference.location)
         }
 
         syncSelectedAyahProvisionalProgress(through: location, references: references)
@@ -773,8 +759,6 @@ final class RecitationViewModel {
                 || completedWord.ayah > startAyah
                 || word.wordIndex <= completedWord.wordIndex {
                 state = .completed
-            } else if completedWord.ayah == startAyah, word.wordIndex == completedWord.wordIndex + 1 {
-                state = .current
             } else {
                 state = .pending
             }
@@ -787,17 +771,11 @@ final class RecitationViewModel {
         references: [RecitationWordReference]
     ) {
         let provisionalLocations = Set(references[location.expectedRange].map(\.location))
-        let currentLocation = references.indices.contains(location.expectedRange.upperBound)
-            ? references[location.expectedRange.upperBound].location
-            : nil
-
         wordProgress = wordProgress.map { word in
             let location = wordLocation(surah: selectedSurah, ayah: startAyah, wordIndex: word.wordIndex)
             let state: WordProgressState
             if provisionalLocations.contains(location) {
                 state = .provisional
-            } else if location == currentLocation {
-                state = .current
             } else {
                 state = .pending
             }

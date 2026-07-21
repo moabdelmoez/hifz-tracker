@@ -836,6 +836,29 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-20. Commit `1d87647` (`Fix same-ayah repeated phrase jumps`) was pushed directly to `origin/main`; unrelated untracked `.claude/` and performance-audit content remained untouched. `./script/release_checks.sh` passed 144 tests with 1 expected opt-in skip and 0 failures, rebuilt and launched the staged app, validated assets and rpaths, and verified its ad-hoc signature. No Developer ID identity is installed, so the ignored `dist/HifzTracker-0.1.0-arm64.dmg` was replaced through the existing free path with an unsigned DMG containing the ad-hoc-signed app. The final image is 520,849,620 bytes, SHA-256 `5d0de05df139b0c52438f7913ed19df017a7c81da1e36aec771ba2d2c2867ad0`, and passed `hdiutil verify` with CRC32 `$87E875E6`. The mounted app passed deep strict codesign verification, its executable matched the staged SHA-256 `8f9693f1336da055c4b17d117fede96d2a62921cab7941dffe94cc42ee34df52`, and it launched directly from the read-only image as PID 73847. The verification instance was stopped, the image was detached, and temporary packaging directories were removed. The artifact is not Developer ID signed or notarized."
+    },
+    {
+      "id": "confirmed-word-cursor-001",
+      "name": "Confirmed-Word Recitation Cursor",
+      "description": "Keep live recitation focus, page-following, and visual states on the final ASR-confirmed word; do not show an unrecited successor as current.",
+      "dependencies": ["same-ayah-repeated-phrase-continuity-001"],
+      "status": "done",
+      "done_criteria": [
+        "Authoritative locator progress highlights only ASR-confirmed words",
+        "The focused ayah and automatic page follow remain on the final confirmed word",
+        "Provisional highlights do not reveal an unrecited successor",
+        "Focused and full SwiftPM verification passes",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter RecitationViewModelTests",
+        "swift test --filter RecitationEngineCoreTests",
+        "swift test",
+        "swift build",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Implemented on 2026-07-21 after the user confirmed the cursor should stay on words actually recited. The red RecitationViewModel regression showed the old forward-looking state (`.current`) on the unrecited successor. The shared progress path now focuses the final confirmed word, leaves later words pending, and keeps provisional highlights to their matched words; the reducer's current word also equals the final completed word. Focused tests, full `swift test`, and `swift build` passed. `./script/release_checks.sh` staged and verified the ad-hoc app; the rebuilt local DMG is 521,226,275 bytes with SHA-256 `56bcf7a167dd2cff8b08b14cfb2a541fea309602a26ce5c607ce3db51d898e9e` and passed `hdiutil verify`."
     }
   ]
 }

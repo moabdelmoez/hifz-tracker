@@ -110,7 +110,7 @@ public struct RecitationStateReducer: Sendable {
             snapshot.phase = .progressing
             snapshot.currentAyah = ayah
             snapshot.completedWordCount = completedWordCount
-            snapshot.currentWord = completedWordCount + 1
+            snapshot.currentWord = completedWordCount
         case let .strongMismatch(mismatch):
             if let event = correctionGate.observe(mismatch: mismatch) {
                 snapshot.phase = .correctionNeeded

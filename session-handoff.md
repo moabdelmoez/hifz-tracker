@@ -2,9 +2,9 @@
 
 ## Current Objective
 
-- Goal: No active feature; `same-ayah-repeated-phrase-dmg-001` is complete.
-- Current status: The generic same-ayah locator fix is committed and pushed, and the local free-path DMG has been rebuilt and verified from that source.
-- Working tree: packaging evidence updates plus unrelated untracked `.claude/` and performance-audit content.
+- Goal: No active feature; `confirmed-word-cursor-001` is complete.
+- Current status: The view model now focuses and page-follows the final ASR-confirmed word. Later words remain pending; both authoritative and provisional paths no longer show an unrecited successor as current.
+- Working tree: cursor implementation/tests plus harness evidence, and unrelated untracked `.claude/` and performance-audit content.
 
 ## Verification Evidence
 
@@ -30,12 +30,16 @@
 
 ## Restart Notes
 
-1. The private guard rejects only a candidate that skips unconfirmed words and whose full normalized phrase occurs more than once in the current search range.
-2. Adjacent repeated phrases and unique discontinuous catch-up candidates remain eligible.
-3. The temporary `060001.wav` and conversion directory are gone; the original M4A was unchanged.
-4. The tracked audit JSON contains its prior public fixture, not the supplied Surah 60 transcript.
-5. The ignored `dist/HifzTracker-0.1.0-arm64.dmg` now contains the pushed locator fix.
-6. The app is ad-hoc signed and the DMG is unsigned and not notarized because no Developer ID identity is installed.
+1. The user chose a confirmed-word cursor. `applyLocatedProgress`, `syncSelectedAyahWordProgress`, and provisional rendering leave successor words pending, while focused/page-follow references the completed word.
+2. Verification on 2026-07-21: red test showed three old successor `.current` assertions; focused `RecitationViewModelTests` (25) and `RecitationEngineCoreTests` (4), full `swift test`, `swift build`, JSON validation, and diff check passed with temporary compiler caches. `./script/release_checks.sh` passed, and the rebuilt ignored DMG is 521,226,275 bytes, SHA-256 `56bcf7a167dd2cff8b08b14cfb2a541fea309602a26ce5c607ce3db51d898e9e`; `hdiutil verify` passed.
+3. The normal sandbox baseline fails before test execution only because its default Clang module cache is not writable; use the documented `/private/tmp/hifz-*-module-cache` environment for verification.
+4. The private guard rejects only a candidate that skips unconfirmed words and whose full normalized phrase occurs more than once in the current search range.
+5. Adjacent repeated phrases and unique discontinuous catch-up candidates remain eligible.
+6. The temporary `060001.wav` and conversion directory are gone; the original M4A was unchanged.
+7. The tracked audit JSON contains its prior public fixture, not the supplied Surah 60 transcript.
+8. The ignored `dist/HifzTracker-0.1.0-arm64.dmg` now contains the pushed locator fix.
+9. The app is ad-hoc signed and the DMG is unsigned and not notarized because no Developer ID identity is installed.
+10. `gh auth status` reports the active GitHub CLI token is invalid; authenticate before pushing the local confirmed-word cursor commit.
 
 ## Risks / Out of Scope
 

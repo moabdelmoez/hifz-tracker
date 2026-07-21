@@ -2,16 +2,24 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-20 13:47 EEST
+**Last Updated:** 2026-07-21 23:06 EEST
 
 **Session ID:** same-ayah-repeated-phrase-dmg-2026-07-20
 
-**Active Feature:** None. `same-ayah-repeated-phrase-dmg-001` is complete.
+**Active Feature:** None. `confirmed-word-cursor-001` is complete.
 
 ## Status
 
 ### What's Done
 
+- [x] Diagnosed the reported Surah 60 “next word” behavior without changing runtime code: `applyLocatedProgress` intentionally marks every ASR-matched word completed and places the cursor on the next reference; the core reducer likewise sets `currentWord = completedWordCount + 1`.
+- [x] Confirmed the locator has no unmatched-successor path: it advances only from a matched `TranscriptLocation` built from time-aligned ASR evidence.
+- [x] Ran focused checks with temporary compiler caches: `RecitationViewModelTests` passed 25 tests and `ProgressiveTranscriptLocatorTests` passed 23 tests, both with 0 failures.
+- [x] Confirmed live inference during the recorded session was not backlogged (roughly 75–85 ms processing per 300 ms cadence). The privacy-preserving unified logs record counts and locations, not transcript text, so they cannot establish that the decoder did or did not emit `آمنوا` in the observed window.
+- [x] Implemented `confirmed-word-cursor-001`: authoritative and provisional progress now leave unrecited successor words pending, focus/page-follow the final ASR-confirmed word, and keep the reducer's current word aligned to that confirmed word.
+- [x] Red check: three RecitationViewModel assertions failed because the old code marked the successor `.current`; green focused checks passed `RecitationViewModelTests` (25) and `RecitationEngineCoreTests` (4), both with 0 failures.
+- [x] Final verification with sandbox-safe compiler caches passed: `swift test`, `swift build`, `jq empty feature_list.json`, and `git diff --check`.
+- [x] Local release gate passed: `./script/release_checks.sh` staged, launched, asset-checked, rpath-checked, and ad-hoc-signature-checked the app. The refreshed ignored DMG is 521,226,275 bytes, SHA-256 `56bcf7a167dd2cff8b08b14cfb2a541fea309602a26ce5c607ce3db51d898e9e`, and `hdiutil verify` passed (CRC32 `$526BEA53`).
 - [x] Added a canonical Surah 60:1 regression for the stale first-occurrence transcript jumping from word 12 to word 36.
 - [x] Added one private generic guard for ambiguous discontinuous post-lock matches inside the current search range.
 - [x] Preserved adjacent repeated phrases, unique catch-up, sequential ayah ordering, and timed fresh-evidence behavior.
@@ -23,14 +31,16 @@
 
 ### What's Blocked
 
-- Nothing.
+- Nothing. The default sandbox compiler cache remains unwritable; documented verification uses `/private/tmp` module caches.
 
 ## Files Modified This Session
 
 - `Sources/HifzCore/TranscriptPositionLocator.swift` - Reject ambiguous discontinuous repeated-phrase advancement before mutating accepted progress.
 - `Tests/HifzCoreTests/ProgressiveTranscriptLocatorTests.swift` - Cover adjacent acceptance, stale-repeat rejection, and normal resumption with Surah 60:1.
+- `HifzTracker/Services/RecitationViewModel.swift`, `Sources/HifzCore/RecitationCore.swift` - Keep focus and state on the final confirmed word.
+- `Tests/HifzTrackerTests/RecitationViewModelTests.swift` - Prevent unrecited successor cursor states in authoritative and provisional flows.
 - `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
-- `dist/HifzTracker-0.1.0-arm64.dmg` - Rebuilt ignored distribution artifact containing the pushed locator fix.
+- `dist/HifzTracker-0.1.0-arm64.dmg` - Rebuilt ignored distribution artifact containing the confirmed-word cursor change.
 - Unrelated `.claude/` content and `docs/realtime-performance-audit-2026-07-20.md` were preserved untouched.
 
 ## Evidence
@@ -53,4 +63,4 @@
 
 ## Next Step
 
-No active feature. The pushed locator fix and refreshed local DMG are ready for use; a Developer ID identity is still required for signed and notarized public distribution.
+No active feature. The local commit is ready; GitHub CLI authentication must be restored before it can be pushed to `origin/main`. A Developer ID identity is still required for signed and notarized public distribution.

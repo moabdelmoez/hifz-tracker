@@ -36,7 +36,7 @@ final class RecitationViewModelTests: XCTestCase {
     }
 
     @MainActor
-    func testHideRecitationTextRevealsCompletedAndProvisionalWords() {
+    func testLocatedProgressOnlyHighlightsConfirmedWords() {
         let repository = InMemoryQuranRepository()
         let viewModel = RecitationViewModel(repository: repository)
         viewModel.selectedSurah = 1
@@ -49,6 +49,8 @@ final class RecitationViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 1)))
         XCTAssertTrue(viewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 2)))
         XCTAssertFalse(viewModel.isMushafTextVisible(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)))
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 2)), .completed)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)), .pending)
 
         let provisionalViewModel = RecitationViewModel(repository: repository)
         provisionalViewModel.selectedSurah = 1
@@ -146,7 +148,7 @@ final class RecitationViewModelTests: XCTestCase {
     }
 
     @MainActor
-    func testAutoFlipsToPageContainingNextTrackedWordDuringRecitation() {
+    func testAutoFlipsToPageContainingLastConfirmedWordDuringRecitation() {
         let repository = InMemoryQuranRepository()
         let viewModel = RecitationViewModel(repository: repository)
         viewModel.selectedSurah = 1
@@ -162,14 +164,14 @@ final class RecitationViewModelTests: XCTestCase {
 
         viewModel.applyLocatedProgress(through: references[1], references: references)
 
-        XCTAssertEqual(viewModel.pageNumber, 2)
-        XCTAssertEqual(viewModel.mushafPage?.pageNumber, 2)
+        XCTAssertEqual(viewModel.pageNumber, 1)
+        XCTAssertEqual(viewModel.mushafPage?.pageNumber, 1)
         XCTAssertEqual(viewModel.focusedAyah, 1)
-        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)), .current)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)), .pending)
     }
 
     @MainActor
-    func testDisplayedAyahFollowsNextTrackedAyahDuringRecitation() {
+    func testDisplayedAyahFollowsLastConfirmedAyahDuringRecitation() {
         let repository = InMemoryQuranRepository()
         let viewModel = RecitationViewModel(repository: repository)
         viewModel.selectedSurah = 1
@@ -185,7 +187,7 @@ final class RecitationViewModelTests: XCTestCase {
 
         viewModel.applyLocatedProgress(through: references[2], references: references)
 
-        XCTAssertEqual(viewModel.displayedAyah, 2)
+        XCTAssertEqual(viewModel.displayedAyah, 1)
     }
 
     @MainActor
@@ -269,7 +271,7 @@ final class RecitationViewModelTests: XCTestCase {
     }
 
     @MainActor
-    func testProvisionalInitialHighlightPaintsMatchedWordsAndNextCurrent() {
+    func testProvisionalInitialHighlightPaintsOnlyMatchedWords() {
         let repository = InMemoryQuranRepository()
         let viewModel = RecitationViewModel(repository: repository)
         viewModel.selectedSurah = 1
@@ -283,7 +285,7 @@ final class RecitationViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 1)), .provisional)
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 2)), .provisional)
-        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)), .current)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)), .pending)
     }
 
     @MainActor
@@ -306,8 +308,8 @@ final class RecitationViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.snapshot.completedWordCount, 2)
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 1)), .completed)
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 2)), .completed)
-        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)), .current)
-        XCTAssertEqual(viewModel.wordProgress.map(\.state), [.completed, .completed, .current])
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)), .pending)
+        XCTAssertEqual(viewModel.wordProgress.map(\.state), [.completed, .completed, .pending])
     }
 
     @MainActor
@@ -348,7 +350,7 @@ final class RecitationViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.displayedAyah, 1)
         XCTAssertEqual(viewModel.pageNumber, 1)
         XCTAssertEqual(viewModel.mushafPage?.pageNumber, 1)
-        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 2, wordIndex: 1)), .current)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 2, wordIndex: 1)), .pending)
     }
 
     @MainActor
@@ -378,7 +380,7 @@ final class RecitationViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.mushafPage?.pageNumber, 101)
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 1)), .completed)
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 4)), .completed)
-        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 5)), .current)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 5)), .pending)
     }
 
     @MainActor
@@ -399,7 +401,7 @@ final class RecitationViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.snapshot.completedWordCount, 4)
         XCTAssertEqual(viewModel.pageNumber, 101)
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 4)), .completed)
-        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 5)), .current)
+        XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 5)), .pending)
     }
 
     @MainActor
