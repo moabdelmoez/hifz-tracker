@@ -907,6 +907,28 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-23. Diagnosis isolated the regression to commit `b04c616`, which changed page-following from the next reference to the final confirmed word and rewrote the boundary test to expect the old page. The restored regression failed with page 1 instead of page 2. `applyLocatedProgress` now keeps focus and visual state on the confirmed word while page navigation follows the next reference when available. The focused regression passed, all 25 RecitationViewModelTests passed, full `swift test` passed 144 tests with 1 expected opt-in skip and 0 failures, and `swift build` passed. JSON and diff validation passed. Release checks were skipped because no assets, signing, packaging, dependencies, or distribution inputs changed; the existing ignored DMG was not refreshed."
+    },
+    {
+      "id": "page-boundary-auto-flip-dmg-001",
+      "name": "Page-Boundary Auto-Flip DMG Refresh",
+      "description": "Publish the automatic page-turn fix and replace the local free-path DMG with a verified ad-hoc build from the pushed source commit.",
+      "dependencies": ["page-boundary-auto-flip-001"],
+      "status": "done",
+      "done_criteria": [
+        "The page-boundary fix is committed and pushed to origin/main",
+        "The local release gate passes and stages the current app",
+        "The existing ignored DMG is replaced with the updated ad-hoc app",
+        "The DMG checksum, mounted signature, executable hash, and launch verify",
+        "Artifact evidence and free-path limitations are recorded"
+      ],
+      "verification": [
+        "./script/release_checks.sh",
+        "hdiutil verify dist/HifzTracker-0.1.0-arm64.dmg",
+        "mount, verify app signature and executable checksum, launch, detach",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-23 from pushed source commit `c01bd41`. `./script/release_checks.sh` passed 144 tests with 1 expected opt-in skip and 0 failures, rebuilt and launched the staged app, validated assets and rpaths, and verified its ad-hoc signature. The existing ignored DMG was replaced only after the temporary image passed `hdiutil verify`; the final image is 521,226,492 bytes with SHA-256 `df999c6f7cb777cbd8b13755171aae7dc52ea1434f76653a6f6e372b32f278de` and verified CRC32 `$46636848`. The mounted app passed deep strict signature verification, its executable matched the staged SHA-256 `ac79346fa903c585140443b25ef0d39cf62a15c7c039828d40a0700e90222ae6`, and it launched from the read-only image as PID 17667. The verification process was stopped, the image detached, and temporary directories removed. No Developer ID identity is installed, so the app remains ad-hoc signed and the DMG is unsigned and not notarized."
     }
   ]
 }

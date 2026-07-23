@@ -2,21 +2,25 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-23 13:54 EEST
+**Last Updated:** 2026-07-23 14:03 EEST
 
-**Session ID:** page-boundary-auto-flip-2026-07-23
+**Session ID:** page-boundary-auto-flip-dmg-2026-07-23
 
-**Active Feature:** None. `page-boundary-auto-flip-001` is complete.
+**Active Feature:** None. `page-boundary-auto-flip-dmg-001` is complete.
 
 ## Status
 
 ### What's Done
 
+- [x] `./script/release_checks.sh` passed 144 tests with 1 expected skip, rebuilt and launched the staged app, validated assets and rpaths, and verified its ad-hoc signature.
+- [x] Replaced the ignored DMG only after the temporary image verified; the final image also passed `hdiutil verify`.
+- [x] Mounted the final DMG read-only, verified the app deeply, matched its executable to staging, launched it as PID 17667, stopped it, detached the image, and removed temporary directories.
+- [x] Committed the page-boundary fix as `c01bd41` and pushed it directly to `origin/main`.
 - [x] Diagnosed the page-boundary regression to `b04c616`: page navigation had been coupled to the final confirmed word instead of the next reference.
 - [x] Restored the boundary regression contract; the red check failed with displayed page 1 instead of page 2.
 - [x] Kept focus and highlights on the final confirmed word while making automatic page navigation follow the next reference.
 - [x] Focused regression and all 25 `RecitationViewModelTests` passed; full `swift test` passed 144 tests with 1 expected skip and 0 failures; `swift build` passed.
-- [x] Confirmed HEAD is `b04c616` and the working tree contains only the pre-existing untracked `.claude/` and performance-audit content.
+- [x] Confirmed source HEAD is `c01bd41` and preserved the pre-existing untracked `.claude/` and performance-audit content.
 - [x] Baseline `swift test` passed 144 tests with 1 expected opt-in audio audit skip and 0 failures; baseline `swift build` passed.
 - [x] `./script/release_checks.sh` passed 144 tests with 1 expected skip, rebuilt and launched the staged app, validated assets and rpaths, and verified its ad-hoc signature.
 - [x] Replaced the ignored DMG with the freshly staged app, verified its checksum, mounted it read-only, matched the packaged executable to staging, launched it from the image, then stopped it and detached the image.
@@ -46,7 +50,7 @@
 - `HifzTracker/Services/RecitationViewModel.swift` - Decouple confirmed-word focus from next-reference page navigation.
 - `Tests/HifzTrackerTests/RecitationViewModelTests.swift` - Restore page-boundary auto-flip coverage while preserving confirmed-word focus and pending successor state.
 - `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
-- `dist/HifzTracker.app`, `dist/HifzTracker-0.1.0-arm64.dmg` - Rebuilt ignored distribution artifacts from commit `b04c616`.
+- `dist/HifzTracker.app`, `dist/HifzTracker-0.1.0-arm64.dmg` - Rebuilt ignored distribution artifacts from commit `c01bd41`.
 - Unrelated `.claude/` content and `docs/realtime-performance-audit-2026-07-20.md` were preserved untouched.
 
 ## Evidence
@@ -56,16 +60,15 @@
 - [x] `RecitationViewModelTests`: 25 tests, 0 failures.
 - [x] Full `swift test`: 144 tests, 1 expected opt-in skip, 0 failures.
 - [x] `swift build`: passed.
-- [x] Release checks skipped because assets, signing, packaging, dependencies, and distribution inputs were unchanged; the existing ignored DMG still contains commit `b04c616`.
-- [x] Source commit: `b04c616320e62944441784bcdbab97257c055635` (`Keep recitation cursor on confirmed words`).
+- [x] Source commit: `c01bd41` (`Restore automatic Mushaf page turns`), pushed to `origin/main`.
 - [x] Baseline and release-gate test runs: 144 tests, 1 expected skip, 0 failures; `swift build` passed.
-- [x] Confirmed-word regression `testLocatedProgressOnlyHighlightsConfirmedWords` passed in the packaged source baseline.
-- [x] Staged and mounted executable SHA-256: `992e738ecd453133f266e35664a3762613b510fe9abea702d3f98b4dfb63a6be`.
-- [x] Updated DMG: 521,226,279 bytes; SHA-256 `e8f20bf7af89867204b6aa7f0a08b29aead5f048195653fea0f66da6b9efc5ab`; `hdiutil verify` CRC32 `$A138BF7F`.
-- [x] Mounted app passed deep strict codesign verification and launched from `/private/tmp/hifz-dmg-verify.Plupwt/HifzTracker.app` as PID 12883.
-- [x] The verification process was stopped, `/dev/disk5` was detached, and the temporary mount directory was removed.
+- [x] Page-boundary auto-flip regression passed in the packaged source baseline.
+- [x] Staged and mounted executable SHA-256: `ac79346fa903c585140443b25ef0d39cf62a15c7c039828d40a0700e90222ae6`.
+- [x] Updated DMG: 521,226,492 bytes; SHA-256 `df999c6f7cb777cbd8b13755171aae7dc52ea1434f76653a6f6e372b32f278de`; `hdiutil verify` CRC32 `$46636848`.
+- [x] Mounted app passed deep strict codesign verification and launched from `/private/tmp/hifz-dmg-mount.PrFauS/HifzTracker.app` as PID 17667.
+- [x] The verification process was stopped, disk image `disk4` was detached, and temporary directories were removed.
 - [x] No Developer ID identity is installed; the app remains ad-hoc signed and the DMG is unsigned and not notarized.
 
 ## Next Step
 
-No active feature. The source fix is ready; the existing ignored DMG still contains commit `b04c616` and has not been refreshed with this uncommitted change.
+No active feature. The refreshed local DMG is ready at `dist/HifzTracker-0.1.0-arm64.dmg`; Developer ID signing and notarization still require credentials.
