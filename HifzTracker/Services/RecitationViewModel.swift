@@ -572,7 +572,10 @@ final class RecitationViewModel {
 
         self.focusedReference = completedWord
         syncSelectedAyahWordProgress(through: completedWord)
-        autoFlipDisplayedPageIfNeeded(toFollow: completedWord)
+        let pageReference = references.indices.contains(completedOffset + 1)
+            ? references[completedOffset + 1]
+            : completedWord
+        autoFlipDisplayedPageIfNeeded(toFollow: pageReference)
     }
 
     func applyAuthoritativeLocatedProgress(

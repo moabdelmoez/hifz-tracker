@@ -2,16 +2,24 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-21 23:06 EEST
+**Last Updated:** 2026-07-23 13:54 EEST
 
-**Session ID:** same-ayah-repeated-phrase-dmg-2026-07-20
+**Session ID:** page-boundary-auto-flip-2026-07-23
 
-**Active Feature:** None. `confirmed-word-cursor-001` is complete.
+**Active Feature:** None. `page-boundary-auto-flip-001` is complete.
 
 ## Status
 
 ### What's Done
 
+- [x] Diagnosed the page-boundary regression to `b04c616`: page navigation had been coupled to the final confirmed word instead of the next reference.
+- [x] Restored the boundary regression contract; the red check failed with displayed page 1 instead of page 2.
+- [x] Kept focus and highlights on the final confirmed word while making automatic page navigation follow the next reference.
+- [x] Focused regression and all 25 `RecitationViewModelTests` passed; full `swift test` passed 144 tests with 1 expected skip and 0 failures; `swift build` passed.
+- [x] Confirmed HEAD is `b04c616` and the working tree contains only the pre-existing untracked `.claude/` and performance-audit content.
+- [x] Baseline `swift test` passed 144 tests with 1 expected opt-in audio audit skip and 0 failures; baseline `swift build` passed.
+- [x] `./script/release_checks.sh` passed 144 tests with 1 expected skip, rebuilt and launched the staged app, validated assets and rpaths, and verified its ad-hoc signature.
+- [x] Replaced the ignored DMG with the freshly staged app, verified its checksum, mounted it read-only, matched the packaged executable to staging, launched it from the image, then stopped it and detached the image.
 - [x] Diagnosed the reported Surah 60 “next word” behavior without changing runtime code: `applyLocatedProgress` intentionally marks every ASR-matched word completed and places the cursor on the next reference; the core reducer likewise sets `currentWord = completedWordCount + 1`.
 - [x] Confirmed the locator has no unmatched-successor path: it advances only from a matched `TranscriptLocation` built from time-aligned ASR evidence.
 - [x] Ran focused checks with temporary compiler caches: `RecitationViewModelTests` passed 25 tests and `ProgressiveTranscriptLocatorTests` passed 23 tests, both with 0 failures.
@@ -35,32 +43,29 @@
 
 ## Files Modified This Session
 
-- `Sources/HifzCore/TranscriptPositionLocator.swift` - Reject ambiguous discontinuous repeated-phrase advancement before mutating accepted progress.
-- `Tests/HifzCoreTests/ProgressiveTranscriptLocatorTests.swift` - Cover adjacent acceptance, stale-repeat rejection, and normal resumption with Surah 60:1.
-- `HifzTracker/Services/RecitationViewModel.swift`, `Sources/HifzCore/RecitationCore.swift` - Keep focus and state on the final confirmed word.
-- `Tests/HifzTrackerTests/RecitationViewModelTests.swift` - Prevent unrecited successor cursor states in authoritative and provisional flows.
+- `HifzTracker/Services/RecitationViewModel.swift` - Decouple confirmed-word focus from next-reference page navigation.
+- `Tests/HifzTrackerTests/RecitationViewModelTests.swift` - Restore page-boundary auto-flip coverage while preserving confirmed-word focus and pending successor state.
 - `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
-- `dist/HifzTracker-0.1.0-arm64.dmg` - Rebuilt ignored distribution artifact containing the confirmed-word cursor change.
+- `dist/HifzTracker.app`, `dist/HifzTracker-0.1.0-arm64.dmg` - Rebuilt ignored distribution artifacts from commit `b04c616`.
 - Unrelated `.claude/` content and `docs/realtime-performance-audit-2026-07-20.md` were preserved untouched.
 
 ## Evidence
 
-- [x] Red regression: current code returned `60:1:36`, matched 2 words, and selected expected range `34..<36` instead of `.notAdvancing(completedOffset: 11, acceptedOffset: 11)`.
-- [x] Focused regression passed after the private ambiguity guard.
-- [x] Locator suites: 23 progressive tests and 3 outcome tests passed.
-- [x] Deterministic replay: 377 windows; no `60:1:36` outcome; progress moved from `60:1:12` at 11.773 s to `60:1:15` at 13.309 s; final location `60:5:13`.
-- [x] Replay quality remained 139/140 expected-word LCS (99.29%); processing remained 0.242× realtime.
-- [x] Full `swift test`: 144 tests, 1 expected skip, 0 failures.
+- [x] Red regression: `testAutoFlipsToPageContainingNextReferenceWhileKeepingConfirmedWordFocus` reported page 1 and `mushafPage` 1 instead of page 2.
+- [x] Green focused regression: 1 test, 0 failures.
+- [x] `RecitationViewModelTests`: 25 tests, 0 failures.
+- [x] Full `swift test`: 144 tests, 1 expected opt-in skip, 0 failures.
 - [x] `swift build`: passed.
-- [x] Original M4A SHA-256 remained `aeb8145107c6a9b48fc9b8f8c07fcc466462b970c3604744695083f21028351a`.
-- [x] Temporary `060001.wav` was removed; `artifacts/local-audio-audit.json` was restored to SHA-256 `39065d03ba913449291c8b9bd29e306e964f58c74b9277db04903cb7648dd896`.
-- [x] Source commit `1d87647` was pushed directly to `origin/main`.
-- [x] `./script/release_checks.sh`: 144 tests, 1 expected skip, 0 failures; build, staged launch, assets, rpaths, and ad-hoc signature checks passed.
-- [x] Updated DMG: 520,849,620 bytes; SHA-256 `5d0de05df139b0c52438f7913ed19df017a7c81da1e36aec771ba2d2c2867ad0`; `hdiutil verify` CRC32 `$87E875E6`.
-- [x] Mounted app passed deep strict codesign verification and its executable matched the staged SHA-256 `8f9693f1336da055c4b17d117fede96d2a62921cab7941dffe94cc42ee34df52`.
-- [x] The app launched directly from the read-only DMG as PID 73847; the verification instance was stopped and the image detached.
+- [x] Release checks skipped because assets, signing, packaging, dependencies, and distribution inputs were unchanged; the existing ignored DMG still contains commit `b04c616`.
+- [x] Source commit: `b04c616320e62944441784bcdbab97257c055635` (`Keep recitation cursor on confirmed words`).
+- [x] Baseline and release-gate test runs: 144 tests, 1 expected skip, 0 failures; `swift build` passed.
+- [x] Confirmed-word regression `testLocatedProgressOnlyHighlightsConfirmedWords` passed in the packaged source baseline.
+- [x] Staged and mounted executable SHA-256: `992e738ecd453133f266e35664a3762613b510fe9abea702d3f98b4dfb63a6be`.
+- [x] Updated DMG: 521,226,279 bytes; SHA-256 `e8f20bf7af89867204b6aa7f0a08b29aead5f048195653fea0f66da6b9efc5ab`; `hdiutil verify` CRC32 `$A138BF7F`.
+- [x] Mounted app passed deep strict codesign verification and launched from `/private/tmp/hifz-dmg-verify.Plupwt/HifzTracker.app` as PID 12883.
+- [x] The verification process was stopped, `/dev/disk5` was detached, and the temporary mount directory was removed.
 - [x] No Developer ID identity is installed; the app remains ad-hoc signed and the DMG is unsigned and not notarized.
 
 ## Next Step
 
-No active feature. The local commit is ready; GitHub CLI authentication must be restored before it can be pushed to `origin/main`. A Developer ID identity is still required for signed and notarized public distribution.
+No active feature. The source fix is ready; the existing ignored DMG still contains commit `b04c616` and has not been refreshed with this uncommitted change.

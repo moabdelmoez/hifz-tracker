@@ -148,7 +148,7 @@ final class RecitationViewModelTests: XCTestCase {
     }
 
     @MainActor
-    func testAutoFlipsToPageContainingLastConfirmedWordDuringRecitation() {
+    func testAutoFlipsToPageContainingNextReferenceWhileKeepingConfirmedWordFocus() {
         let repository = InMemoryQuranRepository()
         let viewModel = RecitationViewModel(repository: repository)
         viewModel.selectedSurah = 1
@@ -164,8 +164,8 @@ final class RecitationViewModelTests: XCTestCase {
 
         viewModel.applyLocatedProgress(through: references[1], references: references)
 
-        XCTAssertEqual(viewModel.pageNumber, 1)
-        XCTAssertEqual(viewModel.mushafPage?.pageNumber, 1)
+        XCTAssertEqual(viewModel.pageNumber, 2)
+        XCTAssertEqual(viewModel.mushafPage?.pageNumber, 2)
         XCTAssertEqual(viewModel.focusedAyah, 1)
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)), .pending)
     }

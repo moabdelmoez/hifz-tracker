@@ -859,6 +859,54 @@
         "git diff --check"
       ],
       "evidence": "Implemented on 2026-07-21 after the user confirmed the cursor should stay on words actually recited. The red RecitationViewModel regression showed the old forward-looking state (`.current`) on the unrecited successor. The shared progress path now focuses the final confirmed word, leaves later words pending, and keeps provisional highlights to their matched words; the reducer's current word also equals the final completed word. Focused tests, full `swift test`, and `swift build` passed. `./script/release_checks.sh` staged and verified the ad-hoc app; the rebuilt local DMG is 521,226,275 bytes with SHA-256 `56bcf7a167dd2cff8b08b14cfb2a541fea309602a26ce5c607ce3db51d898e9e` and passed `hdiutil verify`."
+    },
+    {
+      "id": "confirmed-word-cursor-dmg-refresh-001",
+      "name": "Confirmed-Word Cursor DMG Refresh",
+      "description": "Replace the local free-path DMG with a freshly verified ad-hoc build from commit b04c616 so the packaged app unambiguously includes the confirmed-word cursor fix.",
+      "dependencies": ["confirmed-word-cursor-001"],
+      "status": "done",
+      "done_criteria": [
+        "The required SwiftPM baseline passes from commit b04c616",
+        "The local release gate stages and validates the current ad-hoc app",
+        "The existing ignored DMG is replaced with the newly staged app",
+        "The DMG checksum, mounted signature, executable hash, and launch verify",
+        "Artifact evidence and free-path limitations are recorded"
+      ],
+      "verification": [
+        "swift test",
+        "swift build",
+        "./script/release_checks.sh",
+        "hdiutil verify dist/HifzTracker-0.1.0-arm64.dmg",
+        "mount, verify app signature and executable checksum, launch, detach",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-23 from commit `b04c616`. Baseline and local-release-gate `swift test` runs each passed 144 tests with 1 expected opt-in audio audit skip and 0 failures; `swift build` passed, and the release gate rebuilt, launched, asset-checked, rpath-checked, and ad-hoc-signature-checked `dist/HifzTracker.app`. The ignored DMG was replaced through the existing free path and is 521,226,279 bytes with SHA-256 `e8f20bf7af89867204b6aa7f0a08b29aead5f048195653fea0f66da6b9efc5ab`; `hdiutil verify` passed with CRC32 `$A138BF7F`. The mounted app passed deep strict codesign verification, its executable matched the staged SHA-256 `992e738ecd453133f266e35664a3762613b510fe9abea702d3f98b4dfb63a6be`, and it launched from the read-only image as PID 12883. The verification process was stopped, the image detached, and the temporary mount removed. No Developer ID identity is installed, so the app remains ad-hoc signed and the DMG is unsigned and not notarized."
+    },
+    {
+      "id": "page-boundary-auto-flip-001",
+      "name": "Page-Boundary Automatic Flip",
+      "description": "Restore automatic navigation to the next Mushaf page when the final word on the displayed page is confirmed, while keeping focus and word highlights limited to confirmed recitation.",
+      "dependencies": ["confirmed-word-cursor-001"],
+      "status": "done",
+      "done_criteria": [
+        "Confirming the final word on a page displays the page containing the next reference",
+        "The unrecited next reference remains pending rather than current",
+        "Focused recitation remains on the final confirmed word",
+        "Automatic page navigation remains disabled outside active recording",
+        "Focused and full SwiftPM verification passes",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter RecitationViewModelTests/testAutoFlipsToPageContainingNextReferenceWhileKeepingConfirmedWordFocus",
+        "swift test --filter RecitationViewModelTests",
+        "swift test",
+        "swift build",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-23. Diagnosis isolated the regression to commit `b04c616`, which changed page-following from the next reference to the final confirmed word and rewrote the boundary test to expect the old page. The restored regression failed with page 1 instead of page 2. `applyLocatedProgress` now keeps focus and visual state on the confirmed word while page navigation follows the next reference when available. The focused regression passed, all 25 RecitationViewModelTests passed, full `swift test` passed 144 tests with 1 expected opt-in skip and 0 failures, and `swift build` passed. JSON and diff validation passed. Release checks were skipped because no assets, signing, packaging, dependencies, or distribution inputs changed; the existing ignored DMG was not refreshed."
     }
   ]
 }
