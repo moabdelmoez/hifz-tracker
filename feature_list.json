@@ -981,6 +981,26 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-29. Added the native SwiftUI `.switch` toggle style to the existing Hide Ayah `Toggle`, preserving its binding, hidden accessibility label, and help text. The first sandboxed baseline `swift test` attempt was blocked during manifest compilation by `sandbox_apply: Operation not permitted`; the required escalated retry passed 149 tests with 1 expected opt-in audio skip and 0 failures. Final `swift test` also passed 149 tests with 1 expected skip and 0 failures; baseline and final `swift build` passed. `jq empty feature_list.json` and `git diff --check` passed. Release checks were skipped because no assets, signing, packaging, dependencies, or distribution inputs changed."
+    },
+    {
+      "id": "readme-citations-001",
+      "name": "README Citations",
+      "description": "Replace the README logo/project-page and privacy sections with citations for the Mushaf layout and Quran speech-to-text resources.",
+      "dependencies": [],
+      "status": "done",
+      "done_criteria": [
+        "Logo And Project Page is removed from README.md",
+        "Privacy Notes is removed from README.md",
+        "README.md ends with linked Mushaf Layout and Quran Speech-to-text citations",
+        "Required verification passes"
+      ],
+      "verification": [
+        "swift test",
+        "swift build",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-29. Removed both requested README sections and added the two requested linked citations at the end. Baseline and final `swift test` each passed 149 tests with 1 expected opt-in audio skip and 0 failures; baseline and final `swift build` passed. The initial sandboxed test attempt was blocked by `sandbox_apply: Operation not permitted`, so verification used the documented escalated SwiftPM path. `jq empty feature_list.json` and `git diff --check` passed. Release checks were skipped because this is documentation-only."
     }
   ]
 }

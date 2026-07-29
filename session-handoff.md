@@ -2,14 +2,18 @@
 
 ## Current Objective
 
-- Goal: None; `hide-ayah-switch-style-001` is complete.
-- Current status: Hide Ayah explicitly uses the native SwiftUI switch style, matching the General setting.
-- Working tree: this commit contains the switch and harness evidence changes; unrelated untracked `.claude/` and performance-audit content remain untouched.
+- Goal: None; `readme-citations-001` is complete.
+- Current status: The two requested README sections are removed and the README ends with the requested citations.
+- Working tree: This task contains README and harness evidence changes; unrelated untracked `.claude/` and performance-audit content remain untouched.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
+| README content | Old headings absent; both requested citation links present at the end |
+| Final test suite | 149 tests passed, 1 expected opt-in audio skip |
+| Final Swift build | Passed |
+| JSON and diff validation | Passed |
 | Hide Ayah control | Existing `Toggle` now uses `.toggleStyle(.switch)` |
 | Final test suite | 149 tests passed, 1 expected opt-in audio skip |
 | Final Swift build | Passed |
@@ -40,11 +44,11 @@
 
 ## Restart Notes
 
-1. The only runtime change is `.toggleStyle(.switch)` on the existing Hide Ayah `Toggle`.
-2. The binding, label, help text, and Hide Ayah behavior are unchanged.
-3. The normal sandbox baseline needs the documented `/private/tmp/hifz-*-module-cache` environment for verification.
+1. `README.md` contains the requested final citations section.
+2. `feature_list.json` and `progress.md` record completion evidence.
+3. No runtime, asset, packaging, or signing input changed.
 
 ## Risks / Out of Scope
 
-- No custom toggle styling or new tests were added; the native SwiftUI switch style is the requested behavior.
-- No ASR, audio, Mushaf rendering, assets, packaging, or signing inputs changed.
+- Release checks were skipped because this is documentation-only.
+- No app code, tests, assets, packaging, or signing inputs changed.

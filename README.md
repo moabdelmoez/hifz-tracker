@@ -37,11 +37,6 @@ Hifz Tracker is a private, offline-first macOS app for Quran memorization practi
 - XCTest coverage for core recitation logic, renderer behavior, live ASR scheduling, dashboard progress, and app view-model flows.
 - Static GitHub Pages site under `docs/`.
 
-## Logo And Project Page
-
-- Repository logo: [`docs/assets/hifz-tracker-icon.png`](docs/assets/hifz-tracker-icon.png)
-- Project page: [moabdelmoez.github.io/hifz-tracker](https://moabdelmoez.github.io/hifz-tracker/)
-
 ## Repository Layout
 
 ```text
@@ -82,6 +77,7 @@ For release-sensitive checks, use:
 
 Run `./script/setup_assets.sh` only when preparing model, font, layout, or release assets.
 
-## Privacy Notes
+## Citations
 
-Hifz Tracker is designed to run offline after installation. The app listens locally for recitation progress and does not persist user audio.
+- [Mushaf Layout](https://qul.tarteel.ai/resources/mushaf-layout/19)
+- [Quran Speech-to-text](https://huggingface.co/Saboorhsn/quran-stt-onnx)

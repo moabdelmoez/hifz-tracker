@@ -2,16 +2,21 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-29 18:56 EEST
+**Last Updated:** 2026-07-29 19:21 EEST
 
-**Session ID:** hide-ayah-switch-style-2026-07-29
+**Session ID:** readme-citations-2026-07-29
 
-**Active Feature:** None. `hide-ayah-switch-style-001` is complete.
+**Active Feature:** None. `readme-citations-001` is complete.
 
 ## Status
 
 ### What's Done
 
+- [x] Removed the README's Logo And Project Page and Privacy Notes sections.
+- [x] Added linked Mushaf Layout and Quran Speech-to-text citations at the end of the README.
+- [x] Baseline `swift test` passed 149 tests with 1 expected opt-in audio skip; baseline `swift build` passed.
+- [x] Final `swift test` passed 149 tests with 1 expected opt-in audio skip; final `swift build` passed.
+- [x] Recorded the sandbox-only SwiftPM manifest failure before the successful escalated baseline.
 - [x] Traced the Hide Ayah control and the General setting to native SwiftUI `Toggle` views.
 - [x] Baseline `swift test` passed 149 tests with 1 expected opt-in audio skip; baseline `swift build` passed.
 - [x] Recorded the initial sandbox-only manifest failure (`sandbox_apply: Operation not permitted`) before continuing with the successful escalated baseline.
@@ -74,6 +79,8 @@
 
 ## Files Modified This Session
 
+- `README.md` - Remove the two requested sections and add the citations.
+- `feature_list.json`, `progress.md` - Record documentation scope and verification.
 - `HifzTracker/Views/RecitationSidebarView.swift` - Render Hide Ayah as a native macOS switch.
 - `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
 - `Sources/HifzCore/MushafFontResolver.swift` - Match the six suffixless bundled QPC font names.
@@ -86,6 +93,13 @@
 
 ## Evidence
 
+- [x] README ends with both requested citation links.
+- [x] Baseline `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Baseline `swift build`: passed.
+- [x] Final `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Final `swift build`: passed.
+- [x] `jq empty feature_list.json` and `git diff --check`: passed.
+- [x] Release checks skipped; only documentation and harness tracking changed.
 - [x] `Toggle("Hide recitation text", ...)` now explicitly uses `.toggleStyle(.switch)`.
 - [x] Final `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
 - [x] Final `swift build`: passed.
@@ -129,4 +143,4 @@
 
 ## Next Step
 
-No active feature. This commit contains the completed Hide Ayah switch change.
+No active feature. The requested README cleanup and citations are complete.
