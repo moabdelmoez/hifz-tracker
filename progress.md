@@ -12,6 +12,7 @@
 
 ### What's Done
 
+- [x] Committed the Mushaf layout fix as `89c3169` and pushed it directly to `origin/main`.
 - [x] Re-ran `./script/release_checks.sh`; 149 tests passed with 1 expected skip, and staging, launch, assets, rpaths, and ad-hoc signature checks passed.
 - [x] Replaced the ignored local DMG only after a temporary image passed `hdiutil verify`.
 - [x] Mounted the final DMG read-only, verified its app deeply, matched the executable to staging, launched it as PID 13975, stopped it, and detached the image.
@@ -78,6 +79,7 @@
 
 ## Evidence
 
+- [x] Source commit: `89c3169` (`Fix Mushaf page layout`), pushed to `origin/main`.
 - [x] Local release gate: 149 tests, 1 expected opt-in audio skip, 0 failures; build, staging, launch, assets, rpaths, and ad-hoc signature checks passed.
 - [x] Updated DMG: 520,841,049 bytes; SHA-256 `c4672801c5d2753e5de1e3c0a47c0a8cbf6730155205c8287d9704fd40c5b874`; `hdiutil verify` CRC32 `$664C34F0`.
 - [x] Mounted app passed deep strict signature verification; mounted and staged executable SHA-256 matched `9d6f41e495636ffbfeacb1cd7e0b741e7c536b4871d379d2f9202527ddd86355`.
@@ -99,7 +101,7 @@
 - [x] Green focused renderer suite: 18 tests, 0 failures, including the temporary exhaustive canvas sweep.
 - [x] Final permanent `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
 - [x] `swift build`: passed.
-- [x] GitHub CLI publish prerequisite is blocked: `gh auth status` reports an invalid token for `moabdelmoez`.
+- [x] GitHub authentication restored through the macOS Keychain; direct push succeeded.
 - [x] Red regression: `testAutoFlipsToPageContainingNextReferenceWhileKeepingConfirmedWordFocus` reported page 1 and `mushafPage` 1 instead of page 2.
 - [x] Green focused regression: 1 test, 0 failures.
 - [x] `RecitationViewModelTests`: 25 tests, 0 failures.
@@ -116,4 +118,4 @@
 
 ## Next Step
 
-The updated local DMG is ready at `dist/HifzTracker-0.1.0-arm64.dmg`. Re-authenticate with `gh auth login -h github.com`, then commit and push the scoped Mushaf changes directly to `main`.
+No active feature. Source commit `89c3169` is on `origin/main`, and the updated local DMG is ready at `dist/HifzTracker-0.1.0-arm64.dmg`. Developer ID signing and notarization still require credentials.

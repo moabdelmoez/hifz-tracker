@@ -3,19 +3,20 @@
 ## Current Objective
 
 - Goal: None; `mushaf-layout-reliability-001` is complete.
-- Current status: Every ayah line across all 604 pages fits; the updated local DMG is fully verified; commit/push is waiting on GitHub CLI re-authentication.
-- Working tree: uncommitted source, test, and harness changes plus unrelated untracked `.claude/` and performance-audit content.
+- Current status: Source commit `89c3169` is on `origin/main`, every ayah line across all 604 pages fits, and the updated local DMG is fully verified.
+- Working tree: handoff evidence changes plus unrelated untracked `.claude/` and performance-audit content.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
+| Source commit | `89c3169` (`Fix Mushaf page layout`), pushed to `origin/main` |
 | Local release gate | 149 tests, 1 expected skip; staging, launch, assets, rpaths, and ad-hoc signature checks passed |
 | Updated DMG | 520,841,049 bytes; SHA-256 `c4672801c5d2753e5de1e3c0a47c0a8cbf6730155205c8287d9704fd40c5b874` |
 | Image verification | `hdiutil verify` passed, CRC32 `$664C34F0` |
 | Executable verification | Mounted and staged SHA-256 `9d6f41e495636ffbfeacb1cd7e0b741e7c536b4871d379d2f9202527ddd86355` |
 | Mounted launch | Launched from the read-only image as PID 13975, then stopped and detached |
-| GitHub publish | Blocked: `gh auth status` reports an invalid token |
+| GitHub publish | Authentication restored through Keychain; direct push to `main` passed |
 | All-page red scan | 138 overflowing lines across 30 pages |
 | Page 19 red regression | Line 3 measured 1,064pt in a 920pt area, reproduced twice |
 | Root-cause probe | QPC space advance was 2.16pt on page 11 and 20.4pt on page 19 |
@@ -45,7 +46,7 @@
 7. Page 13 remains covered through the same throwing `MushafPageRenderer.drawPage` seam used by the app canvas.
 8. The normal sandbox baseline needs the documented `/private/tmp/hifz-*-module-cache` environment for verification.
 9. The ignored `dist/` app and DMG were rebuilt and verified; the DMG SHA-256 is `c4672801c5d2753e5de1e3c0a47c0a8cbf6730155205c8287d9704fd40c5b874`.
-10. Run `gh auth login -h github.com` before resuming the requested commit and direct push to `main`.
+10. GitHub authentication is valid through the macOS Keychain; source commit `89c3169` is on `origin/main`.
 
 ## Risks / Out of Scope
 
