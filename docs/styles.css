@@ -220,6 +220,8 @@ h2 {
 }
 
 .app-preview {
+  min-width: 0;
+  width: 100%;
   margin: 0;
   overflow: hidden;
   border: 1px solid rgba(19, 32, 28, 0.12);
@@ -231,7 +233,10 @@ h2 {
 .app-preview img {
   display: block;
   width: 100%;
+  max-width: 100%;
   height: auto;
+  outline: 1px solid rgba(0, 0, 0, 0.1);
+  outline-offset: -1px;
 }
 
 .details {

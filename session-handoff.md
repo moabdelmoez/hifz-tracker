@@ -2,14 +2,21 @@
 
 ## Current Objective
 
-- Goal: None; `docs-media-refresh-001` is complete.
-- Current status: The supplied README GIF and GitHub Pages screenshot are in place and verified.
-- Working tree: This task contains media, page markup/styles, and harness evidence changes; unrelated untracked `.claude/`, performance-audit content, and the root source GIF remain untouched.
+- Goal: None; `website-preview-containment-001` is complete.
+- Current status: The CSS containment fix passes desktop and narrow browser layout probes and final verification.
+- Working tree: This task contains website CSS and harness evidence changes; unrelated untracked `.claude/`, performance-audit content, and the root source GIF remain untouched.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
+| Desktop website layout | 624px image contained inside 626px card; no page overflow |
+| Narrow website layout | 682px image contained inside 684px card; no page overflow |
+| Baseline containment test suite | 149 tests passed, 1 expected opt-in audio skip |
+| Baseline containment Swift build | Passed |
+| Final containment test suite | 149 tests passed, 1 expected opt-in audio skip |
+| Final containment Swift build | Passed |
+| JSON and diff validation | Passed |
 | GIF copy | Source and README asset SHA-256 match |
 | Screenshot copy | Source and website asset SHA-256 match |
 | Baseline test suite | 149 tests passed, 1 expected opt-in audio skip |
@@ -51,11 +58,11 @@
 
 ## Restart Notes
 
-1. The README reference is unchanged; its existing GIF asset now contains the supplied animation.
-2. The website experience section now references `docs/assets/hifztracker-app.png`.
+1. `docs/styles.css` now lets `.app-preview` shrink inside its grid track.
+2. The image is width-constrained and has a neutral inset outline.
 3. `feature_list.json` and `progress.md` record completion evidence.
 
 ## Risks / Out of Scope
 
-- The app bundle and release assets are unchanged; release checks are not required for documentation media.
-- No app code, tests, packaging, or signing inputs changed.
+- The change is limited to the GitHub Pages website and harness tracking.
+- No README, app code, tests, assets, packaging, or signing inputs changed.

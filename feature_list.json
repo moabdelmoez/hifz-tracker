@@ -1023,6 +1023,27 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-29. The supplied GIF replaced `docs/assets/hifztracker-demo.gif` byte-for-byte, preserving the existing README reference. The supplied screenshot was copied to `docs/assets/hifztracker-app.png`, and the static GitHub Pages mockup was replaced with that accessible image. Obsolete mockup markup and more than 100 lines of dead CSS were removed. Source and copied asset SHA-256 values match. Baseline and final `swift test` each passed 149 tests with 1 expected opt-in audio skip and 0 failures; baseline and final `swift build` passed. Asset-reference checks, `jq empty feature_list.json`, and `git diff --check` passed. Release checks were skipped because no app bundle or release asset changed."
+    },
+    {
+      "id": "website-preview-containment-001",
+      "name": "Website Preview Image Containment",
+      "description": "Keep the GitHub Pages app screenshot aligned inside its experience-section grid container at desktop and narrow widths.",
+      "dependencies": ["docs-media-refresh-001"],
+      "status": "done",
+      "done_criteria": [
+        "The preview grid item can shrink below the screenshot's intrinsic width",
+        "The screenshot remains fully inside its card without horizontal page overflow",
+        "The screenshot uses a neutral inset outline",
+        "Required verification passes"
+      ],
+      "verification": [
+        "browser layout probe at 1912px and 760px",
+        "swift test",
+        "swift build",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-29 using only the requested `make-interfaces-feel-better` skill for the website. Added `min-width: 0` and `width: 100%` to the preview grid item, constrained the image with `max-width: 100%`, and added the skill's neutral black 10% inset outline. A browser layout probe reported full containment and no horizontal overflow at 1912px and 760px: the desktop image measured 624px inside a 626px card, and the narrow image measured 682px inside a 684px card. Baseline and final `swift test` each passed 149 tests with 1 expected opt-in audio skip and 0 failures; baseline and final `swift build` passed. `jq empty feature_list.json` and `git diff --check` passed. Release checks were skipped because only GitHub Pages CSS and harness tracking changed."
     }
   ]
 }

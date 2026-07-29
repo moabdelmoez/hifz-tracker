@@ -2,16 +2,22 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-29 19:35 EEST
+**Last Updated:** 2026-07-29 20:38 EEST
 
-**Session ID:** docs-media-refresh-2026-07-29
+**Session ID:** website-preview-containment-2026-07-29
 
-**Active Feature:** None. `docs-media-refresh-001` is complete.
+**Active Feature:** None. `website-preview-containment-001` is complete.
 
 ## Status
 
 ### What's Done
 
+- [x] Traced the website misalignment to the preview grid item's intrinsic minimum width.
+- [x] Allowed the preview card and image to shrink to their grid track without overflow.
+- [x] Added the requested skill's neutral black 10% inset image outline.
+- [x] Browser layout probe passed at 1912px and 760px with full containment and no horizontal page overflow.
+- [x] Baseline `swift test` passed 149 tests with 1 expected opt-in audio skip; baseline `swift build` passed.
+- [x] Final `swift test` passed 149 tests with 1 expected opt-in audio skip; final `swift build` passed.
 - [x] Replaced the README demo asset with the supplied animated GIF while preserving its existing reference.
 - [x] Replaced the GitHub Pages experience mockup with the supplied app screenshot.
 - [x] Removed the obsolete mockup markup, responsive rules, and CSS.
@@ -85,6 +91,8 @@
 
 ## Files Modified This Session
 
+- `docs/styles.css` - Contain the app screenshot within its responsive grid card.
+- `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
 - `docs/assets/hifztracker-demo.gif` - Use the supplied current demo GIF in the README.
 - `docs/assets/hifztracker-app.png` - Add the supplied current app screenshot for GitHub Pages.
 - `docs/index.html`, `docs/styles.css` - Replace the mockup with the real screenshot and remove dead styles.
@@ -103,6 +111,15 @@
 
 ## Evidence
 
+- [x] Desktop probe: 624px image inside a 626px card; document width equals 1912px viewport.
+- [x] Narrow probe: 682px image inside a 684px card; document width equals 760px viewport.
+- [x] Both probes reported `contained=true` and `noHorizontalOverflow=true`.
+- [x] Baseline `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Baseline `swift build`: passed.
+- [x] Final `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Final `swift build`: passed.
+- [x] `jq empty feature_list.json` and `git diff --check`: passed.
+- [x] Release checks skipped; only GitHub Pages CSS and harness tracking changed.
 - [x] Supplied and copied GIF SHA-256: `28dcd3c2ee42be2451a0efdb34fdaf5ee9bffb11bd8e8d1a9511258912c491b1`.
 - [x] Supplied and copied screenshot SHA-256: `81918080b6b3d4934166650f3f449c175f74fc4acf9389430130f62121619a66`.
 - [x] GitHub Pages references `assets/hifztracker-app.png`; README still references the replaced `docs/assets/hifztracker-demo.gif`.
@@ -162,4 +179,4 @@
 
 ## Next Step
 
-No active feature. The requested README GIF and GitHub Pages screenshot refresh is complete.
+No active feature. The GitHub Pages preview image containment fix is complete.
