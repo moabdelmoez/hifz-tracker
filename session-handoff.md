@@ -2,43 +2,54 @@
 
 ## Current Objective
 
-- Goal: No active feature; `page-boundary-auto-flip-dmg-001` is complete.
-- Current status: Source commit `c01bd41` is on `origin/main`, and the local free-path DMG has been rebuilt and fully verified.
-- Working tree: completed DMG-refresh harness evidence plus unrelated untracked `.claude/` and performance-audit content.
+- Goal: None; `mushaf-layout-reliability-001` is complete.
+- Current status: Every ayah line across all 604 pages fits; the updated local DMG is fully verified; commit/push is waiting on GitHub CLI re-authentication.
+- Working tree: uncommitted source, test, and harness changes plus unrelated untracked `.claude/` and performance-audit content.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
-| Source commit | `c01bd41`, pushed to `origin/main` |
-| Red regression | Displayed page and loaded Mushaf page remained 1 instead of 2 |
-| Focused regression | 1 test, 0 failures |
-| RecitationViewModelTests | 25 tests, 0 failures |
-| Full test suite | 144 tests, 1 expected skip, 0 failures |
+| Local release gate | 149 tests, 1 expected skip; staging, launch, assets, rpaths, and ad-hoc signature checks passed |
+| Updated DMG | 520,841,049 bytes; SHA-256 `c4672801c5d2753e5de1e3c0a47c0a8cbf6730155205c8287d9704fd40c5b874` |
+| Image verification | `hdiutil verify` passed, CRC32 `$664C34F0` |
+| Executable verification | Mounted and staged SHA-256 `9d6f41e495636ffbfeacb1cd7e0b741e7c536b4871d379d2f9202527ddd86355` |
+| Mounted launch | Launched from the read-only image as PID 13975, then stopped and detached |
+| GitHub publish | Blocked: `gh auth status` reports an invalid token |
+| All-page red scan | 138 overflowing lines across 30 pages |
+| Page 19 red regression | Line 3 measured 1,064pt in a 920pt area, reproduced twice |
+| Root-cause probe | QPC space advance was 2.16pt on page 11 and 20.4pt on page 19 |
+| All-page green scan | Every ayah line on pages 1...604 fit in 18.566 seconds |
+| Corrected page 19 preview | No trimmed boundary words |
+| Final renderer suite | 20 tests, 0 failures |
+| Page 11 word-spacing red regression | `ﱁﱂ` instead of `ﱁ ﱂ`, reproduced twice |
+| Focused word-spacing/visibility checks | 4 tests, 0 failures |
+| Page 13 red regression | `unavailableFont("QCF4013_COLOR-Regular")`, reproduced twice through `drawPage` |
+| Exhaustive font-name red regression | Mismatches on pages 13, 27, 28, 29, 226, and 227 |
+| Spacing red regression | 88 points instead of 100 points |
+| Direct canvas sweep | Pages 1...604 passed in 23.293 seconds |
+| Focused renderer suite | 18 tests, 0 failures before temporary exhaustive-test cleanup |
+| Full test suite | 149 tests, 1 expected skip, 0 failures |
 | Swift build | Passed |
-| Confirmed-word regression | Passed |
-| Release gate | Passed 144 tests with 1 expected skip; build, launch, assets, rpaths, and signature checks passed |
-| Updated DMG | 521,226,492 bytes; SHA-256 `df999c6f7cb777cbd8b13755171aae7dc52ea1434f76653a6f6e372b32f278de` |
-| Image verification | `hdiutil verify` passed, CRC32 `$46636848` |
-| Executable hash | Staged and mounted SHA-256 `ac79346fa903c585140443b25ef0d39cf62a15c7c039828d40a0700e90222ae6` |
-| Mounted app | Deep strict ad-hoc signature valid |
-| Mounted launch | Launched from read-only image as PID 17667, then stopped and detached |
+| Render preview | Page 11 visually matched the supplied vertical and QUL inter-word spacing |
+| Release gate | Skipped; no asset, signing, packaging, dependency, or distribution input changed |
 
 ## Restart Notes
 
-1. `applyLocatedProgress` keeps focus and visual state on the confirmed word but uses the next reference for automatic page navigation.
-2. Verification on 2026-07-23: the focused regression, all 25 RecitationViewModelTests, full 144-test suite, and `swift build` passed.
-3. The normal sandbox baseline fails before test execution only because its default Clang module cache is not writable; use the documented `/private/tmp/hifz-*-module-cache` environment for verification.
-4. The private guard rejects only a candidate that skips unconfirmed words and whose full normalized phrase occurs more than once in the current search range.
-5. Adjacent repeated phrases and unique discontinuous catch-up candidates remain eligible.
-6. The temporary `060001.wav` and conversion directory are gone; the original M4A was unchanged.
-7. The tracked audit JSON contains its prior public fixture, not the supplied Surah 60 transcript.
-8. The ignored `dist/HifzTracker-0.1.0-arm64.dmg` now contains pushed source commit `c01bd41`; its SHA-256 is `df999c6f7cb777cbd8b13755171aae7dc52ea1434f76653a6f6e372b32f278de`.
-9. The app is ad-hoc signed and the DMG is unsigned and not notarized because no Developer ID identity is installed.
-10. `gh auth status` reports an invalid GitHub CLI token, but direct Git credentials successfully pushed `c01bd41` to `origin/main`.
+1. QPC fonts have inconsistent regular-space advances, so drawing positions words with a stable 0.04-em gap instead.
+2. Lines wider than the 920-point ayah area are scaled just enough to fit.
+3. Highlights and Hide Ayah use the same fitted font and word positions.
+4. The permanent all-page regression opens every page font and checks every ayah line, adding about 18 seconds to `swift test`.
+5. `MushafFontResolver` handles the six bundled fonts whose immutable PostScript names omit `-Regular`: pages 13, 27, 28, 29, 226, and 227.
+6. `MushafLineLayout.ayahToAyahStep` is 100 canonical points, up from 88.
+7. Page 13 remains covered through the same throwing `MushafPageRenderer.drawPage` seam used by the app canvas.
+8. The normal sandbox baseline needs the documented `/private/tmp/hifz-*-module-cache` environment for verification.
+9. The ignored `dist/` app and DMG were rebuilt and verified; the DMG SHA-256 is `c4672801c5d2753e5de1e3c0a47c0a8cbf6730155205c8287d9704fd40c5b874`.
+10. Run `gh auth login -h github.com` before resuming the requested commit and direct push to `main`.
 
 ## Risks / Out of Scope
 
-- The fix does not impose a global distance threshold or change the two-word minimum.
-- ASR, audio, cadence, rendering, model assets, and release-signing configuration are unchanged.
-- Public distribution remains out of scope until Developer ID signing and notarization credentials are available.
+- The spacing change makes normal pages taller and relies on the existing vertical scroll behavior.
+- Exceptionally wide lines are reduced only enough to preserve the border; normal lines keep their base font size.
+- No font files, layout databases, ASR behavior, audio, model assets, or signing configuration changed.
+- The refreshed DMG is for local distribution only; Developer ID signing and notarization still require credentials.

@@ -4,7 +4,7 @@ import CoreGraphics
 
 final class MushafFontResolverTests: XCTestCase {
     func testBuildsQpcV4TajweedFontNamesForBundledPageFonts() throws {
-        for pageNumber in [1, 5, 6, 574, 604] {
+        for pageNumber in 1...604 {
             XCTAssertEqual(
                 MushafFontResolver.qpcV4TajweedFontName(pageNumber: pageNumber),
                 try bundledPostScriptName(pageNumber: pageNumber),

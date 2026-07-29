@@ -4,6 +4,124 @@ import XCTest
 @testable import HifzCore
 
 final class MushafPageRendererTests: XCTestCase {
+    func testAllAyahLinesFitInsidePageBorder() throws {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let layoutURL = root.appending(path: "HifzTracker/Resources/Layout/kfgqpc-v4-layout.sqlite")
+        let mapping = try PageMapping.loadKFGQPCV4Layout(
+            layoutDatabaseURL: layoutURL,
+            qpcDatabaseURL: root.appending(path: "qpc-v4.db")
+        )
+        let repository = try SQLiteQuranRepository(
+            databaseURL: root.appending(path: "qpc-v4.db"),
+            tanzilURL: root.appending(path: "tanzil/quran-simple-clean.txt"),
+            pageMapping: mapping,
+            layoutDatabaseURL: layoutURL
+        )
+        var overflows: [String] = []
+
+        for pageNumber in 1...604 {
+            let page = try repository.mushafPage(pageNumber: pageNumber)
+            let fontSize: CGFloat = page.lines.contains {
+                $0.lineType == .surahName || $0.lineType == .basmallah
+            } ? 54 : 51
+            let font = try MushafPageRenderer.pageFont(
+                pageNumber: pageNumber,
+                fontDirectory: fontDirectory,
+                size: fontSize
+            )
+
+            for line in page.lines where line.lineType == .ayah || line.lineType == .unknown {
+                let fittedFont = MushafPageRenderer.fittingFont(
+                    font,
+                    for: line,
+                    availableWidth: 920
+                )
+                let width = MushafPageRenderer.lineAdvanceWidth(for: line, font: fittedFont)
+                if width > 920.01 {
+                    overflows.append(
+                        "page \(pageNumber), line \(line.lineNumber): \(Int(width.rounded(.up)))pt"
+                    )
+                }
+            }
+        }
+
+        XCTAssertTrue(
+            overflows.isEmpty,
+            "Ayah text exceeded the 920pt bordered text area:\n\(overflows.joined(separator: "\n"))"
+        )
+    }
+
+    func testDrawsPage13ThroughCanvasRenderer() throws {
+        let page = try makePage(13)
+        let image = NSImage(size: MushafPageRenderer.canonicalContentSize(for: page))
+        image.lockFocus()
+        defer { image.unlockFocus() }
+
+        try MushafPageRenderer.drawPage(
+            page,
+            pageNumber: 13,
+            fontDirectory: fontDirectory,
+            in: NSRect(origin: .zero, size: image.size),
+            stateProvider: Optional<((QuranWord) -> WordProgressState)>.none
+        )
+    }
+
+    func testReportedPage19LineFitsInsidePageBorder() throws {
+        let page = try makePage(19)
+        let baseFont = try MushafPageRenderer.pageFont(
+            pageNumber: 19,
+            fontDirectory: fontDirectory,
+            size: 51
+        )
+        let line = page.lines[2]
+        let font = MushafPageRenderer.fittingFont(baseFont, for: line, availableWidth: 920)
+        let width = MushafPageRenderer.lineAdvanceWidth(for: line, font: font)
+
+        XCTAssertLessThanOrEqual(
+            width,
+            920,
+            "Page 19 line 3 must fit inside the bordered text area without trimming."
+        )
+        XCTAssertGreaterThan(
+            (MushafPageRenderer.glyphText(for: line) as NSString)
+                .size(withAttributes: [.font: baseFont])
+                .width,
+            920
+        )
+    }
+
+    func testPage11GlyphTextSeparatesFirstTwoWords() throws {
+        let page = try makePage(11)
+        let sourceLine = page.lines[0]
+        let words = Array(sourceLine.words.prefix(2))
+        let line = MushafPageLine(
+            pageNumber: sourceLine.pageNumber,
+            lineNumber: sourceLine.lineNumber,
+            lineType: sourceLine.lineType,
+            isCentered: sourceLine.isCentered,
+            firstWordID: words.first?.id,
+            lastWordID: words.last?.id,
+            surahNumber: sourceLine.surahNumber,
+            words: words
+        )
+
+        let compactText = words.map(\.text).joined()
+        let spacedText = words.map(\.text).joined(separator: " ")
+        XCTAssertEqual(MushafPageRenderer.glyphText(for: line), spacedText)
+
+        let font = try MushafPageRenderer.pageFont(
+            pageNumber: 11,
+            fontDirectory: fontDirectory,
+            size: 54
+        )
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        XCTAssertGreaterThan(
+            (spacedText as NSString).size(withAttributes: attributes).width
+                - (compactText as NSString).size(withAttributes: attributes).width,
+            2
+        )
+    }
+
     func testFitsMushafPageInsideAvailableSizeWithoutChangingAspectRatio() {
         let wideRect = MushafPageRenderer.fittedPageRect(in: CGRect(x: 0, y: 0, width: 1_600, height: 900))
         XCTAssertLessThanOrEqual(wideRect.width, 1_600.001)
@@ -52,10 +170,22 @@ final class MushafPageRendererTests: XCTestCase {
         )
     }
 
-    func testPage574UsesNormalAyahSpacingAndReservesFooterBand() throws {
+    func testPage574UsesGenerousAyahSpacingAndReservesFooterBand() throws {
         let canvasSize = MushafPageRenderer.canonicalContentSize(for: try makePage574())
 
-        XCTAssertEqual(canvasSize.height, 1_512, accuracy: 0.001)
+        XCTAssertEqual(canvasSize.height, 1_656, accuracy: 0.001)
+    }
+
+    func testPage11UsesOriginalMushafLineSpacing() throws {
+        let page = try makePage(11)
+        let firstLineCenter = try XCTUnwrap(
+            MushafPageRenderer.canonicalAyahCenterY(surah: 2, ayah: 70, in: page)
+        )
+        let secondLineCenter = try XCTUnwrap(
+            MushafPageRenderer.canonicalAyahCenterY(surah: 2, ayah: 71, in: page)
+        )
+
+        XCTAssertEqual(secondLineCenter - firstLineCenter, 100, accuracy: 0.001)
     }
 
     func testRendersWordProgressHighlightsBehindQpcGlyphWords() throws {
@@ -241,7 +371,7 @@ final class MushafPageRendererTests: XCTestCase {
         guard case .ayah(let glyphText) = MushafPageRenderer.displayLine(for: page.lines[2]) else {
             return XCTFail("Line 3 should render as ayah glyph text.")
         }
-        XCTAssertTrue(glyphText.hasPrefix("ﱁﱂﱃ"))
+        XCTAssertTrue(glyphText.hasPrefix("ﱁ ﱂ ﱃ"))
         XCTAssertGreaterThan(glyphText.count, 3)
     }
 
@@ -284,7 +414,7 @@ final class MushafPageRendererTests: XCTestCase {
             "A mid-page surah header must not be drawn in the fixed top-page header slot."
         )
         XCTAssertGreaterThan(
-            try darkPixelCount(in: image, rect: CGRect(x: 62, y: 458, width: 900, height: 126)),
+            try darkPixelCount(in: image, rect: CGRect(x: 62, y: 593, width: 900, height: 126)),
             10_000,
             "The Surah Al-Ma'idah header should render around layout line 6."
         )

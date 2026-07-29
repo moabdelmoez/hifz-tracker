@@ -2,16 +2,37 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-23 14:03 EEST
+**Last Updated:** 2026-07-29 14:54 EEST
 
-**Session ID:** page-boundary-auto-flip-dmg-2026-07-23
+**Session ID:** mushaf-layout-reliability-2026-07-29
 
-**Active Feature:** None. `page-boundary-auto-flip-dmg-001` is complete.
+**Active Feature:** None. `mushaf-layout-reliability-001` is complete.
 
 ## Status
 
 ### What's Done
 
+- [x] Re-ran `./script/release_checks.sh`; 149 tests passed with 1 expected skip, and staging, launch, assets, rpaths, and ad-hoc signature checks passed.
+- [x] Replaced the ignored local DMG only after a temporary image passed `hdiutil verify`.
+- [x] Mounted the final DMG read-only, verified its app deeply, matched the executable to staging, launched it as PID 13975, stopped it, and detached the image.
+- [x] Scanned every ayah line across all 604 pages against the 920-point bordered text area.
+- [x] Reproduced 138 overflowing lines across 30 pages, including every line on the reported page 19.
+- [x] Traced the overflow to inconsistent regular-space advances in page-specific QPC fonts: 2.16 points on page 11 versus 20.4 on page 19.
+- [x] Replaced font-defined spaces in drawing with one stable 0.04-em gap and fit only lines that remain wider than the border.
+- [x] Kept word highlights and Hide Ayah positions on the same measured layout.
+- [x] Visually checked the corrected page 19 preview with no trimmed boundary words.
+- [x] Reproduced page 11 joining its first two QPC words as `ﱁﱂ` instead of `ﱁ ﱂ` twice.
+- [x] Fixed the shared renderer to insert a measured regular space between words.
+- [x] Kept progress highlights and Hide Ayah clipping aligned with the new word positions.
+- [x] Visually checked a page 11 renderer preview against the supplied QUL reference.
+- [x] Reproduced the reported page 13 failure twice through `MushafPageRenderer.drawPage` with `unavailableFont("QCF4013_COLOR-Regular")`.
+- [x] Confirmed the bundled `p13.ttf` is valid and registers as suffixless `QCF4013_COLOR`.
+- [x] Exhaustively compared all 604 bundled page-font PostScript names and found the same suffix mismatch on pages 13, 27, 28, 29, 226, and 227.
+- [x] Updated the shared font resolver for those immutable asset-name outliers, fixing page text and footer font resolution.
+- [x] Increased normal ayah line spacing from 88 to 100 canonical points and visually checked the rendered layout without edge clipping.
+- [x] Rendered all 604 pages through the app canvas successfully.
+- [x] Focused renderer checks passed, including page 13, all 604 font names, line spacing, clipping, highlights, hidden text, headers, and short-surah pages.
+- [x] Final permanent `swift test` passed 149 tests with 1 expected opt-in audio skip; `swift build` passed.
 - [x] `./script/release_checks.sh` passed 144 tests with 1 expected skip, rebuilt and launched the staged app, validated assets and rpaths, and verified its ad-hoc signature.
 - [x] Replaced the ignored DMG only after the temporary image verified; the final image also passed `hdiutil verify`.
 - [x] Mounted the final DMG read-only, verified the app deeply, matched its executable to staging, launched it as PID 17667, stopped it, detached the image, and removed temporary directories.
@@ -47,14 +68,38 @@
 
 ## Files Modified This Session
 
-- `HifzTracker/Services/RecitationViewModel.swift` - Decouple confirmed-word focus from next-reference page navigation.
-- `Tests/HifzTrackerTests/RecitationViewModelTests.swift` - Restore page-boundary auto-flip coverage while preserving confirmed-word focus and pending successor state.
-- `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
-- `dist/HifzTracker.app`, `dist/HifzTracker-0.1.0-arm64.dmg` - Rebuilt ignored distribution artifacts from commit `c01bd41`.
+- `Sources/HifzCore/MushafFontResolver.swift` - Match the six suffixless bundled QPC font names.
+- `Sources/HifzCore/MushafPageRenderer.swift` - Use stable measured word positioning and fit over-wide lines inside the border.
+- `Tests/HifzCoreTests/MushafFontResolverTests.swift` - Validate all 604 bundled PostScript names.
+- `Tests/HifzCoreTests/MushafPageRendererTests.swift` - Cover page 13, both spacing axes, page 19, and every ayah line across all 604 pages.
+- `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, diagnosis, verification, and continuity.
+- `dist/HifzTracker.app`, `dist/HifzTracker-0.1.0-arm64.dmg` - Rebuilt ignored local distribution artifacts.
 - Unrelated `.claude/` content and `docs/realtime-performance-audit-2026-07-20.md` were preserved untouched.
 
 ## Evidence
 
+- [x] Local release gate: 149 tests, 1 expected opt-in audio skip, 0 failures; build, staging, launch, assets, rpaths, and ad-hoc signature checks passed.
+- [x] Updated DMG: 520,841,049 bytes; SHA-256 `c4672801c5d2753e5de1e3c0a47c0a8cbf6730155205c8287d9704fd40c5b874`; `hdiutil verify` CRC32 `$664C34F0`.
+- [x] Mounted app passed deep strict signature verification; mounted and staged executable SHA-256 matched `9d6f41e495636ffbfeacb1cd7e0b741e7c536b4871d379d2f9202527ddd86355`.
+- [x] Mounted app launched from the read-only DMG as PID 13975, then stopped and detached.
+- [x] No Developer ID identity is installed; the app is ad-hoc signed and the DMG is unsigned and not notarized.
+- [x] Red all-page scan: 138 overflowing lines across 30 pages; page 19 line 3 measured 1,064 points in a 920-point area.
+- [x] Red page 19 regression reproduced twice in 0.171 and 0.144 seconds.
+- [x] Root-cause probe: page 11 font space advance 2.16 points; page 19 font space advance 20.4 points; page 19 compact line width only 819 points.
+- [x] Green all-page scan: every ayah line on pages 1...604 fit in 18.566 seconds.
+- [x] Corrected page 19 preview visually kept all boundary words visible.
+- [x] Final renderer suite: 20 tests, 0 failures.
+- [x] Red page 11 word-spacing regression failed twice: `ﱁﱂ` did not equal `ﱁ ﱂ`.
+- [x] Green focused word-spacing and visibility checks: 4 tests, 0 failures.
+- [x] Page 11 renderer preview visibly separated `قالوا` and `ادع` like the supplied QUL reference.
+- [x] Red page 13 regression failed twice with `unavailableFont("QCF4013_COLOR-Regular")`.
+- [x] Red exhaustive font-name regression failed only for pages 13, 27, 28, 29, 226, and 227.
+- [x] Red spacing regression measured 88 points instead of the requested 100 points.
+- [x] Green direct canvas sweep: pages 1...604 rendered with 0 failures in 23.293 seconds.
+- [x] Green focused renderer suite: 18 tests, 0 failures, including the temporary exhaustive canvas sweep.
+- [x] Final permanent `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] `swift build`: passed.
+- [x] GitHub CLI publish prerequisite is blocked: `gh auth status` reports an invalid token for `moabdelmoez`.
 - [x] Red regression: `testAutoFlipsToPageContainingNextReferenceWhileKeepingConfirmedWordFocus` reported page 1 and `mushafPage` 1 instead of page 2.
 - [x] Green focused regression: 1 test, 0 failures.
 - [x] `RecitationViewModelTests`: 25 tests, 0 failures.
@@ -71,4 +116,4 @@
 
 ## Next Step
 
-No active feature. The refreshed local DMG is ready at `dist/HifzTracker-0.1.0-arm64.dmg`; Developer ID signing and notarization still require credentials.
+The updated local DMG is ready at `dist/HifzTracker-0.1.0-arm64.dmg`. Re-authenticate with `gh auth login -h github.com`, then commit and push the scoped Mushaf changes directly to `main`.

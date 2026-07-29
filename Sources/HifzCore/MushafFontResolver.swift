@@ -3,7 +3,7 @@ import Foundation
 public enum MushafFontResolver {
     public static func qpcV4TajweedFontName(pageNumber: Int) -> String {
         let pageCode = String(format: "%03d", pageNumber)
-        let regularSuffix = pageNumber >= 6 ? "-Regular" : ""
+        let regularSuffix = pageNumber >= 6 && ![13, 27, 28, 29, 226, 227].contains(pageNumber) ? "-Regular" : ""
         return "QCF4\(pageCode)_COLOR\(regularSuffix)"
     }
 

@@ -929,6 +929,38 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-23 from pushed source commit `c01bd41`. `./script/release_checks.sh` passed 144 tests with 1 expected opt-in skip and 0 failures, rebuilt and launched the staged app, validated assets and rpaths, and verified its ad-hoc signature. The existing ignored DMG was replaced only after the temporary image passed `hdiutil verify`; the final image is 521,226,492 bytes with SHA-256 `df999c6f7cb777cbd8b13755171aae7dc52ea1434f76653a6f6e372b32f278de` and verified CRC32 `$46636848`. The mounted app passed deep strict signature verification, its executable matched the staged SHA-256 `ac79346fa903c585140443b25ef0d39cf62a15c7c039828d40a0700e90222ae6`, and it launched from the read-only image as PID 17667. The verification process was stopped, the image detached, and temporary directories removed. No Developer ID identity is installed, so the app remains ad-hoc signed and the DMG is unsigned and not notarized."
+    },
+    {
+      "id": "mushaf-layout-reliability-001",
+      "name": "Mushaf Spacing and Full-Page Rendering Reliability",
+      "description": "Match the original Mushaf's vertical and inter-word spacing, and ensure every bundled page font resolves through the app renderer.",
+      "dependencies": ["page-boundary-auto-flip-001"],
+      "status": "done",
+      "done_criteria": [
+        "Normal ayah lines use a more generous vertical rhythm matching the supplied Mushaf reference",
+        "QPC word glyphs use visible inter-word spacing while highlights and hidden-text clipping remain aligned",
+        "Every ayah line across all 604 pages fits within the bordered text area without trimming",
+        "The reported page 13 renders through the same canvas seam used by the app",
+        "Every bundled page font name matches its registered PostScript name",
+        "All 604 Mushaf pages complete a direct canvas render sweep without errors",
+        "Focused and full SwiftPM verification passes",
+        "Completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter MushafPageRendererTests/testAllAyahLinesFitInsidePageBorder",
+        "swift test --filter MushafPageRendererTests/testReportedPage19LineFitsInsidePageBorder",
+        "swift test --filter MushafPageRendererTests/testPage11GlyphTextSeparatesFirstTwoWords",
+        "swift test --filter 'MushafPageRendererTests/testPage11GlyphTextSeparatesFirstTwoWords|MushafPageRendererTests/testVisibilityProvider'",
+        "swift test --filter MushafPageRendererTests/testDrawsPage13ThroughCanvasRenderer",
+        "swift test --filter MushafFontResolverTests/testBuildsQpcV4TajweedFontNamesForBundledPageFonts",
+        "direct canvas render sweep for pages 1...604",
+        "swift test --filter MushafPageRendererTests",
+        "swift test",
+        "swift build",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-29. The page 13 regression reproduced `unavailableFont(\"QCF4013_COLOR-Regular\")` twice through the app's throwing canvas seam. Font metadata and the exhaustive resolver regression identified six valid bundled fonts whose PostScript names omit `-Regular`: pages 13, 27, 28, 29, 226, and 227. The shared resolver now matches those immutable asset names, fixing both page text and the page-number font. Normal ayah line spacing increased from 88 to 100 canonical points; the focused page 11 regression and rendered preview confirmed the more breathable layout without edge clipping. A direct app-canvas sweep rendered pages 1 through 604 successfully. The horizontal-spacing follow-up reproduced page 11 joining the first two QPC words as `ﱁﱂ` instead of `ﱁ ﱂ` twice. A second follow-up reproduced 138 overflowing lines across 30 pages, including every line on the reported page 19; page 19 line 3 measured 1,064pt inside a 920pt area. Instrumentation showed the page-specific font's regular-space advance varied from 2.16pt on page 11 to 20.4pt on page 19. The renderer now positions word glyphs with a stable 0.04-em gap and scales only lines whose measured advances exceed the bordered area, using the same positions for highlights and Hide Ayah. The permanent scan verified every ayah line on pages 1 through 604 fits, the corrected page 19 preview was visually checked, all 20 renderer tests passed, and final full `swift test` passed 149 tests with 1 expected opt-in audio skip and 0 failures. The local release gate repeated those 149 tests, rebuilt and launched the staged ad-hoc app, and passed asset, rpath, and signature checks. The refreshed local DMG is 520,841,049 bytes with SHA-256 `c4672801c5d2753e5de1e3c0a47c0a8cbf6730155205c8287d9704fd40c5b874` and verified CRC32 `$664C34F0`; its mounted executable matched staging SHA-256 `9d6f41e495636ffbfeacb1cd7e0b741e7c536b4871d379d2f9202527ddd86355` and launched from the read-only image as PID 13975. No Developer ID identity is installed, so the app remains ad-hoc signed and the DMG is unsigned and not notarized."
     }
   ]
 }

@@ -33,7 +33,23 @@ public enum MushafPageRenderer {
     }
 
     public static func glyphText(for line: MushafPageLine) -> String {
-        line.words.map(\.text).joined()
+        line.words.map(\.text).joined(separator: " ")
+    }
+
+    static func lineAdvanceWidth(for line: MushafPageLine, font: NSFont) -> CGFloat {
+        let wordsWidth = line.words.reduce(CGFloat.zero) { width, word in
+            width + (word.text as NSString).size(withAttributes: [.font: font]).width
+        }
+        return wordsWidth + CGFloat(max(0, line.words.count - 1)) * interWordSpacing(for: font)
+    }
+
+    static func fittingFont(_ font: NSFont, for line: MushafPageLine, availableWidth: CGFloat) -> NSFont {
+        let width = lineAdvanceWidth(for: line, font: font)
+        guard width > availableWidth, width > 0 else { return font }
+        return NSFont(
+            descriptor: font.fontDescriptor,
+            size: font.pointSize * availableWidth / width
+        ) ?? font
     }
 
     public static func displayLine(for line: MushafPageLine) -> MushafDisplayLine {
@@ -200,11 +216,13 @@ public enum MushafPageRenderer {
     ) throws {
         guard !line.words.isEmpty else { return }
 
-        let font = try pageFont(pageNumber: pageNumber, fontDirectory: fontDirectory, size: fontSize)
+        let baseFont = try pageFont(pageNumber: pageNumber, fontDirectory: fontDirectory, size: fontSize)
+        let font = fittingFont(baseFont, for: line, availableWidth: rect.width)
         let attributes = textAttributes(font: font, centered: line.isCentered)
         drawHighlights(
             for: line,
             in: rect,
+            font: font,
             attributes: attributes,
             stateProvider: stateProvider,
             visibilityProvider: visibilityProvider
@@ -249,13 +267,15 @@ public enum MushafPageRenderer {
     private static func drawHighlights(
         for line: MushafPageLine,
         in rect: CGRect,
+        font: NSFont,
         attributes: [NSAttributedString.Key: Any],
         stateProvider: ((QuranWord) -> WordProgressState)?,
         visibilityProvider: ((QuranWord) -> Bool)?
     ) {
         guard let stateProvider else { return }
 
-        var rightEdge = rect.maxX
+        var rightEdge = startingRightEdge(for: line, in: rect, font: font)
+        let wordSpacing = interWordSpacing(for: font)
         for word in line.words {
             let wordWidth = (word.text as NSString).size(withAttributes: attributes).width
             let wordRect = CGRect(
@@ -267,7 +287,7 @@ public enum MushafPageRenderer {
             if isTextVisible(for: word, visibilityProvider: visibilityProvider) {
                 drawHighlight(for: stateProvider(word), in: wordRect)
             }
-            rightEdge -= wordWidth
+            rightEdge -= wordWidth + wordSpacing
         }
     }
 
@@ -277,47 +297,32 @@ public enum MushafPageRenderer {
         attributes: [NSAttributedString.Key: Any],
         visibilityProvider: ((QuranWord) -> Bool)?
     ) {
-        let text = glyphText(for: line)
-        let attributedText = NSAttributedString(string: text, attributes: attributes)
-
-        guard hasHiddenWords(in: line, visibilityProvider: visibilityProvider) else {
-            attributedText.draw(in: rect)
-            return
-        }
-
-        let clipPath = NSBezierPath()
-        var hasVisibleWord = false
-        var rightEdge = rect.maxX
+        guard let font = attributes[.font] as? NSFont else { return }
+        var rightEdge = startingRightEdge(for: line, in: rect, font: font)
+        let wordSpacing = interWordSpacing(for: font)
         for word in line.words {
             let wordWidth = (word.text as NSString).size(withAttributes: attributes).width
-            defer { rightEdge -= wordWidth }
+            defer { rightEdge -= wordWidth + wordSpacing }
 
             guard isTextVisible(for: word, visibilityProvider: visibilityProvider) else { continue }
-
-            hasVisibleWord = true
-            let horizontalBleed: CGFloat = 2
-            clipPath.appendRect(CGRect(
-                x: rightEdge - wordWidth - horizontalBleed,
-                y: rect.minY,
-                width: wordWidth + horizontalBleed * 2,
-                height: rect.height
-            ))
+            NSAttributedString(string: word.text, attributes: attributes).draw(
+                at: CGPoint(x: rightEdge - wordWidth, y: rect.minY)
+            )
         }
-
-        guard hasVisibleWord else { return }
-
-        NSGraphicsContext.saveGraphicsState()
-        clipPath.addClip()
-        attributedText.draw(in: rect)
-        NSGraphicsContext.restoreGraphicsState()
     }
 
-    private static func hasHiddenWords(
-        in line: MushafPageLine,
-        visibilityProvider: ((QuranWord) -> Bool)?
-    ) -> Bool {
-        guard let visibilityProvider else { return false }
-        return line.words.contains { !visibilityProvider($0) }
+    private static func startingRightEdge(
+        for line: MushafPageLine,
+        in rect: CGRect,
+        font: NSFont
+    ) -> CGFloat {
+        line.isCentered
+            ? rect.midX + lineAdvanceWidth(for: line, font: font) / 2
+            : rect.maxX
+    }
+
+    private static func interWordSpacing(for font: NSFont) -> CGFloat {
+        font.pointSize * 0.04
     }
 
     private static func isTextVisible(
@@ -484,7 +489,7 @@ private struct MushafLineLayout {
     private static let headerToBismillahStep: CGFloat = 136
     private static let headerToAyahStep: CGFloat = 148
     private static let bismillahToAyahStep: CGFloat = 92
-    private static let ayahToAyahStep: CGFloat = 88
+    private static let ayahToAyahStep: CGFloat = 100
     private static let ayahToHeaderStep: CGFloat = 147
     private static let minimumContentHeight: CGFloat = 1_366
     private static let bottomMargin: CGFloat = 80
