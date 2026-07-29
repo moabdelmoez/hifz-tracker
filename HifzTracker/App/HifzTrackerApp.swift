@@ -16,10 +16,10 @@ struct HifzTrackerApp: App {
             HifzTrackerCommands()
         }
 
-        Window("Dashboard", id: "dashboard") {
+        Window("Progress", id: "progress") {
             DashboardWindowView()
                 .modelContainer(for: StoredSessionRecord.self)
-                .frame(minWidth: 620, minHeight: 420)
+                .frame(minWidth: 900, minHeight: 620)
         }
 
         Settings {
@@ -42,8 +42,8 @@ struct HifzTrackerCommands: Commands {
 
     var body: some Commands {
         CommandMenu("Recitation") {
-            Button("Open Dashboard") {
-                openWindow(id: "dashboard")
+            Button("Open Progress") {
+                openWindow(id: "progress")
             }
             .keyboardShortcut("d", modifiers: [.command, .shift])
         }

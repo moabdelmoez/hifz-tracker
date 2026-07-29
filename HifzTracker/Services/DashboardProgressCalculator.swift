@@ -1,6 +1,67 @@
 import Foundation
 import HifzCore
 
+enum ProgressActivityLevel: Int, CaseIterable {
+    case none
+    case light
+    case medium
+    case dark
+    case darkest
+
+    init(wordCount: Int) {
+        switch wordCount {
+        case ...0: self = .none
+        case 1...25: self = .light
+        case 26...75: self = .medium
+        case 76...150: self = .dark
+        default: self = .darkest
+        }
+    }
+}
+
+struct ProgressActivityDay: Equatable, Identifiable {
+    var id: Date { date }
+
+    var date: Date
+    var wordCount: Int
+    var isFuture: Bool
+
+    var level: ProgressActivityLevel {
+        ProgressActivityLevel(wordCount: wordCount)
+    }
+}
+
+enum ProgressActivityCalculator {
+    static func days(
+        records: [SessionRecord],
+        through date: Date = .now,
+        calendar: Calendar = .current
+    ) -> [ProgressActivityDay] {
+        let today = calendar.startOfDay(for: date)
+        let daysSinceSunday = calendar.component(.weekday, from: today) - 1
+        guard let currentWeekStart = calendar.date(byAdding: .day, value: -daysSinceSunday, to: today),
+              let rangeStart = calendar.date(byAdding: .day, value: -(52 * 7), to: currentWeekStart) else {
+            return []
+        }
+
+        var wordsByDate: [Date: Int] = [:]
+        for record in records where record.completedWordCount > 0 {
+            wordsByDate[calendar.startOfDay(for: record.startedAt), default: 0] += record.completedWordCount
+        }
+
+        return (0..<(53 * 7)).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: rangeStart) else {
+                return nil
+            }
+            return ProgressActivityDay(
+                date: day,
+                wordCount: wordsByDate[day] ?? 0,
+                isFuture: day > today
+            )
+        }
+    }
+}
+
 struct SurahProgressSummary: Equatable, Identifiable {
     var id: Int { surah.number }
 

@@ -2,14 +2,23 @@
 
 ## Current Objective
 
-- Goal: None; `readme-demo-gif-refresh-002` is complete.
-- Current status: The supplied Al-Hadid GIF is installed at the existing README asset path and verified.
-- Working tree: This task contains README media and harness evidence changes; unrelated untracked `.claude/`, performance-audit content, and the root source GIF remain untouched.
+- Goal: None; `progress-activity-calendar-001` is complete.
+- Current status: Dashboard is renamed to Progress and now includes the agreed 53-week recitation activity calendar above the existing surah progress list.
+- Working tree: This task contains Progress UI, calculator, test, and harness evidence changes; unrelated untracked `.claude/`, performance-audit content, and the root source GIF remain untouched.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
+| Baseline Progress test suite | 149 tests passed, 1 expected opt-in audio skip |
+| Baseline Progress Swift build | Passed |
+| Red focused check | Failed because the activity calculator and levels did not exist |
+| Activity calculator suite | 3 tests passed |
+| Focused Progress verification | 44 tests passed |
+| Final Progress test suite | 152 tests passed, 1 expected opt-in audio skip |
+| Final Progress Swift build | Passed |
+| App bundle launch verification | Rebuilt, ad-hoc signed, launched, and process found |
+| Progress JSON and diff validation | Passed |
 | Al-Hadid GIF copy | Source and README asset SHA-256 match |
 | Baseline GIF-refresh test suite | 149 tests passed, 1 expected opt-in audio skip |
 | Baseline GIF-refresh Swift build | Passed |
@@ -64,11 +73,11 @@
 
 ## Restart Notes
 
-1. `docs/assets/hifztracker-demo.gif` now contains the supplied Al-Hadid animation.
-2. README markup remains unchanged.
+1. Open Progress from the toolbar or Recitation menu (`⇧⌘D`).
+2. Existing saved sessions backfill the calendar; no migration or duplicate activity storage was added.
 3. `feature_list.json` and `progress.md` record completion evidence.
 
 ## Risks / Out of Scope
 
-- The change is limited to README media and harness tracking.
-- No app code, tests, release assets, packaging, or signing inputs changed.
+- macOS denied automated keystrokes, so the secondary Progress window was not visually inspected through UI automation.
+- No session-detail interaction, year navigation, new persistence, release assets, packaging, or signing inputs were added.

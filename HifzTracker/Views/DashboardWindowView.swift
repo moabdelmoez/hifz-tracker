@@ -16,7 +16,7 @@ struct DashboardWindowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Dashboard")
+                Text("Progress")
                     .font(.title2.weight(.semibold))
                 Spacer()
 
@@ -30,6 +30,11 @@ struct DashboardWindowView: View {
             }
             .padding()
             .background(.bar)
+
+            ProgressActivityCalendar(days: activityDays)
+                .padding()
+
+            Divider()
 
             if records.isEmpty {
                 ContentUnavailableView(
@@ -69,6 +74,10 @@ struct DashboardWindowView: View {
         }
     }
 
+    private var activityDays: [ProgressActivityDay] {
+        ProgressActivityCalculator.days(records: records.map(\.coreRecord))
+    }
+
     private var summaries: [SurahProgressSummary] {
         guard let repository else {
             return SurahCatalog.all.map {
@@ -80,6 +89,131 @@ struct DashboardWindowView: View {
             records: records.map(\.coreRecord),
             repository: repository
         )
+    }
+}
+
+private struct ProgressActivityCalendar: View {
+    let days: [ProgressActivityDay]
+
+    private let calendar = Calendar.current
+    private let cellSize: CGFloat = 11
+    private let spacing: CGFloat = 3
+    private let weekdayLabels = ["", "Mon", "", "Wed", "", "Fri", ""]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Recitation activity")
+                .font(.headline)
+
+            HStack(alignment: .top, spacing: 8) {
+                VStack(spacing: spacing) {
+                    Color.clear
+                        .frame(width: 28, height: 14)
+
+                    ForEach(weekdayLabels.indices, id: \.self) { index in
+                        Text(weekdayLabels[index])
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28, height: cellSize, alignment: .trailing)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: spacing) {
+                        ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
+                            ZStack(alignment: .leading) {
+                                Text(monthLabel(for: week))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize()
+                            }
+                            .frame(width: cellSize, height: 14, alignment: .leading)
+                        }
+                    }
+
+                    HStack(spacing: spacing) {
+                        ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
+                            VStack(spacing: spacing) {
+                                ForEach(week) { day in
+                                    activityCell(for: day)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            HStack(spacing: 6) {
+                Spacer()
+                Text("Less")
+                    .foregroundStyle(.secondary)
+
+                ForEach(ProgressActivityLevel.allCases, id: \.rawValue) { level in
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(color(for: level))
+                        .frame(width: cellSize, height: cellSize)
+                }
+
+                Text("More")
+                    .foregroundStyle(.secondary)
+            }
+            .font(.caption)
+        }
+    }
+
+    private var weeks: [[ProgressActivityDay]] {
+        stride(from: 0, to: days.count, by: 7).map {
+            Array(days[$0..<min($0 + 7, days.count)])
+        }
+    }
+
+    @ViewBuilder
+    private func activityCell(for day: ProgressActivityDay) -> some View {
+        if day.isFuture {
+            Color.clear
+                .frame(width: cellSize, height: cellSize)
+                .accessibilityHidden(true)
+        } else {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(color(for: day.level))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .stroke(Color(nsColor: .separatorColor).opacity(0.35), lineWidth: 0.5)
+                }
+                .frame(width: cellSize, height: cellSize)
+                .help(accessibilityLabel(for: day))
+                .accessibilityLabel(accessibilityLabel(for: day))
+        }
+    }
+
+    private func monthLabel(for week: [ProgressActivityDay]) -> String {
+        guard let firstOfMonth = week.first(where: {
+            !$0.isFuture && calendar.component(.day, from: $0.date) == 1
+        }) else {
+            return ""
+        }
+        return firstOfMonth.date.formatted(.dateTime.month(.abbreviated))
+    }
+
+    private func accessibilityLabel(for day: ProgressActivityDay) -> String {
+        let date = day.date.formatted(date: .long, time: .omitted)
+        let words = day.wordCount == 1 ? "1 confirmed word recited" : "\(day.wordCount) confirmed words recited"
+        return "\(date), \(words)"
+    }
+
+    private func color(for level: ProgressActivityLevel) -> Color {
+        switch level {
+        case .none:
+            Color(nsColor: .separatorColor).opacity(0.45)
+        case .light:
+            Color(nsColor: .systemGreen).opacity(0.28)
+        case .medium:
+            Color(nsColor: .systemGreen).opacity(0.52)
+        case .dark:
+            Color(nsColor: .systemGreen).opacity(0.76)
+        case .darkest:
+            Color(nsColor: .systemGreen)
+        }
     }
 }
 

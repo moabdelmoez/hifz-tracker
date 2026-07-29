@@ -2,16 +2,26 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-29 20:54 EEST
+**Last Updated:** 2026-07-29 21:32 EEST
 
-**Session ID:** readme-demo-gif-refresh-2026-07-29
+**Session ID:** progress-activity-calendar-2026-07-29
 
-**Active Feature:** None. `readme-demo-gif-refresh-002` is complete.
+**Active Feature:** None. `progress-activity-calendar-001` is complete.
 
 ## Status
 
 ### What's Done
 
+- [x] Renamed the Dashboard window, toolbar entry, help text, and command-menu entry to Progress.
+- [x] Added a Sunday-first 53-week recitation calendar above the existing surah progress list.
+- [x] Reused saved session records to aggregate positive confirmed-word counts by local session start date.
+- [x] Added fixed activity levels for 1–25, 26–75, 76–150, and 151+ words, with gray inactive days and hidden future days.
+- [x] Added month and weekday labels, system-adaptive colors, date/count help and accessibility labels, and a Less-to-More legend.
+- [x] Kept the calendar visible in the empty state and reused the existing Reset Progress deletion path.
+- [x] Red focused check failed because the activity calculator and levels did not exist; the green focused calculator suite passed 3 tests.
+- [x] Focused Progress verification passed 44 tests; final `swift test` passed 152 tests with 1 expected opt-in audio skip.
+- [x] Final `swift build`, app bundle build/launch verification, `jq empty feature_list.json`, and `git diff --check` passed.
+- [x] Automated navigation to the secondary Progress window was blocked by macOS accessibility permissions, so no visual-inspection claim was made.
 - [x] Replaced the existing README demo asset with the supplied Al-Hadid GIF.
 - [x] Preserved the README's existing `docs/assets/hifztracker-demo.gif` reference.
 - [x] Verified the supplied and copied GIF SHA-256 values match.
@@ -96,6 +106,12 @@
 
 ## Files Modified This Session
 
+- `HifzTracker/App/HifzTrackerApp.swift` - Rename the secondary scene and command entry to Progress and widen its minimum window size.
+- `HifzTracker/Services/DashboardProgressCalculator.swift` - Build the 53-week daily activity data from existing session records.
+- `HifzTracker/Views/DashboardWindowView.swift` - Render the activity calendar above the existing surah progress list.
+- `HifzTracker/Views/RecitationRootView.swift` - Rename the toolbar entry to Progress.
+- `Tests/HifzTrackerTests/ProgressActivityCalculatorTests.swift` - Cover range alignment, daily aggregation, and fixed activity thresholds.
+- `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
 - `docs/assets/hifztracker-demo.gif` - Use the supplied Al-Hadid animation in the README.
 - `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
 - `docs/styles.css` - Contain the app screenshot within its responsive grid card.
@@ -118,6 +134,16 @@
 
 ## Evidence
 
+- [x] Baseline `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Baseline `swift build`: passed.
+- [x] Red focused test: missing `ProgressActivityCalculator` and `ProgressActivityLevel`.
+- [x] Green `ProgressActivityCalculatorTests`: 3 tests, 0 failures.
+- [x] Focused `swift test --filter Progress`: 44 tests, 0 failures.
+- [x] Final `swift test`: 152 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Final `swift build`: passed.
+- [x] `./script/build_and_run.sh --verify`: rebuilt, ad-hoc signed, launched, and found the app process.
+- [x] `jq empty feature_list.json` and `git diff --check`: passed.
+- [x] Release checks skipped; no assets, signing, packaging, dependencies, or distribution inputs changed.
 - [x] Supplied and copied GIF SHA-256: `bab8e3b821fe88b5babb1d50b66ea5b835cc99d8d8dff977e491c3dd6d7f87dc`.
 - [x] README still references `docs/assets/hifztracker-demo.gif`.
 - [x] Baseline `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
@@ -194,4 +220,4 @@
 
 ## Next Step
 
-No active feature. The README demo GIF refresh is complete.
+No active feature. The Progress activity calendar is complete and ready for user review.

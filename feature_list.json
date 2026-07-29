@@ -1066,6 +1066,31 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-29. Replaced `docs/assets/hifztracker-demo.gif` with the supplied `اعلموا.gif` while preserving the existing README markup. Both files have SHA-256 `bab8e3b821fe88b5babb1d50b66ea5b835cc99d8d8dff977e491c3dd6d7f87dc`. Baseline and final `swift test` each passed 149 tests with 1 expected opt-in audio skip and 0 failures; baseline and final `swift build` passed. The README reference check, `jq empty feature_list.json`, and `git diff --check` passed. Release checks were skipped because no app bundle or release asset changed."
+    },
+    {
+      "id": "progress-activity-calendar-001",
+      "name": "Progress Activity Calendar",
+      "description": "Rename Dashboard to Progress and add a GitHub-style 53-week recitation activity calendar above the existing surah progress list.",
+      "dependencies": ["dashboard-surah-progress-001"],
+      "status": "done",
+      "done_criteria": [
+        "Dashboard entrypoints and window title are renamed to Progress",
+        "Progress shows a Sunday-first 53-week calendar through today above the existing surah progress list",
+        "Saved sessions aggregate confirmed words by their local start date, including repeated and multiple same-day sessions",
+        "Daily cells use fixed green levels for 1–25, 26–75, 76–150, and 151+ words while inactive days remain gray and future days stay hidden",
+        "Existing sessions backfill the calendar without a new persistence model",
+        "Cells expose date and word-count help and accessibility text, and the footer shows a Less-to-More legend",
+        "The empty state keeps the gray calendar visible and Reset Progress clears both calendar and surah progress",
+        "Required verification passes and completion evidence is captured in progress.md"
+      ],
+      "verification": [
+        "swift test --filter ProgressActivityCalculatorTests",
+        "swift test",
+        "swift build",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-29. Renamed the user-facing Dashboard scene, toolbar entry, help text, and command entry to Progress; widened the window to 900 points; and added a Sunday-first 53-week activity calendar above the existing surah progress list. The calendar reuses saved session records, sums positive confirmed-word counts by local start date, uses the agreed fixed four green thresholds, hides future days, remains visible in the empty state, exposes help/accessibility labels, and shares the existing reset path. Red focused verification failed because `ProgressActivityCalculator` and `ProgressActivityLevel` did not exist; the green calculator suite passed 3 tests. Focused Progress verification passed 44 tests. Final `swift test` passed 152 tests with 1 expected opt-in audio skip and 0 failures; final `swift build` passed; `./script/build_and_run.sh --verify` rebuilt, ad-hoc signed, launched, and found the app process; `jq empty feature_list.json` and `git diff --check` passed. Automated navigation to the secondary window was blocked by macOS accessibility permissions, so no visual-inspection claim was made. Release checks were skipped because no assets, signing, packaging, dependencies, or distribution inputs changed."
     }
   ]
 }
