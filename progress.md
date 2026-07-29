@@ -2,16 +2,21 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-29 14:54 EEST
+**Last Updated:** 2026-07-29 18:56 EEST
 
-**Session ID:** mushaf-layout-reliability-2026-07-29
+**Session ID:** hide-ayah-switch-style-2026-07-29
 
-**Active Feature:** None. `mushaf-layout-reliability-001` is complete.
+**Active Feature:** None. `hide-ayah-switch-style-001` is complete.
 
 ## Status
 
 ### What's Done
 
+- [x] Traced the Hide Ayah control and the General setting to native SwiftUI `Toggle` views.
+- [x] Baseline `swift test` passed 149 tests with 1 expected opt-in audio skip; baseline `swift build` passed.
+- [x] Recorded the initial sandbox-only manifest failure (`sandbox_apply: Operation not permitted`) before continuing with the successful escalated baseline.
+- [x] Set the existing Hide Ayah `Toggle` to the native `.switch` style without changing behavior.
+- [x] Final `swift test` passed 149 tests with 1 expected opt-in audio skip; final `swift build` passed.
 - [x] Committed the Mushaf layout fix as `89c3169` and pushed it directly to `origin/main`.
 - [x] Re-ran `./script/release_checks.sh`; 149 tests passed with 1 expected skip, and staging, launch, assets, rpaths, and ad-hoc signature checks passed.
 - [x] Replaced the ignored local DMG only after a temporary image passed `hdiutil verify`.
@@ -69,6 +74,8 @@
 
 ## Files Modified This Session
 
+- `HifzTracker/Views/RecitationSidebarView.swift` - Render Hide Ayah as a native macOS switch.
+- `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
 - `Sources/HifzCore/MushafFontResolver.swift` - Match the six suffixless bundled QPC font names.
 - `Sources/HifzCore/MushafPageRenderer.swift` - Use stable measured word positioning and fit over-wide lines inside the border.
 - `Tests/HifzCoreTests/MushafFontResolverTests.swift` - Validate all 604 bundled PostScript names.
@@ -79,6 +86,10 @@
 
 ## Evidence
 
+- [x] `Toggle("Hide recitation text", ...)` now explicitly uses `.toggleStyle(.switch)`.
+- [x] Final `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Final `swift build`: passed.
+- [x] Release checks skipped; no release-sensitive input changed.
 - [x] Source commit: `89c3169` (`Fix Mushaf page layout`), pushed to `origin/main`.
 - [x] Local release gate: 149 tests, 1 expected opt-in audio skip, 0 failures; build, staging, launch, assets, rpaths, and ad-hoc signature checks passed.
 - [x] Updated DMG: 520,841,049 bytes; SHA-256 `c4672801c5d2753e5de1e3c0a47c0a8cbf6730155205c8287d9704fd40c5b874`; `hdiutil verify` CRC32 `$664C34F0`.
@@ -118,4 +129,4 @@
 
 ## Next Step
 
-No active feature. Source commit `89c3169` is on `origin/main`, and the updated local DMG is ready at `dist/HifzTracker-0.1.0-arm64.dmg`. Developer ID signing and notarization still require credentials.
+No active feature. This commit contains the completed Hide Ayah switch change.

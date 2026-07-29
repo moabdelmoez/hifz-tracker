@@ -2,14 +2,17 @@
 
 ## Current Objective
 
-- Goal: None; `mushaf-layout-reliability-001` is complete.
-- Current status: Source commit `89c3169` is on `origin/main`, every ayah line across all 604 pages fits, and the updated local DMG is fully verified.
-- Working tree: handoff evidence changes plus unrelated untracked `.claude/` and performance-audit content.
+- Goal: None; `hide-ayah-switch-style-001` is complete.
+- Current status: Hide Ayah explicitly uses the native SwiftUI switch style, matching the General setting.
+- Working tree: this commit contains the switch and harness evidence changes; unrelated untracked `.claude/` and performance-audit content remain untouched.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
+| Hide Ayah control | Existing `Toggle` now uses `.toggleStyle(.switch)` |
+| Final test suite | 149 tests passed, 1 expected opt-in audio skip |
+| Final Swift build | Passed |
 | Source commit | `89c3169` (`Fix Mushaf page layout`), pushed to `origin/main` |
 | Local release gate | 149 tests, 1 expected skip; staging, launch, assets, rpaths, and ad-hoc signature checks passed |
 | Updated DMG | 520,841,049 bytes; SHA-256 `c4672801c5d2753e5de1e3c0a47c0a8cbf6730155205c8287d9704fd40c5b874` |
@@ -37,20 +40,11 @@
 
 ## Restart Notes
 
-1. QPC fonts have inconsistent regular-space advances, so drawing positions words with a stable 0.04-em gap instead.
-2. Lines wider than the 920-point ayah area are scaled just enough to fit.
-3. Highlights and Hide Ayah use the same fitted font and word positions.
-4. The permanent all-page regression opens every page font and checks every ayah line, adding about 18 seconds to `swift test`.
-5. `MushafFontResolver` handles the six bundled fonts whose immutable PostScript names omit `-Regular`: pages 13, 27, 28, 29, 226, and 227.
-6. `MushafLineLayout.ayahToAyahStep` is 100 canonical points, up from 88.
-7. Page 13 remains covered through the same throwing `MushafPageRenderer.drawPage` seam used by the app canvas.
-8. The normal sandbox baseline needs the documented `/private/tmp/hifz-*-module-cache` environment for verification.
-9. The ignored `dist/` app and DMG were rebuilt and verified; the DMG SHA-256 is `c4672801c5d2753e5de1e3c0a47c0a8cbf6730155205c8287d9704fd40c5b874`.
-10. GitHub authentication is valid through the macOS Keychain; source commit `89c3169` is on `origin/main`.
+1. The only runtime change is `.toggleStyle(.switch)` on the existing Hide Ayah `Toggle`.
+2. The binding, label, help text, and Hide Ayah behavior are unchanged.
+3. The normal sandbox baseline needs the documented `/private/tmp/hifz-*-module-cache` environment for verification.
 
 ## Risks / Out of Scope
 
-- The spacing change makes normal pages taller and relies on the existing vertical scroll behavior.
-- Exceptionally wide lines are reduced only enough to preserve the border; normal lines keep their base font size.
-- No font files, layout databases, ASR behavior, audio, model assets, or signing configuration changed.
-- The refreshed DMG is for local distribution only; Developer ID signing and notarization still require credentials.
+- No custom toggle styling or new tests were added; the native SwiftUI switch style is the requested behavior.
+- No ASR, audio, Mushaf rendering, assets, packaging, or signing inputs changed.

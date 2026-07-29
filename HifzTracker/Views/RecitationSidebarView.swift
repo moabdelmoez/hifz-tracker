@@ -76,6 +76,7 @@ private struct RecitationSetupSection: View {
                     Spacer(minLength: 8)
                     Toggle("Hide recitation text", isOn: $viewModel.hideRecitationText)
                         .labelsHidden()
+                        .toggleStyle(.switch)
                         .help("Hide recitation text until it is recited")
                 }
             }
