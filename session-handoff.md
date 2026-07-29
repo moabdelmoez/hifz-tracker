@@ -2,14 +2,21 @@
 
 ## Current Objective
 
-- Goal: None; `readme-citations-001` is complete.
-- Current status: The two requested README sections are removed and the README ends with the requested citations.
-- Working tree: This task contains README and harness evidence changes; unrelated untracked `.claude/` and performance-audit content remain untouched.
+- Goal: None; `docs-media-refresh-001` is complete.
+- Current status: The supplied README GIF and GitHub Pages screenshot are in place and verified.
+- Working tree: This task contains media, page markup/styles, and harness evidence changes; unrelated untracked `.claude/`, performance-audit content, and the root source GIF remain untouched.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
+| GIF copy | Source and README asset SHA-256 match |
+| Screenshot copy | Source and website asset SHA-256 match |
+| Baseline test suite | 149 tests passed, 1 expected opt-in audio skip |
+| Baseline Swift build | Passed |
+| Final media-refresh test suite | 149 tests passed, 1 expected opt-in audio skip |
+| Final media-refresh Swift build | Passed |
+| Media static validation | Asset references, JSON, and diff checks passed |
 | README content | Old headings absent; both requested citation links present at the end |
 | Final test suite | 149 tests passed, 1 expected opt-in audio skip |
 | Final Swift build | Passed |
@@ -44,11 +51,11 @@
 
 ## Restart Notes
 
-1. `README.md` contains the requested final citations section.
-2. `feature_list.json` and `progress.md` record completion evidence.
-3. No runtime, asset, packaging, or signing input changed.
+1. The README reference is unchanged; its existing GIF asset now contains the supplied animation.
+2. The website experience section now references `docs/assets/hifztracker-app.png`.
+3. `feature_list.json` and `progress.md` record completion evidence.
 
 ## Risks / Out of Scope
 
-- Release checks were skipped because this is documentation-only.
-- No app code, tests, assets, packaging, or signing inputs changed.
+- The app bundle and release assets are unchanged; release checks are not required for documentation media.
+- No app code, tests, packaging, or signing inputs changed.

@@ -1001,6 +1001,28 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-29. Removed both requested README sections and added the two requested linked citations at the end. Baseline and final `swift test` each passed 149 tests with 1 expected opt-in audio skip and 0 failures; baseline and final `swift build` passed. The initial sandboxed test attempt was blocked by `sandbox_apply: Operation not permitted`, so verification used the documented escalated SwiftPM path. `jq empty feature_list.json` and `git diff --check` passed. Release checks were skipped because this is documentation-only."
+    },
+    {
+      "id": "docs-media-refresh-001",
+      "name": "README and Website Media Refresh",
+      "description": "Replace the README demo GIF and the GitHub Pages experience mockup with the supplied current app media.",
+      "dependencies": ["readme-citations-001"],
+      "status": "done",
+      "done_criteria": [
+        "The README demo reference resolves to the supplied animated GIF",
+        "The GitHub Pages experience section displays the supplied app screenshot",
+        "Unused mockup markup and CSS are removed",
+        "Required verification passes"
+      ],
+      "verification": [
+        "source and copied asset SHA-256 values match",
+        "referenced asset paths exist",
+        "swift test",
+        "swift build",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-29. The supplied GIF replaced `docs/assets/hifztracker-demo.gif` byte-for-byte, preserving the existing README reference. The supplied screenshot was copied to `docs/assets/hifztracker-app.png`, and the static GitHub Pages mockup was replaced with that accessible image. Obsolete mockup markup and more than 100 lines of dead CSS were removed. Source and copied asset SHA-256 values match. Baseline and final `swift test` each passed 149 tests with 1 expected opt-in audio skip and 0 failures; baseline and final `swift build` passed. Asset-reference checks, `jq empty feature_list.json`, and `git diff --check` passed. Release checks were skipped because no app bundle or release asset changed."
     }
   ]
 }

@@ -2,16 +2,22 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-29 19:21 EEST
+**Last Updated:** 2026-07-29 19:35 EEST
 
-**Session ID:** readme-citations-2026-07-29
+**Session ID:** docs-media-refresh-2026-07-29
 
-**Active Feature:** None. `readme-citations-001` is complete.
+**Active Feature:** None. `docs-media-refresh-001` is complete.
 
 ## Status
 
 ### What's Done
 
+- [x] Replaced the README demo asset with the supplied animated GIF while preserving its existing reference.
+- [x] Replaced the GitHub Pages experience mockup with the supplied app screenshot.
+- [x] Removed the obsolete mockup markup, responsive rules, and CSS.
+- [x] Verified both copied assets match their supplied source files by SHA-256.
+- [x] Baseline `swift test` passed 149 tests with 1 expected opt-in audio skip; baseline `swift build` passed.
+- [x] Final `swift test` passed 149 tests with 1 expected opt-in audio skip; final `swift build` passed.
 - [x] Removed the README's Logo And Project Page and Privacy Notes sections.
 - [x] Added linked Mushaf Layout and Quran Speech-to-text citations at the end of the README.
 - [x] Baseline `swift test` passed 149 tests with 1 expected opt-in audio skip; baseline `swift build` passed.
@@ -79,6 +85,10 @@
 
 ## Files Modified This Session
 
+- `docs/assets/hifztracker-demo.gif` - Use the supplied current demo GIF in the README.
+- `docs/assets/hifztracker-app.png` - Add the supplied current app screenshot for GitHub Pages.
+- `docs/index.html`, `docs/styles.css` - Replace the mockup with the real screenshot and remove dead styles.
+- `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
 - `README.md` - Remove the two requested sections and add the citations.
 - `feature_list.json`, `progress.md` - Record documentation scope and verification.
 - `HifzTracker/Views/RecitationSidebarView.swift` - Render Hide Ayah as a native macOS switch.
@@ -93,6 +103,15 @@
 
 ## Evidence
 
+- [x] Supplied and copied GIF SHA-256: `28dcd3c2ee42be2451a0efdb34fdaf5ee9bffb11bd8e8d1a9511258912c491b1`.
+- [x] Supplied and copied screenshot SHA-256: `81918080b6b3d4934166650f3f449c175f74fc4acf9389430130f62121619a66`.
+- [x] GitHub Pages references `assets/hifztracker-app.png`; README still references the replaced `docs/assets/hifztracker-demo.gif`.
+- [x] Baseline `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Baseline `swift build`: passed.
+- [x] Final `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Final `swift build`: passed.
+- [x] Asset references, `jq empty feature_list.json`, and `git diff --check`: passed.
+- [x] Release checks skipped; no app bundle or release asset changed.
 - [x] README ends with both requested citation links.
 - [x] Baseline `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
 - [x] Baseline `swift build`: passed.
@@ -143,4 +162,4 @@
 
 ## Next Step
 
-No active feature. The requested README cleanup and citations are complete.
+No active feature. The requested README GIF and GitHub Pages screenshot refresh is complete.
