@@ -2,16 +2,21 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-29 20:38 EEST
+**Last Updated:** 2026-07-29 20:54 EEST
 
-**Session ID:** website-preview-containment-2026-07-29
+**Session ID:** readme-demo-gif-refresh-2026-07-29
 
-**Active Feature:** None. `website-preview-containment-001` is complete.
+**Active Feature:** None. `readme-demo-gif-refresh-002` is complete.
 
 ## Status
 
 ### What's Done
 
+- [x] Replaced the existing README demo asset with the supplied Al-Hadid GIF.
+- [x] Preserved the README's existing `docs/assets/hifztracker-demo.gif` reference.
+- [x] Verified the supplied and copied GIF SHA-256 values match.
+- [x] Baseline `swift test` passed 149 tests with 1 expected opt-in audio skip; baseline `swift build` passed.
+- [x] Final `swift test` passed 149 tests with 1 expected opt-in audio skip; final `swift build` passed.
 - [x] Traced the website misalignment to the preview grid item's intrinsic minimum width.
 - [x] Allowed the preview card and image to shrink to their grid track without overflow.
 - [x] Added the requested skill's neutral black 10% inset image outline.
@@ -91,6 +96,8 @@
 
 ## Files Modified This Session
 
+- `docs/assets/hifztracker-demo.gif` - Use the supplied Al-Hadid animation in the README.
+- `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
 - `docs/styles.css` - Contain the app screenshot within its responsive grid card.
 - `feature_list.json`, `progress.md`, `session-handoff.md` - Record scope, verification, and continuity.
 - `docs/assets/hifztracker-demo.gif` - Use the supplied current demo GIF in the README.
@@ -111,6 +118,14 @@
 
 ## Evidence
 
+- [x] Supplied and copied GIF SHA-256: `bab8e3b821fe88b5babb1d50b66ea5b835cc99d8d8dff977e491c3dd6d7f87dc`.
+- [x] README still references `docs/assets/hifztracker-demo.gif`.
+- [x] Baseline `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Baseline `swift build`: passed.
+- [x] Final `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Final `swift build`: passed.
+- [x] README reference, `jq empty feature_list.json`, and `git diff --check`: passed.
+- [x] Release checks skipped; no app bundle or release asset changed.
 - [x] Desktop probe: 624px image inside a 626px card; document width equals 1912px viewport.
 - [x] Narrow probe: 682px image inside a 684px card; document width equals 760px viewport.
 - [x] Both probes reported `contained=true` and `noHorizontalOverflow=true`.
@@ -179,4 +194,4 @@
 
 ## Next Step
 
-No active feature. The GitHub Pages preview image containment fix is complete.
+No active feature. The README demo GIF refresh is complete.

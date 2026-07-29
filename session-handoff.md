@@ -2,14 +2,20 @@
 
 ## Current Objective
 
-- Goal: None; `website-preview-containment-001` is complete.
-- Current status: The CSS containment fix passes desktop and narrow browser layout probes and final verification.
-- Working tree: This task contains website CSS and harness evidence changes; unrelated untracked `.claude/`, performance-audit content, and the root source GIF remain untouched.
+- Goal: None; `readme-demo-gif-refresh-002` is complete.
+- Current status: The supplied Al-Hadid GIF is installed at the existing README asset path and verified.
+- Working tree: This task contains README media and harness evidence changes; unrelated untracked `.claude/`, performance-audit content, and the root source GIF remain untouched.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
+| Al-Hadid GIF copy | Source and README asset SHA-256 match |
+| Baseline GIF-refresh test suite | 149 tests passed, 1 expected opt-in audio skip |
+| Baseline GIF-refresh Swift build | Passed |
+| Final GIF-refresh test suite | 149 tests passed, 1 expected opt-in audio skip |
+| Final GIF-refresh Swift build | Passed |
+| GIF-refresh JSON and diff validation | Passed |
 | Desktop website layout | 624px image contained inside 626px card; no page overflow |
 | Narrow website layout | 682px image contained inside 684px card; no page overflow |
 | Baseline containment test suite | 149 tests passed, 1 expected opt-in audio skip |
@@ -58,11 +64,11 @@
 
 ## Restart Notes
 
-1. `docs/styles.css` now lets `.app-preview` shrink inside its grid track.
-2. The image is width-constrained and has a neutral inset outline.
+1. `docs/assets/hifztracker-demo.gif` now contains the supplied Al-Hadid animation.
+2. README markup remains unchanged.
 3. `feature_list.json` and `progress.md` record completion evidence.
 
 ## Risks / Out of Scope
 
-- The change is limited to the GitHub Pages website and harness tracking.
-- No README, app code, tests, assets, packaging, or signing inputs changed.
+- The change is limited to README media and harness tracking.
+- No app code, tests, release assets, packaging, or signing inputs changed.
