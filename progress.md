@@ -2,16 +2,33 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-29 21:32 EEST
+**Last Updated:** 2026-07-30 06:31 EEST
 
-**Session ID:** progress-activity-calendar-2026-07-29
+**Session ID:** website-feature-showcase-2026-07-30
 
-**Active Feature:** None. `progress-activity-calendar-001` is complete.
+**Active Feature:** None. `website-feature-showcase-001` is complete.
 
 ## Status
 
 ### What's Done
 
+- [x] Replaced the existing website preview with the supplied focused-session screenshot.
+- [x] Added Track your progress and Hide and recite rows with the supplied screenshots and feature-specific copy.
+- [x] Alternated desktop layouts while preserving text-first mobile source order.
+- [x] Added a subtle sage feature surface and white silhouette-following sticker outlines with soft shadows.
+- [x] Added intrinsic image dimensions, balanced headings, pretty paragraph wrapping, and root font smoothing.
+- [x] Verified the local and live copies of all three screenshots match their supplied SHA-256 values.
+- [x] Published commit `fb178aa` to `origin/main`; the GitHub Pages workflow completed successfully.
+- [x] Verified the live HTML and CSS contain all three feature rows, asset references, responsive ordering, sage background, and sticker filters.
+- [x] Baseline and final temporary-cache `swift test` passed 152 tests with 1 expected skip; baseline and final `swift build` passed.
+- [x] Ran the local release gate from pushed main commit `af5081f`; 152 tests passed with 1 expected skip.
+- [x] Rebuilt, launched, asset-checked, rpath-checked, and ad-hoc-signature-checked the staged app.
+- [x] Created and verified a temporary DMG before replacing the existing artifact.
+- [x] Mounted the temporary image read-only and verified the packaged app's deep signature and bundle metadata.
+- [x] Matched the mounted executable to staged SHA-256 `66f29e3b2b6be5bf703d6137a0d0cf5648c882b4ebe8e3a64047603337cd8e16`.
+- [x] Launched the mounted app as PID 21834, then stopped it and detached the image.
+- [x] Replaced the ignored local DMG with the verified 520,587,236-byte artifact.
+- [x] Final DMG SHA-256 is `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`; `hdiutil verify` passed with CRC32 `$F4901868`.
 - [x] Renamed the Dashboard window, toolbar entry, help text, and command-menu entry to Progress.
 - [x] Added a Sunday-first 53-week recitation calendar above the existing surah progress list.
 - [x] Reused saved session records to aggregate positive confirmed-word counts by local session start date.
@@ -102,10 +119,16 @@
 
 ### What's Blocked
 
-- Nothing. The default sandbox compiler cache remains unwritable; documented verification uses `/private/tmp` module caches.
+- The connected browser backend was unavailable, so no visual-render claim was made. Live HTML, CSS, asset, deployment, and responsive source checks passed.
+- The default sandbox compiler cache remains unwritable; documented verification uses `/private/tmp` module caches.
 
 ## Files Modified This Session
 
+- `docs/index.html`, `docs/styles.css` - Add the three responsive feature rows and sticker presentation.
+- `docs/assets/hifztracker-app.png`, `docs/assets/hifztracker-progress.png`, `docs/assets/hifztracker-hide-and-recite.png` - Use the three supplied feature screenshots.
+- `feature_list.json`, `progress.md`, `session-handoff.md` - Record website scope, publication, verification, and continuity.
+- `dist/HifzTracker.app`, `dist/HifzTracker-0.1.0-arm64.dmg` - Rebuilt ignored local distribution artifacts from `af5081f`.
+- `feature_list.json`, `progress.md`, `session-handoff.md` - Record DMG refresh scope and evidence.
 - `HifzTracker/App/HifzTrackerApp.swift` - Rename the secondary scene and command entry to Progress and widen its minimum window size.
 - `HifzTracker/Services/DashboardProgressCalculator.swift` - Build the 53-week daily activity data from existing session records.
 - `HifzTracker/Views/DashboardWindowView.swift` - Render the activity calendar above the existing surah progress list.
@@ -134,6 +157,27 @@
 
 ## Evidence
 
+- [x] Published source commit: `fb178aa` (`Add website feature showcase`).
+- [x] GitHub Pages workflow `30511294998`: completed successfully for `fb178aa2dc119814336337766ef3d74d66ee1833`.
+- [x] Live page contains Built for focused hifz sessions, Track your progress, and Hide and recite.
+- [x] Live CSS contains the sage feature surface, alternating-row rules, mobile order reset, and white sticker drop shadows.
+- [x] Main screenshot SHA-256: `8dd4b47141f6a8893323b7774435f2f7ec772b0266b7a08b72381a6f178b3a29`.
+- [x] Progress screenshot SHA-256: `a6323301c5585669d43ea1dec635f707813fbf56dbaa92322d4a2955a65b17e5`.
+- [x] Hide and Recite screenshot SHA-256: `f47d598f2648f5ca010cc11a17eda734a69070cab497c5bc51dd81c9b02daa4c`.
+- [x] Initial default-cache `swift test`: blocked by sandboxed module-cache permissions.
+- [x] Baseline and final temporary-cache `swift test`: 152 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Baseline and final `swift build`: passed.
+- [x] Live page and all three image requests: passed.
+- [x] `git diff --check`: passed before publication.
+- [x] Browser visual verification: unavailable because no connected browser backend was exposed.
+- [x] Release checks skipped; only static website and harness files changed.
+- [x] Source: pushed main commit `af5081f`.
+- [x] Local release gate: 152 tests, 1 expected opt-in audio skip, 0 failures; build, staged launch, assets, rpaths, and ad-hoc signature passed.
+- [x] Staged and mounted executable SHA-256: `66f29e3b2b6be5bf703d6137a0d0cf5648c882b4ebe8e3a64047603337cd8e16`.
+- [x] Mounted app: deep strict signature passed; bundle ID `dev.mostafa.HifzTracker`; version `0.1.0`.
+- [x] Mounted launch: PID 21834 from the read-only image; stopped before detach.
+- [x] Final DMG: 520,587,236 bytes; SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`; verified CRC32 `$F4901868`.
+- [x] Distribution limitation: no Developer ID identity; app is ad-hoc signed, DMG is unsigned and not notarized.
 - [x] Baseline `swift test`: 149 tests, 1 expected opt-in audio skip, 0 failures.
 - [x] Baseline `swift build`: passed.
 - [x] Red focused test: missing `ProgressActivityCalculator` and `ProgressActivityLevel`.
@@ -220,4 +264,4 @@
 
 ## Next Step
 
-No active feature. The Progress activity calendar is complete and ready for user review.
+No active feature. The website feature showcase is live at `https://moabdelmoez.github.io/hifz-tracker/`.

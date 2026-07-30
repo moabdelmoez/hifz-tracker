@@ -1091,6 +1091,56 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-29. Renamed the user-facing Dashboard scene, toolbar entry, help text, and command entry to Progress; widened the window to 900 points; and added a Sunday-first 53-week activity calendar above the existing surah progress list. The calendar reuses saved session records, sums positive confirmed-word counts by local start date, uses the agreed fixed four green thresholds, hides future days, remains visible in the empty state, exposes help/accessibility labels, and shares the existing reset path. Red focused verification failed because `ProgressActivityCalculator` and `ProgressActivityLevel` did not exist; the green calculator suite passed 3 tests. Focused Progress verification passed 44 tests. Final `swift test` passed 152 tests with 1 expected opt-in audio skip and 0 failures; final `swift build` passed; `./script/build_and_run.sh --verify` rebuilt, ad-hoc signed, launched, and found the app process; `jq empty feature_list.json` and `git diff --check` passed. Automated navigation to the secondary window was blocked by macOS accessibility permissions, so no visual-inspection claim was made. Release checks were skipped because no assets, signing, packaging, dependencies, or distribution inputs changed."
+    },
+    {
+      "id": "progress-activity-dmg-refresh-001",
+      "name": "Progress Activity DMG Refresh",
+      "description": "Replace the local free-path DMG with a verified ad-hoc build from the pushed Progress activity calendar source.",
+      "dependencies": ["progress-activity-calendar-001"],
+      "status": "done",
+      "done_criteria": [
+        "The local release gate passes from main commit af5081f",
+        "A temporary DMG is created from the freshly staged ad-hoc app and verified before replacement",
+        "The mounted app passes deep strict signature verification and matches the staged executable",
+        "The mounted app launches from the read-only image",
+        "The existing ignored DMG is replaced only after all checks pass",
+        "The final DMG checksum, size, signing limitations, and verification evidence are recorded"
+      ],
+      "verification": [
+        "./script/release_checks.sh",
+        "hdiutil verify",
+        "codesign --verify --deep --strict",
+        "mounted executable SHA-256 matches staging",
+        "launch from mounted read-only DMG",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-29 from pushed main commit `af5081f`. The local release gate passed 152 tests with 1 expected opt-in audio skip and 0 failures, rebuilt and launched the staged app, validated assets and rpaths, and verified its ad-hoc signature. A temporary DMG was created and passed `hdiutil verify` before replacement. The mounted app passed deep strict signature verification, its executable matched the staged SHA-256 `66f29e3b2b6be5bf703d6137a0d0cf5648c882b4ebe8e3a64047603337cd8e16`, and it launched from the read-only image as PID 21834. The smoke-test process was stopped and the image detached. The final `dist/HifzTracker-0.1.0-arm64.dmg` is 520,587,236 bytes with SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`; final `hdiutil verify` passed with CRC32 `$F4901868`. No Developer ID identity is installed, so the app is ad-hoc signed and the DMG is unsigned and not notarized."
+    },
+    {
+      "id": "website-feature-showcase-001",
+      "name": "Website Feature Showcase",
+      "description": "Expand the GitHub Pages experience area into three responsive feature rows using the supplied Focused Sessions, Progress, and Hide and Recite screenshots.",
+      "dependencies": ["website-preview-containment-001"],
+      "status": "done",
+      "done_criteria": [
+        "The existing focused-session screenshot is replaced with the supplied main screenshot",
+        "Track your progress and Hide and recite appear beneath it with the supplied screenshots and feature-specific copy",
+        "Desktop rows alternate while mobile rows keep text before each image",
+        "Screenshots use a white silhouette-following sticker outline and soft shadow on a subtle sage background",
+        "All three live image assets match the supplied source files",
+        "Required verification passes and the update is published to GitHub Pages"
+      ],
+      "verification": [
+        "source and published image SHA-256 values match",
+        "live HTML and CSS contain the three feature rows and sticker treatment",
+        "GitHub Pages deployment succeeds",
+        "swift test",
+        "swift build",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Completed on 2026-07-30 and published as commit `fb178aa`. Added three alternating feature rows with focused copy, responsive mobile source order, a sage feature surface, intrinsic image dimensions, and white alpha-following drop-shadow outlines. The copied and live image SHA-256 values match the supplied files: main `8dd4b47141f6a8893323b7774435f2f7ec772b0266b7a08b72381a6f178b3a29`, progress `a6323301c5585669d43ea1dec635f707813fbf56dbaa92322d4a2955a65b17e5`, and hide-and-recite `f47d598f2648f5ca010cc11a17eda734a69070cab497c5bc51dd81c9b02daa4c`. The GitHub Pages workflow completed successfully and cache-bypassed live checks found all three headings, new asset references, alternating-row CSS, sage background, and white sticker filters. The connected browser backend was unavailable, so no visual-render claim was made. The initial default-cache `swift test` attempt was blocked by sandbox permissions; temporary-cache baseline and final `swift test` each passed 152 tests with 1 expected skip and 0 failures, and both `swift build` runs passed. `git diff --check` passed; release checks were skipped because only static website and harness files changed."
     }
   ]
 }

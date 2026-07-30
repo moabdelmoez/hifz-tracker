@@ -2,14 +2,29 @@
 
 ## Current Objective
 
-- Goal: None; `progress-activity-calendar-001` is complete.
-- Current status: Dashboard is renamed to Progress and now includes the agreed 53-week recitation activity calendar above the existing surah progress list.
-- Working tree: This task contains Progress UI, calculator, test, and harness evidence changes; unrelated untracked `.claude/`, performance-audit content, and the root source GIF remain untouched.
+- Goal: None; `website-feature-showcase-001` is complete.
+- Current status: The GitHub Pages site now presents Focused Sessions, Progress, and Hide and Recite as alternating responsive feature rows with supplied sticker-outlined screenshots.
+- Working tree: Website commit `fb178aa` is pushed. Harness evidence remains modified locally; unrelated `.claude/`, performance-audit content, root screenshots, and source GIF remain untouched.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
+| Website source | Commit `fb178aa` pushed to `origin/main` |
+| GitHub Pages deployment | Workflow `30511294998` completed successfully |
+| Live content | All three feature headings and screenshot references are present |
+| Live presentation CSS | Sage feature surface, alternating desktop rows, mobile reset, and white sticker filters are present |
+| Screenshot integrity | Supplied, copied, and live SHA-256 values match for all three images |
+| Website test suite | 152 tests passed, 1 expected opt-in audio skip |
+| Website Swift build | Passed |
+| Browser preview | Blocked because no connected browser backend was available; no visual-render claim made |
+| DMG source | Pushed main commit `af5081f` |
+| DMG release gate | 152 tests passed, 1 expected skip; build, launch, assets, rpaths, and ad-hoc signature passed |
+| Staged/mounted executable | Matching SHA-256 `66f29e3b2b6be5bf703d6137a0d0cf5648c882b4ebe8e3a64047603337cd8e16` |
+| Mounted app | Deep strict signature passed; bundle ID and version verified |
+| Mounted launch | PID 21834 from read-only image; stopped and detached |
+| Updated DMG | 520,587,236 bytes; SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768` |
+| DMG image verification | Passed; CRC32 `$F4901868` |
 | Baseline Progress test suite | 149 tests passed, 1 expected opt-in audio skip |
 | Baseline Progress Swift build | Passed |
 | Red focused check | Failed because the activity calculator and levels did not exist |
@@ -73,11 +88,12 @@
 
 ## Restart Notes
 
-1. Open Progress from the toolbar or Recitation menu (`⇧⌘D`).
-2. Existing saved sessions backfill the calendar; no migration or duplicate activity storage was added.
+1. The feature showcase is live at `https://moabdelmoez.github.io/hifz-tracker/`.
+2. Website source is pushed as commit `fb178aa`.
 3. `feature_list.json` and `progress.md` record completion evidence.
 
 ## Risks / Out of Scope
 
-- macOS denied automated keystrokes, so the secondary Progress window was not visually inspected through UI automation.
-- No session-detail interaction, year navigation, new persistence, release assets, packaging, or signing inputs were added.
+- No automated browser screenshot was captured because the connected browser backend was unavailable.
+- No Developer ID identity or notarization profile is installed; the app is ad-hoc signed and the DMG is unsigned and not notarized.
+- The artifact is for the existing free/manual distribution path, not Gatekeeper-trusted public distribution.
