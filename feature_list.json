@@ -315,7 +315,7 @@
       "name": "GitHub Pages Distribution Site",
       "description": "Add a static GitHub Pages project site under docs/ for sharing the macOS app and linking downloads to GitHub Releases.",
       "dependencies": ["post-lock-single-substitution-bridge-001"],
-      "status": "blocked",
+      "status": "done",
       "done_criteria": [
         "docs/ contains a static GitHub Pages entry page and stylesheet",
         "The page includes app name, purpose, macOS requirements, privacy/offline note, visual product presentation, and GitHub Release download links",
@@ -331,7 +331,7 @@
         "./script/release_checks.sh release",
         "gh auth status"
       ],
-      "evidence": "Repo-side Pages site implemented on 2026-06-18 with `docs/index.html`, `docs/styles.css`, `docs/.nojekyll`, and `docs/assets/hifz-tracker-icon.png`. Baseline and final checks passed: `swift test` executed 130 tests with 1 expected skip and 0 failures; `swift build` completed successfully. Browser verification served `docs/` locally and confirmed desktop 1280x720 and mobile 390x844 render with images loaded, stable latest-release download URL, visible next-section hint, and no horizontal overflow. `./script/release_checks.sh release` passed tests/builds/staged bundle signing checks but exited 1 at release-only signing assessment; `security find-identity -p codesigning -v` reported 0 valid identities and `spctl -a -vv dist/HifzTracker.app` returned `internal error in Code Signing subsystem`. `gh auth status` reported the moabdelmoez token is invalid, so GitHub Release upload and Pages settings activation remain externally blocked."
+      "evidence": "Completed on 2026-07-30. The GitHub Pages site is live and its primary button now targets the published prerelease asset directly at `/releases/download/v0.1.0-alpha/HifzTracker-0.1.0-arm64.dmg`; the former `/releases/latest/download/...` route returned HTTP 404 because GitHub excludes prereleases from the latest-release route. The GitHub API reports the DMG as 520,587,236 bytes with SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`, and the tag-specific URL resolves to HTTP 200 with an attachment content disposition. Baseline and final temporary-cache `swift test` each passed 152 tests with 1 expected skip and 0 failures; baseline and final `swift build` passed. Current browser click verification was unavailable because no connected browser backend was exposed; earlier desktop and mobile layout verification remains recorded in progress.md. Release checks were skipped because no app bundle, release asset, signing input, or packaging input changed. The existing public-distribution limitation remains: no Developer ID identity is installed, so the released app is ad-hoc signed and the DMG is unsigned and not notarized."
     },
     {
       "id": "readme-github-001",

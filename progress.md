@@ -2,16 +2,21 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-30 06:31 EEST
+**Last Updated:** 2026-07-30
 
-**Session ID:** website-feature-showcase-2026-07-30
+**Session ID:** github-pages-direct-download-2026-07-30
 
-**Active Feature:** None. `website-feature-showcase-001` is complete.
+**Active Feature:** None. `github-pages-site-001` is complete.
 
 ## Status
 
 ### What's Done
 
+- [x] Replaced the broken prerelease-incompatible `releases/latest/download` button URL with the published `v0.1.0-alpha` DMG asset URL.
+- [x] Confirmed the old URL returns HTTP 404 and the new URL resolves to HTTP 200 with `content-disposition: attachment`.
+- [x] Baseline and final temporary-cache `swift test` passed 152 tests with 1 expected skip; baseline and final `swift build` passed.
+- [x] Release checks skipped because no app bundle, release asset, signing input, or packaging input changed.
+- [x] Recorded the default-cache baseline `swift test` failure: SwiftPM could not write `/Users/mostafa/.cache/clang/ModuleCache` in the managed sandbox.
 - [x] Replaced the existing website preview with the supplied focused-session screenshot.
 - [x] Added Track your progress and Hide and recite rows with the supplied screenshots and feature-specific copy.
 - [x] Alternated desktop layouts while preserving text-first mobile source order.
@@ -124,6 +129,8 @@
 
 ## Files Modified This Session
 
+- `docs/index.html` - Point the primary download button at the published `v0.1.0-alpha` DMG asset.
+- `feature_list.json`, `progress.md`, `session-handoff.md` - Record direct-download completion and verification evidence.
 - `docs/index.html`, `docs/styles.css` - Add the three responsive feature rows and sticker presentation.
 - `docs/assets/hifztracker-app.png`, `docs/assets/hifztracker-progress.png`, `docs/assets/hifztracker-hide-and-recite.png` - Use the three supplied feature screenshots.
 - `feature_list.json`, `progress.md`, `session-handoff.md` - Record website scope, publication, verification, and continuity.
@@ -157,6 +164,12 @@
 
 ## Evidence
 
+- [x] Release API reports one DMG asset: `HifzTracker-0.1.0-arm64.dmg`, 520,587,236 bytes, SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`.
+- [x] Direct asset URL returns HTTP 200 with `content-disposition: attachment; filename=HifzTracker-0.1.0-arm64.dmg`.
+- [x] Baseline and final temporary-cache `swift test`: 152 tests, 1 expected opt-in audio skip, 0 failures.
+- [x] Baseline and final temporary-cache `swift build`: passed.
+- [x] Browser click verification unavailable because no connected browser backend was exposed.
+- [x] Release checks skipped; only static website and harness tracking files changed.
 - [x] Published source commit: `fb178aa` (`Add website feature showcase`).
 - [x] GitHub Pages workflow `30511294998`: completed successfully for `fb178aa2dc119814336337766ef3d74d66ee1833`.
 - [x] Live page contains Built for focused hifz sessions, Track your progress, and Hide and recite.
@@ -264,4 +277,4 @@
 
 ## Next Step
 
-No active feature. The website feature showcase is live at `https://moabdelmoez.github.io/hifz-tracker/`.
+No active feature. The GitHub Pages download button targets the published `v0.1.0-alpha` DMG.

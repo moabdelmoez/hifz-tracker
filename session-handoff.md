@@ -2,14 +2,19 @@
 
 ## Current Objective
 
-- Goal: None; `website-feature-showcase-001` is complete.
-- Current status: The GitHub Pages site now presents Focused Sessions, Progress, and Hide and Recite as alternating responsive feature rows with supplied sticker-outlined screenshots.
-- Working tree: Website commit `fb178aa` is pushed. Harness evidence remains modified locally; unrelated `.claude/`, performance-audit content, root screenshots, and source GIF remain untouched.
+- Goal: None; `github-pages-site-001` is complete.
+- Current status: The primary GitHub Pages button targets the published `v0.1.0-alpha` DMG directly so clicking it starts an attachment download.
+- Working tree: The direct-download change and harness evidence are scoped together; unrelated `.claude/`, performance-audit content, root screenshots, and source GIF remain untouched.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
+| Direct download route | Tag-specific URL resolves to HTTP 200 with attachment filename `HifzTracker-0.1.0-arm64.dmg` |
+| DMG release metadata | 520,587,236 bytes; SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768` |
+| Direct-download test suite | Baseline and final runs passed 152 tests with 1 expected opt-in audio skip |
+| Direct-download Swift build | Baseline and final runs passed |
+| Direct-download browser check | Unavailable because no connected browser backend was exposed |
 | Website source | Commit `fb178aa` pushed to `origin/main` |
 | GitHub Pages deployment | Workflow `30511294998` completed successfully |
 | Live content | All three feature headings and screenshot references are present |
@@ -88,8 +93,8 @@
 
 ## Restart Notes
 
-1. The feature showcase is live at `https://moabdelmoez.github.io/hifz-tracker/`.
-2. Website source is pushed as commit `fb178aa`.
+1. The GitHub Pages site is live at `https://moabdelmoez.github.io/hifz-tracker/`.
+2. The primary button targets `https://github.com/moabdelmoez/hifz-tracker/releases/download/v0.1.0-alpha/HifzTracker-0.1.0-arm64.dmg`.
 3. `feature_list.json` and `progress.md` record completion evidence.
 
 ## Risks / Out of Scope
