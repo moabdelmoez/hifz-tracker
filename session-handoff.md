@@ -3,7 +3,7 @@
 ## Current Objective
 
 - Goal: Publish the Dark Mode Mushaf divider fix and synchronized replacement tester DMG/checksum under the existing `v0.1.0-alpha` URLs.
-- Current status: Root cause, regression, fix, full tester gate, replacement DMG, and checksum are verified locally. Source commit/push and GitHub release replacement remain.
+- Current status: Root cause, regression, fix, full tester gate, source push, replacement DMG/checksum publication, release notes, and README checksum are complete. Only clean-Mac verification of the replacement divider and microphone remains.
 - Working tree: The scoped distribution hardening files are modified; unrelated `.claude/`, performance-audit content, root screenshots, and source GIF remain untouched.
 
 ## Verification Evidence
@@ -19,11 +19,11 @@
 | Replacement local DMG | 519,949,553 bytes; SHA-256 `1c6a12a9bfe02478c795a46862b913b5eeb23199b5b4a832ad1e5b7059618642`; CRC32 `$7F1B0C44` |
 | Staged app trust state | Deep signature valid; ad-hoc; no Team ID; sandbox and microphone entitlements present |
 | Website layout | 1440px and 390px passed; no overflow, anchor clipping, or console errors |
-| GitHub release | Tester disclosure and 94-byte checksum sidecar published; original DMG asset ID, size, and digest preserved |
+| GitHub release | Replacement DMG asset `501698206` and checksum asset `501663145` published under the stable URLs; release notes and hashes synchronized |
 | Hardened Pages publication | Commit `8a88cbd`; deployment `30900801534` passed; live content, links, containment, and console checks passed |
 | Clean-Mac acceptance | Open Anyway and launch passed on the previous artifact; replacement Dark Mode divider and microphone checks remain |
 | Direct download route | Tag-specific URL resolves to HTTP 200 with attachment filename `HifzTracker-0.1.0-arm64.dmg` |
-| DMG release metadata | 520,587,236 bytes; SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768` |
+| DMG release metadata | 519,949,553 bytes; SHA-256 `1c6a12a9bfe02478c795a46862b913b5eeb23199b5b4a832ad1e5b7059618642` |
 | Direct-download test suite | Baseline and final runs passed 152 tests with 1 expected opt-in audio skip |
 | Direct-download Swift build | Baseline and final runs passed |
 | Direct-download browser check | Unavailable because no connected browser backend was exposed |
@@ -105,9 +105,8 @@
 
 ## Restart Notes
 
-1. Commit and push the renderer fix, regression, README checksum, and harness evidence.
-2. Replace the existing release DMG and checksum assets, update the release body checksum, and verify GitHub metadata/downloads.
-3. Ask a tester to verify the replacement DMG's Dark Mode divider and microphone, then mark `free-tester-distribution-001` done.
+1. Ask a tester to verify the replacement DMG's Dark Mode divider and microphone.
+2. Mark `free-tester-distribution-001` done after that evidence is recorded.
 
 ## Risks / Out of Scope
 

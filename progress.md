@@ -36,6 +36,9 @@
 - [x] Fixed the shared white Mushaf canvas to render surah-divider tokens in black instead of dynamic Dark Mode `labelColor`; the exact regression changed from red to green.
 - [x] Refreshed tester packaging passed 153 tests with 1 expected skip, Swift builds, staging/launch, release assets, ad-hoc signing, sandbox/microphone entitlements, unsigned-DMG enforcement, and image verification.
 - [x] Refreshed local DMG: 519,949,553 bytes; SHA-256 `1c6a12a9bfe02478c795a46862b913b5eeb23199b5b4a832ad1e5b7059618642`; CRC32 `$7F1B0C44`; matching checksum sidecar generated.
+- [x] Committed and pushed the fix as `62c6586` (`Fix Dark Mode Mushaf dividers`).
+- [x] Replaced the existing `v0.1.0-alpha` DMG and checksum assets under their stable URLs; GitHub reports DMG asset `501698206`, 519,949,553 bytes, and matching SHA-256 `1c6a12a9bfe02478c795a46862b913b5eeb23199b5b4a832ad1e5b7059618642`.
+- [x] Updated the release description and published README checksum; the downloaded 94-byte sidecar matches the verified local sidecar.
 - [x] Replaced the existing website preview with the supplied focused-session screenshot.
 - [x] Added Track your progress and Hide and recite rows with the supplied screenshots and feature-specific copy.
 - [x] Alternated desktop layouts while preserving text-first mobile source order.
@@ -196,9 +199,10 @@
 - [x] GitHub release description and checksum upload: published; the original DMG remains asset `494848404`, 520,587,236 bytes, with SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`.
 - [x] GitHub Pages publication: commit `8a88cbd`; deployment `30900801534` passed; live warning, installation copy, requirements, DMG/checksum links, 1280px containment, and console checks passed.
 - [ ] Clean non-development Mac Open Anyway, relaunch, and microphone smoke test: manual follow-up required.
-- [x] Release API reports one DMG asset: `HifzTracker-0.1.0-arm64.dmg`, 520,587,236 bytes, SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`.
+- [x] Pre-refresh release API reported the previous DMG as 520,587,236 bytes with SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`.
 - [x] Dark Mode page-570 regression: red twice with header/bismillah pixel counts `0/0`; green after the fixed black white-canvas token color.
 - [x] Refreshed tester package: 153 tests, 1 expected skip, build/staging/launch/assets/signature/entitlements passed; DMG SHA-256 `1c6a12a9bfe02478c795a46862b913b5eeb23199b5b4a832ad1e5b7059618642`; `hdiutil verify` CRC32 `$7F1B0C44`.
+- [x] Published replacement: commit `62c6586`; DMG asset `501698206`; checksum asset `501663145`; release body, downloaded sidecar, and README all publish the matching SHA-256.
 - [x] Direct asset URL returns HTTP 200 with `content-disposition: attachment; filename=HifzTracker-0.1.0-arm64.dmg`.
 - [x] Baseline and final temporary-cache `swift test`: 152 tests, 1 expected opt-in audio skip, 0 failures.
 - [x] Baseline and final temporary-cache `swift build`: passed.
