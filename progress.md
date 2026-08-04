@@ -24,6 +24,7 @@
 - [x] The generated tester DMG was 521,284,058 bytes with SHA-256 `bd1bc0ca2e3491bf5c4d060796be0a4b350a2627ec9c26bde4e3e3a12d2e2c2f`; it passed `hdiutil verify` and was confirmed unsigned as intended.
 - [x] Restored the existing public DMG byte-for-byte after the packaging test and generated its matching checksum sidecar; final size is 520,587,236 bytes, SHA-256 is `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`, and CRC32 is `$F4901868`.
 - [x] Updated the existing `v0.1.0-alpha` release description and uploaded only the 94-byte checksum sidecar; GitHub still reports the original DMG asset ID, size, and SHA-256 digest.
+- [x] Published source commit `8a88cbd`; GitHub Pages deployment `30900801534` succeeded, and the live page exposes the tester warning, Open Anyway steps, requirements, and both release asset links with no console errors.
 - [x] Replaced the broken prerelease-incompatible `releases/latest/download` button URL with the published `v0.1.0-alpha` DMG asset URL.
 - [x] Confirmed the old URL returns HTTP 404 and the new URL resolves to HTTP 200 with `content-disposition: attachment`.
 - [x] Baseline and final temporary-cache `swift test` passed 152 tests with 1 expected skip; baseline and final `swift build` passed.
@@ -187,7 +188,7 @@
 - [x] Restored public image: byte comparison passed; 520,587,236 bytes; SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`; checksum sidecar check and `hdiutil verify` passed with CRC32 `$F4901868`.
 - [x] Website checks: 1440px two-column and 390px one-column installation layouts, anchor content below the sticky header, no horizontal overflow, all required copy/links present, and no browser console errors.
 - [x] GitHub release description and checksum upload: published; the original DMG remains asset `494848404`, 520,587,236 bytes, with SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`.
-- [ ] GitHub Pages publication: source push and live deployment verification pending.
+- [x] GitHub Pages publication: commit `8a88cbd`; deployment `30900801534` passed; live warning, installation copy, requirements, DMG/checksum links, 1280px containment, and console checks passed.
 - [ ] Clean non-development Mac Open Anyway, relaunch, and microphone smoke test: manual follow-up required.
 - [x] Release API reports one DMG asset: `HifzTracker-0.1.0-arm64.dmg`, 520,587,236 bytes, SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`.
 - [x] Direct asset URL returns HTTP 200 with `content-disposition: attachment; filename=HifzTracker-0.1.0-arm64.dmg`.

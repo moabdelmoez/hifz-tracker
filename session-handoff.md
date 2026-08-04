@@ -3,7 +3,7 @@
 ## Current Objective
 
 - Goal: Complete `free-tester-distribution-001` by publishing the verified tester disclosure and checksum without changing the existing DMG bytes.
-- Current status: Local verification passed, and the existing GitHub release now has the tester disclosure and checksum sidecar without changing the DMG. Source publication and live Pages verification remain.
+- Current status: Local verification, GitHub release metadata/checksum publication, source publication, Pages deployment, and live-page checks passed. Only the clean-Mac manual acceptance check remains.
 - Working tree: The scoped distribution hardening files are modified; unrelated `.claude/`, performance-audit content, root screenshots, and source GIF remain untouched.
 
 ## Verification Evidence
@@ -17,6 +17,7 @@
 | Staged app trust state | Deep signature valid; ad-hoc; no Team ID; sandbox and microphone entitlements present |
 | Website layout | 1440px and 390px passed; no overflow, anchor clipping, or console errors |
 | GitHub release | Tester disclosure and 94-byte checksum sidecar published; original DMG asset ID, size, and digest preserved |
+| Hardened Pages publication | Commit `8a88cbd`; deployment `30900801534` passed; live content, links, containment, and console checks passed |
 | Clean-Mac acceptance | Pending manual Open Anyway, relaunch, and microphone check |
 | Direct download route | Tag-specific URL resolves to HTTP 200 with attachment filename `HifzTracker-0.1.0-arm64.dmg` |
 | DMG release metadata | 520,587,236 bytes; SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768` |
@@ -101,12 +102,10 @@
 
 ## Restart Notes
 
-1. Commit and publish the scoped source changes so GitHub Pages serves the new installation guidance; verify the live HTML/CSS and both release asset URLs.
-2. Ask a tester on a clean Apple Silicon/macOS 14+ Mac to complete Open Anyway, relaunch, and microphone checks.
-3. Mark `free-tester-distribution-001` done only after the clean-Mac evidence is recorded.
+1. Ask a tester on a clean Apple Silicon/macOS 14+ Mac to complete Open Anyway, relaunch, and microphone checks.
+2. Mark `free-tester-distribution-001` done only after the clean-Mac evidence is recorded.
 
 ## Risks / Out of Scope
 
-- GitHub Pages source changes are not yet public.
 - No Developer ID identity or notarization profile is installed; the app remains ad-hoc signed and the DMG remains unsigned and not notarized by design.
 - The artifact is for the free/manual tester path, not Gatekeeper-trusted public distribution.
