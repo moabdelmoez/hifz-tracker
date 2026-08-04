@@ -1141,6 +1141,36 @@
         "git diff --check"
       ],
       "evidence": "Completed on 2026-07-30 and published as commit `fb178aa`. Added three alternating feature rows with focused copy, responsive mobile source order, a sage feature surface, intrinsic image dimensions, and white alpha-following drop-shadow outlines. The copied and live image SHA-256 values match the supplied files: main `8dd4b47141f6a8893323b7774435f2f7ec772b0266b7a08b72381a6f178b3a29`, progress `a6323301c5585669d43ea1dec635f707813fbf56dbaa92322d4a2955a65b17e5`, and hide-and-recite `f47d598f2648f5ca010cc11a17eda734a69070cab497c5bc51dd81c9b02daa4c`. The GitHub Pages workflow completed successfully and cache-bypassed live checks found all three headings, new asset references, alternating-row CSS, sage background, and white sticker filters. The connected browser backend was unavailable, so no visual-render claim was made. The initial default-cache `swift test` attempt was blocked by sandbox permissions; temporary-cache baseline and final `swift test` each passed 152 tests with 1 expected skip and 0 failures, and both `swift build` runs passed. `git diff --check` passed; release checks were skipped because only static website and harness files changed."
+    },
+    {
+      "id": "free-tester-distribution-001",
+      "name": "Free Tester Distribution Hardening",
+      "description": "Make the free macOS tester path explicit, repeatable, and honest about its ad-hoc signature and required Gatekeeper override while preserving a strict future Developer ID release path.",
+      "dependencies": ["github-pages-site-001", "progress-activity-dmg-refresh-001"],
+      "status": "in_progress",
+      "done_criteria": [
+        "Release and packaging scripts require an explicit local, tester, or release mode and reject invalid invocations",
+        "Tester validation checks all runtime assets, the ad-hoc app signature, required entitlements, DMG integrity, and a SHA-256 sidecar",
+        "Release packaging requires Developer ID and notary credentials before signing, notarizing, stapling, and Gatekeeper verification",
+        "The website, README, and production guide disclose that the tester build is not Apple-notarized and document Apple's per-app Open Anyway flow",
+        "The existing v0.1.0-alpha DMG URL and bytes remain unchanged while its release metadata publishes the matching checksum and limitation",
+        "Required verification passes and completion evidence is captured in the harness artifacts"
+      ],
+      "verification": [
+        "bash -n script/release_checks.sh script/package_dmg.sh",
+        "missing and unknown script modes fail safely",
+        "swift test",
+        "swift build",
+        "./script/release_checks.sh tester",
+        "./script/package_dmg.sh tester",
+        "codesign and entitlement inspection",
+        "hdiutil verify and SHA-256 comparison",
+        "website source and responsive layout checks",
+        "GitHub release metadata and checksum asset verification",
+        "jq empty feature_list.json",
+        "git diff --check"
+      ],
+      "evidence": "Local implementation and verification completed on 2026-08-04. Explicit mode syntax and failure checks passed. Both the tester release gate and tester packaging gate passed 152 tests with 1 expected skip, Swift builds, staging/launch, all release assets, ad-hoc signing, required entitlements, unsigned-DMG enforcement, image verification, and checksum generation. Browser checks passed at 1440px and 390px with correct responsive layout, visible anchored content, zero horizontal overflow, and no console errors. The generated validation DMG was then replaced with the original published bytes; the restored 520,587,236-byte DMG and sidecar both match SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`, and `hdiutil verify` passed with CRC32 `$F4901868`. The existing `v0.1.0-alpha` release now publishes the tester disclosure and 94-byte checksum sidecar; GitHub still reports the original DMG asset ID, size, and digest. Status remains in progress until GitHub Pages is published and the clean-Mac first-launch verification is recorded."
     }
   ]
 }

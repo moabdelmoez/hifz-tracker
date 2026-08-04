@@ -1,7 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MODE="${1:-local}"
+usage() {
+  echo "Usage: $0 local|tester|release" >&2
+}
+
+if [ "$#" -ne 1 ]; then
+  usage
+  exit 64
+fi
+
+MODE="$1"
+case "$MODE" in
+  local|tester|release) ;;
+  *)
+    usage
+    exit 64
+    ;;
+esac
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 LAYOUT_BUNDLE_PATH="HifzTracker/Resources/Layout/kfgqpc-v4-layout.sqlite"
@@ -57,9 +74,63 @@ require_qul_header_fonts() {
   verify_sha "HifzTracker/Resources/Fonts/bismillah.ttf" "ce8e4b2cf44ab8709fbe90189a9cb54b6a4dc31eb8ab7f6ae68a6403d58b9b69"
 }
 
+require_distribution_assets() {
+  require_file "HifzTracker/Resources/Models/model_fp32.onnx"
+  verify_sha "HifzTracker/Resources/Models/model_fp32.onnx" "ba513908fad8172e7edf9ed479adee6ac2723455fdd3289f967aec26cabea93e"
+  require_file "$ORT_ARCHIVE_PATH"
+  verify_sha "$ORT_ARCHIVE_PATH" "$ORT_ARCHIVE_SHA"
+  require_file "$ORT_DYLIB_PATH"
+  verify_sha "$ORT_DYLIB_PATH" "$ORT_DYLIB_SHA"
+  require_file "HifzTracker/Resources/Tokenizer/tokenizer.json"
+  require_file "HifzTracker/Resources/Tokenizer/tokenizer.model"
+  require_file "HifzTracker/Resources/Tokenizer/tokenizer_config.json"
+  require_file "HifzTracker/Resources/Tokenizer/tokens.txt"
+  require_file "HifzTracker/Resources/Tokenizer/model_config.yaml"
+  require_qpc_v4_tajweed_fonts
+  require_file "$LAYOUT_BUNDLE_PATH"
+  verify_sha "$LAYOUT_BUNDLE_PATH" "$LAYOUT_SHA"
+}
+
 require_no_local_runtime_rpath() {
   if otool -l "$STAGED_APP_BINARY" | grep "$ROOT_DIR/assets/runtime" >/dev/null; then
     echo "staged app binary contains a local ONNX Runtime rpath" >&2
+    exit 1
+  fi
+}
+
+verify_required_entitlements() {
+  local signed_entitlements
+  local app_sandbox
+  local audio_input
+  signed_entitlements="$(mktemp -t hifz-tracker-entitlements.XXXXXX)"
+
+  if ! codesign -d --entitlements :- "$APP_BUNDLE" >"$signed_entitlements"; then
+    rm -f "$signed_entitlements"
+    echo "Unable to read signed app entitlements." >&2
+    exit 1
+  fi
+
+  app_sandbox="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.app-sandbox' "$signed_entitlements" 2>/dev/null || true)"
+  audio_input="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.device.audio-input' "$signed_entitlements" 2>/dev/null || true)"
+  rm -f "$signed_entitlements"
+
+  if [ "$app_sandbox" != "true" ] || [ "$audio_input" != "true" ]; then
+    echo "Signed app is missing the required sandbox or microphone entitlement." >&2
+    exit 1
+  fi
+}
+
+verify_tester_signature() {
+  local signing_details
+  signing_details="$(codesign -dvvv "$APP_BUNDLE" 2>&1)"
+
+  if ! grep -q "Signature=adhoc" <<<"$signing_details"; then
+    echo "Tester app must use the expected ad-hoc signature." >&2
+    exit 1
+  fi
+
+  if ! grep -q "TeamIdentifier=not set" <<<"$signing_details"; then
+    echo "Tester app unexpectedly contains an Apple Team identifier." >&2
     exit 1
   fi
 }
@@ -84,29 +155,26 @@ swift build
 codesign --verify --strict --verbose=2 "dist/HifzTracker.app"
 require_file "$STAGED_ORT_DYLIB_PATH"
 require_no_local_runtime_rpath
+verify_required_entitlements
 
 verify_sha "HifzTracker/Resources/qpc-v4.db" "4bf9549dfcfd367d4d4b151bd58b51af63b677d1c980cf5e52541c2f981d7e6d"
 verify_sha "HifzTracker/Resources/quran-simple-clean.txt" "054b3d9f79c0c2e44df7f9ddf42561797b3b5cb4fbdafbf2e99c805ccf1a6b49"
 require_qul_header_fonts
 
-if [ "$MODE" = "release" ]; then
-  require_file "HifzTracker/Resources/Models/model_fp32.onnx"
-  verify_sha "HifzTracker/Resources/Models/model_fp32.onnx" "ba513908fad8172e7edf9ed479adee6ac2723455fdd3289f967aec26cabea93e"
-  require_file "$ORT_ARCHIVE_PATH"
-  verify_sha "$ORT_ARCHIVE_PATH" "$ORT_ARCHIVE_SHA"
-  require_file "$ORT_DYLIB_PATH"
-  verify_sha "$ORT_DYLIB_PATH" "$ORT_DYLIB_SHA"
-  require_file "HifzTracker/Resources/Tokenizer/tokenizer.json"
-  require_file "HifzTracker/Resources/Tokenizer/tokenizer.model"
-  require_file "HifzTracker/Resources/Tokenizer/tokenizer_config.json"
-  require_file "HifzTracker/Resources/Tokenizer/tokens.txt"
-  require_file "HifzTracker/Resources/Tokenizer/model_config.yaml"
-  require_qpc_v4_tajweed_fonts
-  require_file "$LAYOUT_BUNDLE_PATH"
-  verify_sha "$LAYOUT_BUNDLE_PATH" "$LAYOUT_SHA"
-  sign_release_app
-  codesign -dvvv --entitlements :- "$APP_BUNDLE"
-  spctl -a -vv "$APP_BUNDLE"
-else
-  echo "Local checks passed. Run '$0 release' after installing release assets and configuring Developer ID signing."
-fi
+case "$MODE" in
+  local)
+    echo "Local checks passed. Run '$0 tester' for the complete free tester gate."
+    ;;
+  tester)
+    require_distribution_assets
+    verify_tester_signature
+    echo "Tester checks passed. The app is ad-hoc signed and is not Apple-notarized."
+    ;;
+  release)
+    require_distribution_assets
+    sign_release_app
+    verify_required_entitlements
+    codesign -dvvv --entitlements :- "$APP_BUNDLE"
+    echo "Developer ID signing passed. Package and notarize the DMG before distribution."
+    ;;
+esac

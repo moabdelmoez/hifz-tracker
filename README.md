@@ -8,7 +8,32 @@ Hifz Tracker is a private, offline-first macOS app for Quran memorization practi
 
 **Page URL:** [https://moabdelmoez.github.io/hifz-tracker/](https://moabdelmoez.github.io/hifz-tracker/)
 
-**Download:** [Latest GitHub Release](https://github.com/moabdelmoez/hifz-tracker/releases/latest)
+**Download:** [Hifz Tracker v0.1.0 alpha](https://github.com/moabdelmoez/hifz-tracker/releases/download/v0.1.0-alpha/HifzTracker-0.1.0-arm64.dmg)
+
+## Install the free tester build
+
+The current alpha is ad-hoc signed and is **not notarized by Apple**. On first launch,
+macOS will explain that Apple cannot verify the app is free of malware. This means Apple
+has not verified the developer or scanned this build through notarization; it is not a
+malware detection.
+
+1. Download and open the DMG, then copy HifzTracker into Applications.
+2. Open HifzTracker once. When macOS blocks it, click **Done**.
+3. Within about one hour, open **System Settings → Privacy & Security** and scroll to Security.
+4. Click **Open Anyway**, authenticate, then click **Open**.
+
+The approved copy should open normally afterward. A newly downloaded update may require
+approval again, and managed work or school Macs may not allow the override. Only continue
+if you trust the download source. See [Apple's Open Anyway guidance](https://support.apple.com/en-us/102445).
+
+Optional checksum verification:
+
+```bash
+shasum -a 256 ~/Downloads/HifzTracker-0.1.0-arm64.dmg
+```
+
+The result must match `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`.
+The release also includes a [checksum file](https://github.com/moabdelmoez/hifz-tracker/releases/download/v0.1.0-alpha/HifzTracker-0.1.0-arm64.dmg.sha256).
 
 ## Features
 
@@ -72,7 +97,7 @@ Build and launch the local app bundle:
 For release-sensitive checks, use:
 
 ```bash
-./script/release_checks.sh
+./script/release_checks.sh local
 ```
 
 Run `./script/setup_assets.sh` only when preparing model, font, layout, or release assets.

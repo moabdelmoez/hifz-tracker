@@ -2,14 +2,22 @@
 
 ## Current Objective
 
-- Goal: None; `github-pages-site-001` is complete.
-- Current status: The primary GitHub Pages button targets the published `v0.1.0-alpha` DMG directly so clicking it starts an attachment download.
-- Working tree: The direct-download change and harness evidence are scoped together; unrelated `.claude/`, performance-audit content, root screenshots, and source GIF remain untouched.
+- Goal: Complete `free-tester-distribution-001` by publishing the verified tester disclosure and checksum without changing the existing DMG bytes.
+- Current status: Local verification passed, and the existing GitHub release now has the tester disclosure and checksum sidecar without changing the DMG. Source publication and live Pages verification remain.
+- Working tree: The scoped distribution hardening files are modified; unrelated `.claude/`, performance-audit content, root screenshots, and source GIF remain untouched.
 
 ## Verification Evidence
 
 | Check | Result |
 |---|---|
+| Explicit script modes | Syntax passed; invalid/missing modes fail before mutation |
+| Tester release gate | 152 tests, 1 expected skip; builds, staging, launch, assets, ad-hoc signing, and entitlements passed |
+| Tester package gate | Full gate passed; generated unsigned DMG verified and checksumed |
+| Restored public DMG | 520,587,236 bytes; SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`; CRC32 `$F4901868` |
+| Staged app trust state | Deep signature valid; ad-hoc; no Team ID; sandbox and microphone entitlements present |
+| Website layout | 1440px and 390px passed; no overflow, anchor clipping, or console errors |
+| GitHub release | Tester disclosure and 94-byte checksum sidecar published; original DMG asset ID, size, and digest preserved |
+| Clean-Mac acceptance | Pending manual Open Anyway, relaunch, and microphone check |
 | Direct download route | Tag-specific URL resolves to HTTP 200 with attachment filename `HifzTracker-0.1.0-arm64.dmg` |
 | DMG release metadata | 520,587,236 bytes; SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768` |
 | Direct-download test suite | Baseline and final runs passed 152 tests with 1 expected opt-in audio skip |
@@ -93,12 +101,12 @@
 
 ## Restart Notes
 
-1. The GitHub Pages site is live at `https://moabdelmoez.github.io/hifz-tracker/`.
-2. The primary button targets `https://github.com/moabdelmoez/hifz-tracker/releases/download/v0.1.0-alpha/HifzTracker-0.1.0-arm64.dmg`.
-3. `feature_list.json` and `progress.md` record completion evidence.
+1. Commit and publish the scoped source changes so GitHub Pages serves the new installation guidance; verify the live HTML/CSS and both release asset URLs.
+2. Ask a tester on a clean Apple Silicon/macOS 14+ Mac to complete Open Anyway, relaunch, and microphone checks.
+3. Mark `free-tester-distribution-001` done only after the clean-Mac evidence is recorded.
 
 ## Risks / Out of Scope
 
-- No automated browser screenshot was captured because the connected browser backend was unavailable.
-- No Developer ID identity or notarization profile is installed; the app is ad-hoc signed and the DMG is unsigned and not notarized.
-- The artifact is for the existing free/manual distribution path, not Gatekeeper-trusted public distribution.
+- GitHub Pages source changes are not yet public.
+- No Developer ID identity or notarization profile is installed; the app remains ad-hoc signed and the DMG remains unsigned and not notarized by design.
+- The artifact is for the free/manual tester path, not Gatekeeper-trusted public distribution.

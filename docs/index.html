@@ -26,6 +26,7 @@
         <span>Hifz Tracker</span>
       </a>
       <nav aria-label="Website">
+        <a href="#installation">Install</a>
         <a href="#privacy">Privacy</a>
         <a href="#requirements">Requirements</a>
         <a href="https://github.com/moabdelmoez/hifz-tracker/releases">Releases</a>
@@ -49,11 +50,51 @@
               class="button primary"
               href="https://github.com/moabdelmoez/hifz-tracker/releases/download/v0.1.0-alpha/HifzTracker-0.1.0-arm64.dmg"
             >
-              Download for macOS
+              Download alpha for macOS
             </a>
             <a class="button secondary" href="https://github.com/moabdelmoez/hifz-tracker/releases">
               View releases
             </a>
+          </div>
+          <p class="tester-notice">
+            Free tester build — not signed with an Apple Developer ID or notarized by Apple.
+            First launch requires manual approval.
+            <a href="#installation">Read the installation steps.</a>
+          </p>
+        </div>
+      </section>
+
+      <section id="installation" class="installation" aria-labelledby="installation-title">
+        <div class="installation-content">
+          <div class="installation-heading">
+            <p class="section-label">Free tester installation</p>
+            <h2 id="installation-title">Approve this alpha once on your Mac.</h2>
+            <p>
+              This build uses an ad-hoc signature, so macOS will say Apple cannot verify
+              that it is free of malware. That message means Apple has not verified the
+              developer or notarized this build; it is not a malware detection.
+            </p>
+          </div>
+          <div class="installation-steps">
+            <ol>
+              <li>Download the DMG from the official Hifz Tracker GitHub release and open it.</li>
+              <li>Copy HifzTracker into your Applications folder.</li>
+              <li>Open HifzTracker once. When macOS blocks it, click Done.</li>
+              <li>
+                Within about one hour, open System Settings → Privacy &amp; Security,
+                scroll to Security, then click Open Anyway. Authenticate and click Open.
+              </li>
+              <li>The approved copy should open normally afterward.</li>
+            </ol>
+            <p class="installation-note">
+              A newly downloaded update may require approval again, and a managed work or
+              school Mac may not permit this override. Only continue if you trust the source.
+              See
+              <a href="https://support.apple.com/en-us/102445">Apple's Open Anyway guidance</a>
+              and
+              <a href="https://github.com/moabdelmoez/hifz-tracker/releases/download/v0.1.0-alpha/HifzTracker-0.1.0-arm64.dmg.sha256">
+                verify the published SHA-256 checksum</a> before opening the app.
+            </p>
           </div>
         </div>
       </section>
@@ -128,15 +169,15 @@
         <article id="requirements">
           <h2>Mac requirements</h2>
           <p>
-            Requires macOS 14 or later on Apple Silicon. Download the signed DMG
-            from GitHub Releases.
+            Requires macOS 14 or later on Apple Silicon. The free tester DMG is
+            ad-hoc signed and is not Apple-notarized.
           </p>
         </article>
         <article>
           <h2>Release notes</h2>
           <p>
-            Each public build is published as a GitHub Release with version notes
-            and the macOS download asset.
+            Each tester build is published as a GitHub Release with version notes,
+            its macOS download, checksum, and signing status.
           </p>
         </article>
       </section>

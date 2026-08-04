@@ -2,16 +2,28 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-30
+**Last Updated:** 2026-08-04
 
-**Session ID:** github-pages-direct-download-2026-07-30
+**Session ID:** free-tester-distribution-2026-08-04
 
-**Active Feature:** None. `github-pages-site-001` is complete.
+**Active Feature:** `free-tester-distribution-001` - Free Tester Distribution Hardening.
 
 ## Status
 
 ### What's Done
 
+- [x] Confirmed the published tester app is ad-hoc signed with no Team ID and the DMG is unsigned and not notarized; the Gatekeeper alert is therefore expected.
+- [x] Confirmed all required release assets are present and the existing DMG still matches published SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`.
+- [x] Planning baseline `swift test` passed 152 tests with 1 expected opt-in audio skip; planning baseline `swift build` passed.
+- [x] Added explicit `local|tester|release` validation modes and `tester|release` packaging modes; missing and unknown modes fail with exit 64 before mutation.
+- [x] Tester validation now requires every runtime asset, an ad-hoc signature with no Team ID, the sandbox and microphone entitlements, an unsigned valid DMG, and a generated SHA-256 sidecar.
+- [x] Future release packaging now fails before mutation without a notary profile or Developer ID identity and performs signing, notarization, stapling, Gatekeeper verification, image verification, and checksum generation when configured.
+- [x] Added the warning, supported Open Anyway flow, managed-Mac limitation, requirements, and checksum link to the website, README, and production guide without recommending `xattr` or disabling Gatekeeper.
+- [x] Desktop 1440px and mobile 390px browser checks confirmed the installation section, anchor offset, one/two-column layout, zero horizontal overflow, and zero browser console errors.
+- [x] `./script/release_checks.sh tester` and `./script/package_dmg.sh tester` each passed 152 tests with 1 expected skip, Swift builds, staging, launch, full asset checks, signatures, entitlements, and packaging checks.
+- [x] The generated tester DMG was 521,284,058 bytes with SHA-256 `bd1bc0ca2e3491bf5c4d060796be0a4b350a2627ec9c26bde4e3e3a12d2e2c2f`; it passed `hdiutil verify` and was confirmed unsigned as intended.
+- [x] Restored the existing public DMG byte-for-byte after the packaging test and generated its matching checksum sidecar; final size is 520,587,236 bytes, SHA-256 is `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`, and CRC32 is `$F4901868`.
+- [x] Updated the existing `v0.1.0-alpha` release description and uploaded only the 94-byte checksum sidecar; GitHub still reports the original DMG asset ID, size, and SHA-256 digest.
 - [x] Replaced the broken prerelease-incompatible `releases/latest/download` button URL with the published `v0.1.0-alpha` DMG asset URL.
 - [x] Confirmed the old URL returns HTTP 404 and the new URL resolves to HTTP 200 with `content-disposition: attachment`.
 - [x] Baseline and final temporary-cache `swift test` passed 152 tests with 1 expected skip; baseline and final `swift build` passed.
@@ -124,11 +136,15 @@
 
 ### What's Blocked
 
-- The connected browser backend was unavailable, so no visual-render claim was made. Live HTML, CSS, asset, deployment, and responsive source checks passed.
+- The clean non-development Mac Open Anyway/microphone smoke test remains a manual acceptance check; local signing, entitlements, packaging, and responsive website behavior passed.
 - The default sandbox compiler cache remains unwritable; documented verification uses `/private/tmp` module caches.
 
 ## Files Modified This Session
 
+- `script/release_checks.sh`, `script/package_dmg.sh` - Add explicit fail-closed local, tester, and Apple-verified distribution modes.
+- `docs/index.html`, `docs/styles.css`, `README.md`, `docs/releases/production-readiness.md` - Disclose the tester trust state and document the supported first-launch flow.
+- `AGENTS.md`, `feature_list.json`, `progress.md`, `session-handoff.md` - Keep the harness commands, scope, evidence, and next steps restartable.
+- `dist/HifzTracker-0.1.0-arm64.dmg.sha256` - Ignored checksum sidecar for the unchanged published DMG.
 - `docs/index.html` - Point the primary download button at the published `v0.1.0-alpha` DMG asset.
 - `feature_list.json`, `progress.md`, `session-handoff.md` - Record direct-download completion and verification evidence.
 - `docs/index.html`, `docs/styles.css` - Add the three responsive feature rows and sticker presentation.
@@ -164,6 +180,15 @@
 
 ## Evidence
 
+- [x] Script syntax and mode validation: `bash -n` passed; missing/unknown modes returned exit 64; release packaging without a notary profile failed before mutation.
+- [x] Tester release/package gates: two complete runs, each with 152 tests, 1 expected skip, 0 failures, successful Swift builds, staging, launch, release-asset validation, ad-hoc signing, and entitlement validation.
+- [x] Staged app: deep strict code signature passed; `Signature=adhoc`; `TeamIdentifier=not set`; sandbox and audio-input entitlements are true.
+- [x] Generated tester image: unsigned as intended; 521,284,058 bytes; SHA-256 `bd1bc0ca2e3491bf5c4d060796be0a4b350a2627ec9c26bde4e3e3a12d2e2c2f`; image verification passed.
+- [x] Restored public image: byte comparison passed; 520,587,236 bytes; SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`; checksum sidecar check and `hdiutil verify` passed with CRC32 `$F4901868`.
+- [x] Website checks: 1440px two-column and 390px one-column installation layouts, anchor content below the sticky header, no horizontal overflow, all required copy/links present, and no browser console errors.
+- [x] GitHub release description and checksum upload: published; the original DMG remains asset `494848404`, 520,587,236 bytes, with SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`.
+- [ ] GitHub Pages publication: source push and live deployment verification pending.
+- [ ] Clean non-development Mac Open Anyway, relaunch, and microphone smoke test: manual follow-up required.
 - [x] Release API reports one DMG asset: `HifzTracker-0.1.0-arm64.dmg`, 520,587,236 bytes, SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`.
 - [x] Direct asset URL returns HTTP 200 with `content-disposition: attachment; filename=HifzTracker-0.1.0-arm64.dmg`.
 - [x] Baseline and final temporary-cache `swift test`: 152 tests, 1 expected opt-in audio skip, 0 failures.
@@ -277,4 +302,4 @@
 
 ## Next Step
 
-No active feature. The GitHub Pages download button targets the published `v0.1.0-alpha` DMG.
+Re-authenticate GitHub CLI, publish the scoped source changes and checksum/release metadata without replacing the existing DMG, then complete the clean-Mac manual acceptance check before marking `free-tester-distribution-001` done.

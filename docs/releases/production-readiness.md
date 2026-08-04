@@ -7,12 +7,34 @@ Hifz Tracker is offline at runtime. The app must not make network requests after
 Run:
 
 ```bash
-./script/release_checks.sh
+./script/release_checks.sh local
 ```
 
 This verifies the Swift package tests, builds the macOS app, launches the staged bundle, and checks the bundled Quran data checksums.
 
-## Release Gate
+## Free Tester Gate
+
+The free tester path is complete but not Apple-trusted distribution. The app is ad-hoc
+signed, and the DMG is deliberately unsigned and not notarized. Users must approve each
+newly downloaded copy through System Settings → Privacy & Security → Open Anyway.
+
+After installing every release asset listed below, run:
+
+```bash
+./script/release_checks.sh tester
+./script/package_dmg.sh tester
+```
+
+The tester packaging command creates:
+
+- `dist/HifzTracker-0.1.0-arm64.dmg`
+- `dist/HifzTracker-0.1.0-arm64.dmg.sha256`
+
+It validates all runtime assets, the app's ad-hoc signature, sandbox and microphone
+entitlements, and the DMG image. Never describe this artifact as signed, notarized,
+Apple-verified, or warning-free.
+
+## Apple-Verified Release Gate
 
 Before public distribution, install these assets:
 
@@ -36,20 +58,16 @@ If the Hugging Face repo has already been cloned/downloaded locally at `quran-st
 
 The script copies `quran-stt-onnx/onnx/model_fp32.onnx` and tokenizer/config files into the app resources, verifies the pinned fp32 checksum, extracts the pinned ONNX Runtime archive, downloads the QUL QPC V4 Tajweed page fonts from `https://static-cdn.tarteel.ai/qul/fonts/quran_fonts/v4-tajweed/ttf/p{page}.ttf`, and installs the QUL layout DB.
 
-Then sign and notarize the app with Developer ID credentials and run:
+For warning-free distribution, install a Developer ID Application certificate and store
+notarytool credentials in a keychain profile. Then run:
 
 ```bash
-./script/release_checks.sh release
+DEVELOPER_ID_APPLICATION="Developer ID Application: Your Name (TEAMID)" \
+NOTARYTOOL_PROFILE="hifz-tracker-notary" \
+./script/package_dmg.sh release
 ```
 
-The release gate validates release assets and signs the staged app. It must pass before publishing a DMG.
-
-## DMG Packaging
-
-After the release gate passes, create a signed DMG:
-
-```bash
-DEVELOPER_ID_APPLICATION="Developer ID Application: Your Name (TEAMID)" ./script/package_dmg.sh
-```
-
-To notarize and staple automatically, also set `NOTARYTOOL_PROFILE` to a stored `xcrun notarytool` keychain profile.
+Release packaging refuses to continue unless both the Developer ID identity and notary
+profile are available. It validates release assets, signs with hardened runtime and a
+secure timestamp, submits to Apple's notary service, staples the ticket, and verifies
+Gatekeeper acceptance before producing the checksum.

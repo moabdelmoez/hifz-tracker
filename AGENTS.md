@@ -46,9 +46,9 @@ Avoid loading large model, font, database, or audio assets unless the task speci
 
 - Safe baseline checks: `swift test` and `swift build`.
 - `./script/build_and_run.sh` rewrites `dist/`, may kill a running `HifzTracker`, and opens the app.
-- `./script/release_checks.sh` is the local release gate; it builds, stages, launches, and codesigns the app.
+- `./script/release_checks.sh local|tester|release` builds, stages, launches, and validates the requested signing path.
 - `./script/setup_assets.sh` may download and copy model/font/layout assets. Run it only for explicit asset or release work.
-- `./script/package_dmg.sh` uses Developer ID/notarization inputs. Do not run it unless release packaging is the active task.
+- `./script/package_dmg.sh tester|release` rewrites the DMG and checksum in `dist/`. Do not run it unless distribution packaging is the active task.
 
 ## Definition of Done
 
@@ -56,7 +56,7 @@ A feature is done only when ALL of the following are true:
 
 - [ ] Target behavior is implemented.
 - [ ] Required verification commands ran successfully, or the exact blocker is recorded.
-- [ ] Release or asset-sensitive changes ran `./script/release_checks.sh` or document why it was skipped.
+- [ ] Release or asset-sensitive changes ran the appropriate explicit `./script/release_checks.sh` mode or document why it was skipped.
 - [ ] Evidence is recorded in `feature_list.json` or `progress.md`.
 - [ ] The repo remains restartable from the standard startup path.
 
@@ -82,7 +82,8 @@ Required checks:
 - `swift build`
 
 Release-sensitive checks:
-- `./script/release_checks.sh`
+- `./script/release_checks.sh local`
+- `./script/release_checks.sh tester` for the complete ad-hoc tester gate.
 - `./script/release_checks.sh release` only after release assets and signing credentials are ready.
 
 ## Escalation
