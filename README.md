@@ -32,7 +32,7 @@ Optional checksum verification:
 shasum -a 256 ~/Downloads/HifzTracker-0.1.0-arm64.dmg
 ```
 
-The result must match `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`.
+The result must match `1c6a12a9bfe02478c795a46862b913b5eeb23199b5b4a832ad1e5b7059618642`.
 The release also includes a [checksum file](https://github.com/moabdelmoez/hifz-tracker/releases/download/v0.1.0-alpha/HifzTracker-0.1.0-arm64.dmg.sha256).
 
 ## Features

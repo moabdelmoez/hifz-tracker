@@ -414,7 +414,7 @@ public enum MushafPageRenderer {
         paragraph.lineBreakMode = .byClipping
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: NSColor.labelColor,
+            .foregroundColor: NSColor.black,
             .ligature: 1,
             .paragraphStyle: paragraph
         ]

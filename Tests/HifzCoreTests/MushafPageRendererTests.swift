@@ -420,6 +420,40 @@ final class MushafPageRendererTests: XCTestCase {
         )
     }
 
+    func testPage570SurahDividerRemainsVisibleInDarkMode() throws {
+        let appearance = try XCTUnwrap(NSAppearance(named: .darkAqua))
+        let page = try makePage(570)
+        var pixelResult: Result<(header: Int, bismillah: Int), Error>?
+
+        appearance.performAsCurrentDrawingAppearance {
+            pixelResult = Result {
+                let image = try MushafPageRenderer.renderPage(
+                    page,
+                    pageNumber: 570,
+                    fontDirectory: fontDirectory,
+                    canvasSize: MushafPageRenderer.canonicalContentSize(for: page),
+                    stateProvider: Optional<((QuranWord) -> WordProgressState)>.none
+                )
+                return (
+                    try darkPixelCount(in: image, rect: CGRect(x: 62, y: 493, width: 900, height: 126)),
+                    try darkPixelCount(in: image, rect: CGRect(x: 246, y: 629, width: 532, height: 78))
+                )
+            }
+        }
+
+        let pixels = try XCTUnwrap(pixelResult).get()
+        XCTAssertGreaterThan(
+            pixels.header,
+            1_000,
+            "The Surah Nuh header must remain visible on the white page in Dark Mode."
+        )
+        XCTAssertGreaterThan(
+            pixels.bismillah,
+            100,
+            "The bismillah must remain visible on the white page in Dark Mode."
+        )
+    }
+
     func testRendersShortSurahPageWithSeparatedAyahAndHeaderBands() throws {
         let page = try makePage(602)
         let canvasSize = MushafPageRenderer.canonicalContentSize(for: page)

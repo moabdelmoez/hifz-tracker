@@ -30,6 +30,12 @@
 - [x] Baseline and final temporary-cache `swift test` passed 152 tests with 1 expected skip; baseline and final `swift build` passed.
 - [x] Release checks skipped because no app bundle, release asset, signing input, or packaging input changed.
 - [x] Recorded the default-cache baseline `swift test` failure: SwiftPM could not write `/Users/mostafa/.cache/clang/ModuleCache` in the managed sandbox.
+- [x] Recorded the Dark Mode divider-fix baseline sandbox failure: SwiftPM manifest evaluation reported `sandbox_apply: Operation not permitted`; the same temporary-cache checks were rerun outside the managed sandbox.
+- [x] Confirmed a clean tester Mac completed Open Anyway and launched the app, validating the manual trust flow; microphone verification is still pending.
+- [x] Reproduced page 570 twice in Dark Mode with zero visible Surah Nuh header and bismillah pixels while the layout database still contained both lines.
+- [x] Fixed the shared white Mushaf canvas to render surah-divider tokens in black instead of dynamic Dark Mode `labelColor`; the exact regression changed from red to green.
+- [x] Refreshed tester packaging passed 153 tests with 1 expected skip, Swift builds, staging/launch, release assets, ad-hoc signing, sandbox/microphone entitlements, unsigned-DMG enforcement, and image verification.
+- [x] Refreshed local DMG: 519,949,553 bytes; SHA-256 `1c6a12a9bfe02478c795a46862b913b5eeb23199b5b4a832ad1e5b7059618642`; CRC32 `$7F1B0C44`; matching checksum sidecar generated.
 - [x] Replaced the existing website preview with the supplied focused-session screenshot.
 - [x] Added Track your progress and Hide and recite rows with the supplied screenshots and feature-specific copy.
 - [x] Alternated desktop layouts while preserving text-first mobile source order.
@@ -191,6 +197,8 @@
 - [x] GitHub Pages publication: commit `8a88cbd`; deployment `30900801534` passed; live warning, installation copy, requirements, DMG/checksum links, 1280px containment, and console checks passed.
 - [ ] Clean non-development Mac Open Anyway, relaunch, and microphone smoke test: manual follow-up required.
 - [x] Release API reports one DMG asset: `HifzTracker-0.1.0-arm64.dmg`, 520,587,236 bytes, SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`.
+- [x] Dark Mode page-570 regression: red twice with header/bismillah pixel counts `0/0`; green after the fixed black white-canvas token color.
+- [x] Refreshed tester package: 153 tests, 1 expected skip, build/staging/launch/assets/signature/entitlements passed; DMG SHA-256 `1c6a12a9bfe02478c795a46862b913b5eeb23199b5b4a832ad1e5b7059618642`; `hdiutil verify` CRC32 `$7F1B0C44`.
 - [x] Direct asset URL returns HTTP 200 with `content-disposition: attachment; filename=HifzTracker-0.1.0-arm64.dmg`.
 - [x] Baseline and final temporary-cache `swift test`: 152 tests, 1 expected opt-in audio skip, 0 failures.
 - [x] Baseline and final temporary-cache `swift build`: passed.
