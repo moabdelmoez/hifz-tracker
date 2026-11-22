@@ -30,6 +30,11 @@ ORT_DYLIB_SHA="30afadcfc3c704f7671f8430d6252956651c1972373901d2be629da2e6a4d8ee"
 STAGED_ORT_DYLIB_PATH="dist/HifzTracker.app/Contents/Frameworks/libonnxruntime.1.dylib"
 STAGED_APP_BINARY="dist/HifzTracker.app/Contents/MacOS/HifzTracker"
 APP_BUNDLE="dist/HifzTracker.app"
+STAGED_RESOURCES="$APP_BUNDLE/Contents/Resources"
+STAGED_MODEL_DIR="$STAGED_RESOURCES/Models"
+STAGED_MODEL_PATH="$STAGED_MODEL_DIR/model_int8.onnx"
+MODEL_SHA="4dc38b314d2f800779970a257e4845731b24cd9248386252b7692b47012a4e7c"
+TOKENS_SHA="9b938381a19a69bb279cdcfc299419f25a049ea1de192e0d10317274a0f20074"
 APP_FRAMEWORKS="$APP_BUNDLE/Contents/Frameworks"
 ENTITLEMENTS="dist/HifzTracker.entitlements"
 SIGN_IDENTITY="${DEVELOPER_ID_APPLICATION:-}"
@@ -75,8 +80,6 @@ require_qul_header_fonts() {
 }
 
 require_distribution_assets() {
-  require_file "HifzTracker/Resources/Models/model_fp32.onnx"
-  verify_sha "HifzTracker/Resources/Models/model_fp32.onnx" "ba513908fad8172e7edf9ed479adee6ac2723455fdd3289f967aec26cabea93e"
   require_file "$ORT_ARCHIVE_PATH"
   verify_sha "$ORT_ARCHIVE_PATH" "$ORT_ARCHIVE_SHA"
   require_file "$ORT_DYLIB_PATH"
@@ -84,11 +87,23 @@ require_distribution_assets() {
   require_file "HifzTracker/Resources/Tokenizer/tokenizer.json"
   require_file "HifzTracker/Resources/Tokenizer/tokenizer.model"
   require_file "HifzTracker/Resources/Tokenizer/tokenizer_config.json"
-  require_file "HifzTracker/Resources/Tokenizer/tokens.txt"
   require_file "HifzTracker/Resources/Tokenizer/model_config.yaml"
   require_qpc_v4_tajweed_fonts
   require_file "$LAYOUT_BUNDLE_PATH"
   verify_sha "$LAYOUT_BUNDLE_PATH" "$LAYOUT_SHA"
+}
+
+verify_staged_asr_assets() {
+  local staged_models=("$STAGED_MODEL_DIR"/*)
+  local staged_tokens="$STAGED_RESOURCES/Tokenizer/tokens.txt"
+  if [ "${#staged_models[@]}" -ne 1 ] || [ "${staged_models[0]}" != "$STAGED_MODEL_PATH" ]; then
+    echo "The staged app must contain exactly one model: $STAGED_MODEL_PATH" >&2
+    exit 1
+  fi
+  require_file "$STAGED_MODEL_PATH"
+  verify_sha "$STAGED_MODEL_PATH" "$MODEL_SHA"
+  require_file "$staged_tokens"
+  verify_sha "$staged_tokens" "$TOKENS_SHA"
 }
 
 require_no_local_runtime_rpath() {
@@ -153,6 +168,7 @@ swift test
 swift build
 ./script/build_and_run.sh --verify
 codesign --verify --strict --verbose=2 "dist/HifzTracker.app"
+verify_staged_asr_assets
 require_file "$STAGED_ORT_DYLIB_PATH"
 require_no_local_runtime_rpath
 verify_required_entitlements

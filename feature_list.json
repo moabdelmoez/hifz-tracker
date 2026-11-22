@@ -1,6 +1,24 @@
 {
   "features": [
     {
+      "id": "fastconformer-int8-bundle-001",
+      "name": "Bundle INT8 FastConformer for offline recitation",
+      "description": "Reduce the local macOS app bundle size using the INT8 export of the existing FastConformer model.",
+      "dependencies": ["live-asr-runtime-model-assessment-001"],
+      "status": "done",
+      "done_criteria": [
+        "The app loads the pinned INT8 export with the same tokenizer as the FP32 release",
+        "Staging includes only INT8 even when FP32 is present in the source resources",
+        "The local app launches, warms up ASR, and is available for manual microphone testing"
+      ],
+      "verification": [
+        "./script/setup_assets.sh",
+        "./script/release_checks.sh tester",
+        "Measure the staged app against the published FP32 app bundle and check local ASR warm-up logs"
+      ],
+      "evidence": "On 2026-11-22 the tester gate passed with 152 tests passing and one expected opt-in skip, including native INT8 inference and the Al-Ikhlas transcription fixture. The app logged warmup_ready after launch. The app bundle decreased from 671,141,492 to 387,896,130 bytes (42.20%). The local dist/HifzTracker.app is ready for manual microphone testing."
+    },
+    {
       "id": "harness-001",
       "name": "Agent Harness Baseline",
       "description": "Install a minimal restartable harness with startup instructions, feature state, progress logging, verification, and handoff flow.",

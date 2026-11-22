@@ -54,9 +54,9 @@ final class QuranSTTTranscriberTests: XCTestCase {
 
     func testTranscribesBasfarIkhlasDemoFixture() throws {
         let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        let modelURL = root.appending(path: "assets/models/model_fp32.onnx")
+        let modelURL = root.appending(path: "HifzTracker/Resources/Models/model_int8.onnx")
         let tokenizer = try QuranSTTTokenizer(
-            tokensURL: root.appending(path: "quran-stt-onnx/tokens.txt")
+            tokensURL: root.appending(path: "HifzTracker/Resources/Tokenizer/tokens.txt")
         )
         let transcriber = try QuranSTTTranscriber(
             session: ONNXRuntimeSession(modelURL: modelURL),

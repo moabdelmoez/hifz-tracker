@@ -1,5 +1,13 @@
 # Session Progress Log
 
+## November 22, 2026 INT8 FastConformer
+
+The initial `swift test` baseline stopped at the missing `onnxruntime_c_api.h` header. Restored the archived ONNX Runtime 1.26.0 using the existing pinned checksums. The historical Hugging Face token table omits the CTC blank. Appending `<blk> 1024` reproduced the exact published FP32 token table and restored all six focused baseline ASR tests. Restored the layout and fonts from the verified published DMG for full verification.
+
+The app now loads the pinned INT8 export of FastConformer. Asset setup verifies the model and tokenizer, and bundle staging copies only INT8 even when FP32 is present in the source directory. The verified published FP32 app contains 671,141,492 bytes of files. The local INT8 app contains 387,896,130 bytes, saving 283,245,362 bytes (42.20%). The model itself fell from 457,959,548 to 174,544,089 bytes.
+
+Both the restored FP32 baseline and the INT8 tester gate ran 153 tests with zero failures and one expected opt-in skip. INT8 inference and the Al-Ikhlas fixture passed. Asset setup, the Swift build, launch, staged model and tokenizer checksums, and deep app signature verification passed. The app logged `warmup_ready` after launch. `dist/HifzTracker.app` is ready for the user's manual microphone and live-highlight check.
+
 ## Current State
 
 **Last Updated:** 2026-08-04

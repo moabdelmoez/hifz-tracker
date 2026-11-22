@@ -10,7 +10,7 @@ Run:
 ./script/release_checks.sh local
 ```
 
-This verifies the Swift package tests, builds the macOS app, launches the staged bundle, and checks the bundled Quran data checksums.
+This runs the Swift package tests, builds and launches the staged app, and verifies the bundled Quran data, INT8 model, and tokenizer checksums.
 
 ## Free Tester Gate
 
@@ -38,7 +38,7 @@ Apple-verified, or warning-free.
 
 Before public distribution, install these assets:
 
-- `HifzTracker/Resources/Models/model_fp32.onnx`
+- `HifzTracker/Resources/Models/model_int8.onnx`
 - `HifzTracker/Resources/Tokenizer/tokenizer.json`
 - `HifzTracker/Resources/Tokenizer/tokenizer.model`
 - `HifzTracker/Resources/Tokenizer/tokenizer_config.json`
@@ -50,13 +50,13 @@ Before public distribution, install these assets:
 
 Download the KFGQPC V4 layout from [QUL resource 19](https://qul.tarteel.ai/resources/mushaf-layout/19), choose **Download sqlite**, and place it at `assets/layout/qpc-v4-tajweed-15-lines.db`. The setup script copies it into the app bundle as `Resources/Layout/kfgqpc-v4-layout.sqlite` and verifies SHA-256 `4b3fb1cbe8dff749ab0173c4b86cb40fe3c48dd072f41d3c7e715654a9f843cd`.
 
-If the Hugging Face repo has already been cloned/downloaded locally at `quran-stt-onnx`, run:
+Prepare the build assets with:
 
 ```bash
 ./script/setup_assets.sh
 ```
 
-The script copies `quran-stt-onnx/onnx/model_fp32.onnx` and tokenizer/config files into the app resources, verifies the pinned fp32 checksum, extracts the pinned ONNX Runtime archive, downloads the QUL QPC V4 Tajweed page fonts from `https://static-cdn.tarteel.ai/qul/fonts/quran_fonts/v4-tajweed/ttf/p{page}.ttf`, and installs the QUL layout DB.
+The script downloads the INT8 FastConformer export and matching tokenizer files from a pinned Hugging Face revision, or uses a local copy in `quran-stt-onnx`. It verifies the model checksum and adds the FastConformer CTC blank to the bundled token table when needed. It also prepares ONNX Runtime, the public audio test fixtures, the QPC V4 Tajweed fonts, and the QUL layout database. The build stages only the INT8 model, including when the source workspace contains older model files. [FastConformer export notes](https://huggingface.co/Saboorhsn/quran-stt-onnx/blob/3d3c2336d591990c88e135e2d0292e74897bc56d/README.md)
 
 For warning-free distribution, install a Developer ID Application certificate and store
 notarytool credentials in a keychain profile. Then run:

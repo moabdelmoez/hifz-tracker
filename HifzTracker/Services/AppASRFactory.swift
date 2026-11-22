@@ -28,6 +28,8 @@ actor LiveQuranTranscriptionService {
 }
 
 enum AppASRFactory {
+    static let modelResourceName = "model_int8"
+
     static let warmedLiveService = Task.detached(priority: .utility) {
         let startedAt = DispatchTime.now().uptimeNanoseconds
         do {
@@ -43,8 +45,8 @@ enum AppASRFactory {
     }
 
     static func makeLiveService(bundle: Bundle = .main) throws -> LiveQuranTranscriptionService {
-        guard let modelURL = bundle.url(forResource: "model_fp32", withExtension: "onnx", subdirectory: "Models") else {
-            throw AppASRError.missingBundledResource("Models/model_fp32.onnx")
+        guard let modelURL = bundle.url(forResource: modelResourceName, withExtension: "onnx", subdirectory: "Models") else {
+            throw AppASRError.missingBundledResource("Models/\(modelResourceName).onnx")
         }
         guard let tokensURL = bundle.url(forResource: "tokens", withExtension: "txt", subdirectory: "Tokenizer") else {
             throw AppASRError.missingBundledResource("Tokenizer/tokens.txt")

@@ -15,6 +15,8 @@ APP_MACOS="$APP_CONTENTS/MacOS"
 APP_FRAMEWORKS="$APP_CONTENTS/Frameworks"
 APP_RESOURCES="$APP_CONTENTS/Resources"
 APP_BINARY="$APP_MACOS/$APP_NAME"
+ASR_MODEL="model_int8.onnx"
+ASR_MODEL_SOURCE="$ROOT_DIR/HifzTracker/Resources/Models/$ASR_MODEL"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 ENTITLEMENTS="$DIST_DIR/$APP_NAME.entitlements"
 ORT_LIB_SOURCE="$ROOT_DIR/assets/runtime/onnxruntime-osx-arm64-1.26.0/lib/libonnxruntime.1.26.0.dylib"
@@ -35,7 +37,11 @@ cp "$BUILD_BINARY" "$APP_BINARY"
 chmod +x "$APP_BINARY"
 install_name_tool -delete_rpath "$ROOT_DIR/assets/runtime/onnxruntime-osx-arm64-1.26.0/lib" "$APP_BINARY" >/dev/null 2>&1 || true
 
-cp -R "$ROOT_DIR/HifzTracker/Resources/." "$APP_RESOURCES/"
+rsync -a --exclude='/Models/' "$ROOT_DIR/HifzTracker/Resources/" "$APP_RESOURCES/"
+if [ -f "$ASR_MODEL_SOURCE" ]; then
+  mkdir -p "$APP_RESOURCES/Models"
+  cp "$ASR_MODEL_SOURCE" "$APP_RESOURCES/Models/$ASR_MODEL"
+fi
 if [ ! -f "$APP_RESOURCES/$APP_ICON_FILE" ]; then
   echo "missing app icon resource: HifzTracker/Resources/$APP_ICON_FILE" >&2
   exit 1

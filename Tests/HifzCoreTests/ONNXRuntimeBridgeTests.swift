@@ -6,9 +6,9 @@ final class ONNXRuntimeBridgeTests: XCTestCase {
         XCTAssertEqual(ONNXRuntime.versionString(), "1.26.0")
     }
 
-    func testRunsFp32QuranSTTModelForFeatureWindow() throws {
+    func testRunsINT8QuranSTTModelForFeatureWindow() throws {
         let modelURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appending(path: "assets/models/model_fp32.onnx")
+            .appending(path: "HifzTracker/Resources/Models/model_int8.onnx")
         let session = try ONNXRuntimeSession(modelURL: modelURL)
         let frameCount = 128
         let featureCount = 80

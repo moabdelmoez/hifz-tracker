@@ -17,7 +17,7 @@ enum AppAssetStatus {
         }
 
         let releaseAssets = [
-            ("model_fp32", "onnx", "Models"),
+            (AppASRFactory.modelResourceName, "onnx", "Models"),
             ("tokenizer", "json", "Tokenizer"),
             ("tokenizer", "model", "Tokenizer"),
             ("tokenizer_config", "json", "Tokenizer"),

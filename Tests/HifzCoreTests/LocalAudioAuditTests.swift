@@ -49,7 +49,8 @@ final class LocalAudioAuditTests: XCTestCase {
             layoutDatabaseURL: layoutURL
         )
         let tokenizer = try QuranSTTTokenizer(tokensURL: root.appending(path: "assets/tokenizer/tokens.txt"))
-        let session = try ONNXRuntimeSession(modelURL: root.appending(path: "assets/models/model_fp32.onnx"))
+        let modelPath = "HifzTracker/Resources/Models/model_int8.onnx"
+        let session = try ONNXRuntimeSession(modelURL: root.appending(path: modelPath))
         let extractor = LogMelFeatureExtractor()
         let decoder = CTCGreedyDecoder(blankID: tokenizer.blankID)
         var results: [LocalAudioAuditResult] = []
@@ -331,7 +332,7 @@ final class LocalAudioAuditTests: XCTestCase {
         let report = LocalAudioAuditReport(
             generatedAt: ISO8601DateFormatter().string(from: Date()),
             onnxRuntimeVersion: ONNXRuntime.versionString(),
-            model: "assets/models/model_fp32.onnx",
+            model: modelPath,
             tokenizer: "assets/tokenizer/tokens.txt",
             audioDirectory: "local audio",
             results: results

@@ -1,5 +1,9 @@
 # Session Handoff
 
+## INT8 manual test build, November 22, 2026
+
+`dist/HifzTracker.app` is the local INT8 build. The tester gate and model warm-up passed, and the bundle is 42.20% smaller than the published FP32 app. The remaining acceptance check is to start a live recitation, confirm microphone input, and watch the word highlights on a familiar surah. [Verification evidence](progress.md)
+
 ## Current Objective
 
 - Goal: Publish the Dark Mode Mushaf divider fix and synchronized replacement tester DMG/checksum under the existing `v0.1.0-alpha` URLs.
