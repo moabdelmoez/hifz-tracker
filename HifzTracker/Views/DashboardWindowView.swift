@@ -15,35 +15,34 @@ struct DashboardWindowView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("Progress")
-                    .font(.title2.weight(.semibold))
-                Spacer()
-
-                Button {
-                    isConfirmingReset = true
-                } label: {
-                    Label("Reset Progress…", systemImage: "arrow.counterclockwise")
-                }
-                .disabled(records.isEmpty)
-                .help("Delete all saved tracking progress")
-            }
-            .padding()
-            .background(.bar)
-
-            ProgressActivityCalendar(days: activityDays)
-                .padding()
-
-            Divider()
-
             if records.isEmpty {
                 ContentUnavailableView(
                     "No Saved Progress",
                     systemImage: "chart.bar.xaxis",
-                    description: Text("Complete a recitation session to begin tracking your progress.")
+                    description: Text("Recite a few words, then stop the session to save your progress.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Recitation activity")
+                            .font(.headline)
+                            .accessibilityAddTraits(.isHeader)
+
+                        Spacer()
+
+                        Button("Reset Progress…") {
+                            isConfirmingReset = true
+                        }
+                        .help("Delete all saved recitation sessions")
+                    }
+
+                    ProgressActivityCalendar(days: activityDays)
+                }
+                .padding()
+
+                Divider()
+
                 List(summaries) { summary in
                     DashboardSurahProgressRow(summary: summary)
                         .listRowSeparator(.hidden)
@@ -102,9 +101,6 @@ private struct ProgressActivityCalendar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Recitation activity")
-                .font(.headline)
-
             HStack(alignment: .top, spacing: 8) {
                 VStack(spacing: spacing) {
                     Color.clear

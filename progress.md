@@ -1,5 +1,31 @@
 # Session Progress Log
 
+## November 22, 2026 native interface polish
+
+The Mushaf remains the focal point. Native system type keeps the English controls legible beside the Quran type, the full-width surah picker gives bilingual names room, and a divider separates setup from the live position. The toolbar uses the surah as its title and shows session status in plain text beside a status dot. The position heading, status, and transcript heading use primary text color for legibility on native surfaces. The native accent identifies the primary session control. The four-circle indicator appears when the microphone is active and follows Reduce Motion.
+
+Progress shows one first-run instruction until there is a saved session, then shows the calendar, surah list, and Reset Progress. Settings describes the recognition transcript and local data handling in everyday terms. The transcript panel uses the same name as the setting.
+
+### Verification
+
+- `swift build` passed. `swift test` passed with zero failures and one expected opt-in skip. SwiftPM manifest evaluation required an unsandboxed retry after `sandbox_apply: Operation not permitted`.
+- The isolated app launched and passed deep strict signature verification. The default-width and 760-point-wide Light Mode windows showed the sidebar and Mushaf without horizontal clipping. The Dark Mode Mushaf divider regression ran in the suite. The per-app dark launch argument left the preview in Light Mode, so a full Dark Mode visual walkthrough remains open.
+- Surah picker selected Al-Fatihah with the keyboard. Start ayah selected ayah 2 and updated Current position. Hide Ayah toggled both ways. Left and Right advanced and returned the page. The sidebar collapsed and reopened with its controls intact.
+- Start Recitation showed its spinner and disabled state. Microphone startup changed it to Stop Recitation and displayed the activity indicator and recognition transcript. Stopping restored Start Recitation and saved the test session in the isolated preview. The app's unified log had no errors or faults for this preview process.
+- Progress opened the first-run state before recording and showed saved activity after stopping. Reset Progress opened its confirmation and Escape dismissed it. The existing SwiftData reset test covered deletion.
+- Settings opened from the toolbar and keyboard shortcut. The General tab changed and restored the transcript preference. Privacy showed the updated local-data copy.
+- Independent clicks on the hover-revealed page buttons and a full keyboard tab-order review remain open. No release packaging was required for this native view change.
+
+## November 22, 2026 one-word ayah tracking
+
+The reported Al-Qasas session processed 104 ASR windows with a mean of 90.7 ms and no progress. The locator rejected 62 later matches while waiting to lock onto ayah 1. The reference for 28:1 contains one normalized word, and the existing locator required two even when its search was restricted to that ayah.
+
+The progressive locator now accepts an exact normalized match when the entire expected ayah is one word. It still requires fresh evidence after a completed ayah and rejects later ayahs before the starting ayah is recognized. The new application-path and core regressions reproduced the stall before the fix. The full suite ran 156 tests with one expected opt-in skip and zero failures, and `swift build` passed. The full suite ran outside the managed sandbox after a SwiftPM manifest failure.
+
+Offline INT8 replays of Al-Husary, Al-Basfar, and As-Sudais reached 28:2:4. The Alafasy replay recognized ayah 2 without producing the opening word and correctly held progress at the start. The replay files stayed in a temporary directory. [Public recordings](https://everyayah.com/recitations_ayat.html)
+
+The local build at `dist/surah-28-fix/HifzTracker.app` passed deep strict signature verification. Live microphone retest is pending. Release checks were skipped for this source-only fix.
+
 ## November 22, 2026 INT8 FastConformer
 
 The initial `swift test` baseline stopped at the missing `onnxruntime_c_api.h` header. Restored the archived ONNX Runtime 1.26.0 using the existing pinned checksums. The historical Hugging Face token table omits the CTC blank. Appending `<blk> 1024` reproduced the exact published FP32 token table and restored all six focused baseline ASR tests. Restored the layout and fonts from the verified published DMG for full verification.
@@ -7,6 +33,16 @@ The initial `swift test` baseline stopped at the missing `onnxruntime_c_api.h` h
 The app now loads the pinned INT8 export of FastConformer. Asset setup verifies the model and tokenizer, and bundle staging copies only INT8 even when FP32 is present in the source directory. The verified published FP32 app contains 671,141,492 bytes of files. The local INT8 app contains 387,896,130 bytes, saving 283,245,362 bytes (42.20%). The model itself fell from 457,959,548 to 174,544,089 bytes.
 
 Both the restored FP32 baseline and the INT8 tester gate ran 153 tests with zero failures and one expected opt-in skip. INT8 inference and the Al-Ikhlas fixture passed. Asset setup, the Swift build, launch, staged model and tokenizer checksums, and deep app signature verification passed. The app logged `warmup_ready` after launch. `dist/HifzTracker.app` is ready for the user's manual microphone and live-highlight check.
+
+## November 22, 2026 model assessment
+
+Added `tajweedformer-v4-live-evaluation-001` to the [feature backlog](feature_list.json) as planned. It records the model link and the criteria for a future comparison with FastConformer on the same audio, including word tracking, first-highlight latency, pronunciation feedback, and offline launch behavior.
+
+Compared TajweedFormer v4 with the upstream checkpoint for the shipped FP32 FastConformer. Verified 3,560 paired prediction rows and reproduced all six studio, phone and pooled word error rates. On the phone set, the compiled Swift locator reached the final word on 1,728 of 1,780 FastConformer transcripts and 1,526 of 1,780 v4 transcripts. The assessment recommends keeping FastConformer for word tracking. A live v4 timing comparison requires SDK or raw-weight access. [Assessment and source data](docs/tajweedformer-v4-assessment.md)
+
+The isolated Swift locator probe compiled and ran. Full-package `swift test` and `swift build` both stopped during C compilation because this checkout lacks the ONNX Runtime header `onnxruntime_c_api.h`. The assessment used public predictions and changed only research and tracking documents.
+
+Reviewed the [Apple SDK 4.0 quick start](https://sdk.quranlab.ai/docs/4/quickstart/apple) and [offline behavior](https://sdk.quranlab.ai/docs/4/offline). Apple silicon supports local inference with a desktop key after the first online download. Subsequent model opens can require Quran Lab again, so the SDK cannot replace the current offline recognition path under the project's runtime requirement. The Swift SDK accepts sample audio for a separate replay experiment. This was a documentation review. SDK setup and live inference were not run.
 
 ## Current State
 

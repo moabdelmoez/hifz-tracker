@@ -391,9 +391,9 @@ private struct DebugTranscriptPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Debug Transcript", systemImage: "waveform")
+            Text("Recognition transcript")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .accessibilityAddTraits(.isHeader)
 
             ScrollView {
                 Text(transcript)

@@ -354,6 +354,38 @@ final class RecitationViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testLiveASRStartsAtSurah28OneWordOpeningAndAdvancesToSecondAyah() throws {
+        let resources = URL(filePath: FileManager.default.currentDirectoryPath)
+            .appending(path: "HifzTracker/Resources")
+        let database = resources.appending(path: "qpc-v4.db")
+        let layout = resources.appending(path: "Layout/kfgqpc-v4-layout.sqlite")
+        let repository = try SQLiteQuranRepository(
+            databaseURL: database,
+            tanzilURL: resources.appending(path: "quran-simple-clean.txt"),
+            pageMapping: PageMapping.loadKFGQPCV4Layout(layoutDatabaseURL: layout, qpcDatabaseURL: database),
+            layoutDatabaseURL: layout
+        )
+        let viewModel = RecitationViewModel(repository: repository)
+        viewModel.selectedSurah = 28
+        viewModel.isRecording = true
+
+        let secondAyah = "تلك آيات الكتاب المبين"
+        let openingWord = try XCTUnwrap(repository.words(surah: 28, ayah: 1).first)
+        let finalWord = try XCTUnwrap(repository.words(surah: 28, ayah: 2).first { $0.wordIndex == 4 })
+
+        XCTAssertFalse(viewModel.applyASRTranscript(Self.transcript(secondAyah), windowID: 1, sampleRange: 0..<400))
+        XCTAssertEqual(viewModel.snapshot.completedWordCount, 0)
+        XCTAssertTrue(viewModel.applyASRTranscript(
+            Self.transcript("بسم الله الرحمن الرحيم طسم \(secondAyah)"),
+            windowID: 2,
+            sampleRange: 400..<1_300
+        ))
+        XCTAssertEqual(viewModel.snapshot.currentAyah, 2)
+        XCTAssertEqual(viewModel.progressState(for: openingWord), .completed)
+        XCTAssertEqual(viewModel.progressState(for: finalWord), .completed)
+    }
+
+    @MainActor
     func testLiveASRHighlightsNextSurahAfterCompletingSelectedSurah() {
         let repository = InMemoryQuranRepository()
         let viewModel = RecitationViewModel(repository: repository)

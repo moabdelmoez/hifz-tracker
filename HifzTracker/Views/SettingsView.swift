@@ -7,7 +7,8 @@ struct SettingsView: View {
         TabView {
             Form {
                 Section("Display") {
-                    Toggle("Show debug transcript", isOn: $showDebugTranscript)
+                    Toggle("Show recognition transcript", isOn: $showDebugTranscript)
+                        .help("Display the words recognized during recitation")
                 }
             }
             .formStyle(.grouped)
@@ -16,10 +17,10 @@ struct SettingsView: View {
             }
 
             Form {
-                Section("Privacy & Runtime") {
-                    LabeledContent("ASR", value: "Offline ONNX Runtime CPU")
-                    LabeledContent("Audio storage", value: "Metadata only")
-                    LabeledContent("Network", value: "Disabled")
+                Section("Recitation data") {
+                    LabeledContent("Speech recognition", value: "Offline, on this Mac")
+                    LabeledContent("Saved on this Mac", value: "Recitation progress")
+                    LabeledContent("Microphone audio", value: "Kept in memory during recitation")
                 }
             }
             .formStyle(.grouped)

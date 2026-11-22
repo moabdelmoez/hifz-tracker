@@ -1,6 +1,24 @@
 {
   "features": [
     {
+      "id": "one-word-ayah-locator-001",
+      "name": "Track complete one-word ayahs",
+      "description": "Allow the progressive locator to complete a one-word ayah when its exact normalized word is recognized, including Al-Qasas 28:1.",
+      "dependencies": ["sequential-ayah-progression-001"],
+      "status": "done",
+      "done_criteria": [
+        "Recognized طسم can lock onto 28:1 and fresh evidence can advance through 28:2",
+        "Later ayahs cannot stand in for a missing opening and stale evidence cannot complete the next ayah",
+        "A truncated search range within a multiword ayah retains the usual match requirement"
+      ],
+      "verification": [
+        "swift test",
+        "swift build",
+        "Replay public INT8 fixtures for Al-Qasas 28:1–2 and review completed positions"
+      ],
+      "evidence": "The Surah 28 app-path test and timed core test reproduced the stall before the fix. Final swift test passed with 156 tests run, 1 expected opt-in skip, and no failures. Swift build passed. Three of four public INT8 replays completed 28:2:4. The fourth replay did not recognize طسم and remained at the opening. The local app at dist/surah-28-fix/HifzTracker.app passed deep strict signature verification. Live microphone retest is pending."
+    },
+    {
       "id": "fastconformer-int8-bundle-001",
       "name": "Bundle INT8 FastConformer for offline recitation",
       "description": "Reduce the local macOS app bundle size using the INT8 export of the existing FastConformer model.",
@@ -17,6 +35,41 @@
         "Measure the staged app against the published FP32 app bundle and check local ASR warm-up logs"
       ],
       "evidence": "On 2026-11-22 the tester gate passed with 152 tests passing and one expected opt-in skip, including native INT8 inference and the Al-Ikhlas transcription fixture. The app logged warmup_ready after launch. The app bundle decreased from 671,141,492 to 387,896,130 bytes (42.20%). The local dist/HifzTracker.app is ready for manual microphone testing."
+    },
+    {
+      "id": "tajweedformer-v4-assessment-001",
+      "name": "Compare TajweedFormer v4 with the shipped ASR",
+      "description": "Assess Quran word tracking and mistake feedback on paired public predictions.",
+      "dependencies": [],
+      "status": "done",
+      "done_criteria": [
+        "Identify the deployed model by its manifest hash",
+        "Compare recognition and locator outcomes on the same recordings",
+        "Document the SDK requirements and limits of completed-ayah evaluation"
+      ],
+      "verification": [
+        "Match 3,560 recording and condition pairs",
+        "Reconstruct six reported word error rates from per-recording counts",
+        "Compile the production Swift locator sources and score both transcript sets"
+      ],
+      "evidence": "docs/tajweedformer-v4-assessment.md records the pinned artifacts, evaluation method and findings. The locator reached the final word for 3,484 FastConformer and 3,209 TajweedFormer transcripts out of 3,560 each. Live SDK timing remains unmeasured."
+    },
+    {
+      "id": "tajweedformer-v4-live-evaluation-001",
+      "name": "Evaluate TajweedFormer v4 as an ASR option",
+      "description": "Compare TajweedFormer v4 and the shipped FastConformer on the same local recitation recordings.",
+      "dependencies": ["tajweedformer-v4-assessment-001"],
+      "status": "planned",
+      "done_criteria": [
+        "Compare word-tracking accuracy and time to first highlight on the same recordings",
+        "Measure the pronunciation mistakes each model catches and its false flags on correct recitation",
+        "Check model availability on a fresh offline install and on a later offline launch after setup"
+      ],
+      "verification": [
+        "Run a paired streaming replay with labelled recitation fixtures",
+        "Record fresh-install and repeat-launch offline behavior"
+      ],
+      "evidence": "Model: https://huggingface.co/Quran-Lab/tajweedformer-v4. Preliminary results: docs/tajweedformer-v4-assessment.md. Quran Lab's Apple SDK 4.0.1 supports local replay on Apple silicon after online setup with a desktop key. A later model open can require reconnecting. Paired streaming replay and offline launch behavior still need runtime verification."
     },
     {
       "id": "harness-001",
@@ -598,7 +651,7 @@
         "jq empty feature_list.json",
         "git diff --check"
       ],
-      "evidence": "Completed on 2026-07-16. Baseline `swift test` passed 131 tests with 1 expected opt-in local-audio skip and 0 failures; baseline `swift build` passed. A focused red check proved the four-circle indicator required 280 points inside the 208-point minimum sidebar content width. The final 204-point layout passed all 4 VoiceActivityIndicator tests. Recitation now keeps status in the toolbar, consolidates Session metadata with tabular ayah/page numbers, removes the duplicate navigation title, and respects Reduce Motion for the voice indicator, page transitions, and focus scrolling. Dashboard now uses a native no-progress empty state; Settings uses consistent grouped forms; the white Mushaf page has a neutral 0.5-point inset outline. Focused Mushaf canvas tests passed 5 tests and Dashboard reset passed 1 test. Final `swift test` passed 132 tests with 1 expected skip and 0 failures; `swift build` and `./script/build_and_run.sh --verify` passed. `jq empty feature_list.json`, scoped symbol sweeps, and `git diff --check` passed. Automated on-screen inspection was not claimed because macOS rejected the app-only capture with `could not create image from rect`; manual light/dark review remains available. Release checks were skipped because no release assets, signing, packaging, dependencies, schema, model, or audio behavior changed."
+      "evidence": "Completed on 2026-07-16. Baseline `swift test` passed 131 tests with 1 expected opt-in local-audio skip and 0 failures; baseline `swift build` passed. A focused red check proved the four-circle indicator required 280 points inside the 208-point minimum sidebar content width. The final 204-point layout passed all 4 VoiceActivityIndicator tests. Recitation now keeps status in the toolbar, consolidates Session metadata with tabular ayah/page numbers, removes the duplicate navigation title, and respects Reduce Motion for the voice indicator, page transitions, and focus scrolling. Dashboard now uses a native no-progress empty state; Settings uses consistent grouped forms; the white Mushaf page has a neutral 0.5-point inset outline. Focused Mushaf canvas tests passed 5 tests and Dashboard reset passed 1 test. Final `swift test` passed 132 tests with 1 expected skip and 0 failures; `swift build` and `./script/build_and_run.sh --verify` passed. `jq empty feature_list.json`, scoped symbol sweeps, and `git diff --check` passed. Automated on-screen inspection was not claimed because macOS rejected the app-only capture with `could not create image from rect`; manual light/dark review remains available. Release checks were skipped because no release assets, signing, packaging, dependencies, schema, model, or audio behavior changed. The 2026-11-22 follow-up simplified the Recitation sidebar and title bar, added recording startup feedback, streamlined the Progress empty state, and clarified Settings copy. The Swift build and full test suite passed. The isolated runtime walkthrough covered the main session and navigation controls at the default window size, with a visual check at 760 points wide. See progress.md for control-level evidence and remaining visual checks."
     },
     {
       "id": "strict-fresh-ayah-order-001",

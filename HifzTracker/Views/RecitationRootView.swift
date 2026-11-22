@@ -19,19 +19,13 @@ struct RecitationRootView: View {
             MushafPageView(viewModel: viewModel)
                 .toolbar {
                     ToolbarItem(placement: .principal) {
-                        VStack(spacing: 1) {
-                            Text("Hifz Tracker")
-                                .font(.headline)
-                            Text("\(viewModel.selectedSurahInfo.arabicName) · \(viewModel.selectedSurahInfo.englishName)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .lineLimit(1)
-                        .accessibilityElement(children: .combine)
+                        Text("\(viewModel.selectedSurahInfo.arabicName) · \(viewModel.selectedSurahInfo.englishName)")
+                            .font(.headline)
+                            .lineLimit(1)
                     }
 
                     ToolbarItem(placement: .status) {
-                        RecitationStatusBadge(
+                        RecitationStatusLabel(
                             text: viewModel.statusText,
                             color: RecitationVisualState(
                                 phase: viewModel.snapshot.phase,
@@ -68,7 +62,7 @@ struct RecitationRootView: View {
 
 }
 
-private struct RecitationStatusBadge: View {
+private struct RecitationStatusLabel: View {
     var text: String
     var color: Color
 
@@ -77,15 +71,12 @@ private struct RecitationStatusBadge: View {
             Circle()
                 .fill(color)
                 .frame(width: 7, height: 7)
+                .accessibilityHidden(true)
 
             Text(text)
                 .font(.caption.weight(.medium))
                 .lineLimit(1)
         }
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(.regularMaterial, in: Capsule())
         .accessibilityLabel("Status: \(text)")
     }
 }

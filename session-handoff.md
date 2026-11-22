@@ -1,8 +1,18 @@
 # Session Handoff
 
+## Al-Qasas locator fix test build, November 22, 2026
+
+Open `dist/surah-28-fix/HifzTracker.app` and recite Al-Qasas from ayah 1 to verify the live microphone path. The build passed signature verification, the full suite passed, and three public INT8 replays progressed through ayah 2. One replay exposed inconsistent model recognition of the opening. If a live run stalls again, compare locator outcomes around the opening. [Verification evidence](progress.md)
+
 ## INT8 manual test build, November 22, 2026
 
 `dist/HifzTracker.app` is the local INT8 build. The tester gate and model warm-up passed, and the bundle is 42.20% smaller than the published FP32 app. The remaining acceptance check is to start a live recitation, confirm microphone input, and watch the word highlights on a familiar surah. [Verification evidence](progress.md)
+
+## ASR assessment, November 22, 2026
+
+The paired public benchmark and local locator check favor FastConformer for tracking. TajweedFormer caught more planted mistakes and produced more false alarms. A local streaming comparison would require authorized v4 access and representative audio. [Results and methodology](docs/tajweedformer-v4-assessment.md)
+
+The future streaming comparison is listed as `tajweedformer-v4-live-evaluation-001` in the [feature backlog](feature_list.json).
 
 ## Current Objective
 

@@ -8,8 +8,9 @@ struct RecitationSidebarView: View {
     var body: some View {
         VStack(spacing: 0) {
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 20) {
                     RecitationSetupSection(viewModel: viewModel)
+                    Divider()
                     SessionSummarySection(viewModel: viewModel)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -32,54 +33,41 @@ private struct RecitationSetupSection: View {
     @Bindable var viewModel: RecitationViewModel
 
     var body: some View {
-        SidebarSection(title: "Recitation") {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .center, spacing: 10) {
-                    Text("Surah")
-                        .foregroundStyle(.primary)
-                        .frame(width: 64, alignment: .leading)
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Surah")
+                    .font(.subheadline.weight(.semibold))
+                    .accessibilityHidden(true)
 
-                    Picker("Surah", selection: $viewModel.selectedSurah) {
-                        ForEach(SurahCatalog.all) { surah in
-                            Text("\(surah.number). \(surah.arabicName)  \(surah.englishName)")
-                                .lineLimit(1)
-                                .tag(surah.number)
-                        }
+                Picker("Surah", selection: $viewModel.selectedSurah) {
+                    ForEach(SurahCatalog.all) { surah in
+                        Text("\(surah.number). \(surah.arabicName)  \(surah.englishName)")
+                            .lineLimit(1)
+                            .tag(surah.number)
                     }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity)
                 }
-
-                Divider()
-
-                HStack(spacing: 8) {
-                    Text("Start ayah")
-                        .foregroundStyle(.primary)
-                    Spacer(minLength: 8)
-
-                    Picker("Start ayah", selection: $viewModel.startAyah) {
-                        ForEach(1...viewModel.selectedSurahInfo.ayahCount, id: \.self) { ayah in
-                            Text("\(ayah)")
-                                .tag(ayah)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .frame(minWidth: 72, alignment: .trailing)
-                }
-
-                Divider()
-
-                HStack(spacing: 8) {
-                    Text("Hide Ayah")
-                        .foregroundStyle(.primary)
-                    Spacer(minLength: 8)
-                    Toggle("Hide recitation text", isOn: $viewModel.hideRecitationText)
-                        .labelsHidden()
-                        .toggleStyle(.switch)
-                        .help("Hide recitation text until it is recited")
-                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(maxWidth: .infinity)
             }
+
+            LabeledContent {
+                Picker("Start ayah", selection: $viewModel.startAyah) {
+                    ForEach(1...viewModel.selectedSurahInfo.ayahCount, id: \.self) { ayah in
+                        Text("\(ayah)")
+                            .tag(ayah)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(width: 64)
+            } label: {
+                Text("Start ayah")
+            }
+
+            Toggle("Hide Ayah", isOn: $viewModel.hideRecitationText)
+                .toggleStyle(.switch)
+                .help("Reveal each word as you recite it")
         }
     }
 }
@@ -89,46 +77,28 @@ private struct SessionSummarySection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Session")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+            Text("Current position")
+                .font(.subheadline.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
 
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 8) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("\(viewModel.selectedSurahInfo.arabicName) · \(viewModel.selectedSurahInfo.englishName)")
-                            .font(.callout.weight(.medium))
-                            .lineLimit(1)
-
-                        Text("Ayah \(viewModel.displayedAyah)")
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-
-                    Spacer(minLength: 8)
-
-                    Text("Page \(viewModel.pageNumber)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-
-                VoiceActivityIndicator(isActive: viewModel.isRecording)
-
-                if let message = viewModel.snapshot.message ?? viewModel.assetMessage {
-                    Divider()
-
-                    Text(message)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                }
+            HStack {
+                Text("Ayah \(viewModel.displayedAyah)")
+                Spacer(minLength: 8)
+                Text("Page \(viewModel.pageNumber)")
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
+            .font(.body.monospacedDigit())
+            .accessibilityElement(children: .combine)
+
+            if viewModel.isRecording {
+                VoiceActivityIndicator()
+            }
+
+            if let message = viewModel.snapshot.message ?? viewModel.assetMessage {
+                Text(message)
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+            }
         }
     }
 }
@@ -149,12 +119,9 @@ struct VoiceActivityIndicatorMetrics {
 private struct VoiceActivityIndicator: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    let isActive: Bool
     @State private var highlightedIndex = 0
 
     var body: some View {
-        let shouldAnimate = isActive && !reduceMotion
-
         HStack(spacing: VoiceActivityIndicatorMetrics.circleSpacing) {
             ForEach(0..<VoiceActivityIndicatorMetrics.circleCount, id: \.self) { index in
                 Circle()
@@ -163,17 +130,17 @@ private struct VoiceActivityIndicator: View {
                         width: VoiceActivityIndicatorMetrics.circleSize,
                         height: VoiceActivityIndicatorMetrics.circleSize
                     )
-                    .scaleEffect(isActive && index == highlightedIndex ? VoiceActivityIndicatorMetrics.activeScale : 1.0)
+                    .scaleEffect(index == highlightedIndex ? VoiceActivityIndicatorMetrics.activeScale : 1.0)
                     .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: highlightedIndex)
             }
         }
         .frame(maxWidth: .infinity)
         .frame(height: VoiceActivityIndicatorMetrics.frameHeight)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(isActive ? "Listening to recitation" : "Recitation idle")
-        .task(id: shouldAnimate) {
+        .accessibilityLabel("Listening to recitation")
+        .task(id: reduceMotion) {
             highlightedIndex = 0
-            guard shouldAnimate else { return }
+            guard !reduceMotion else { return }
 
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: VoiceActivityIndicatorMetrics.stepIntervalNanoseconds)
@@ -185,7 +152,7 @@ private struct VoiceActivityIndicator: View {
     }
 
     private func color(for index: Int) -> Color {
-        guard isActive, index == highlightedIndex else {
+        guard index == highlightedIndex else {
             return Color(nsColor: .separatorColor).opacity(0.78)
         }
 
@@ -204,46 +171,38 @@ private struct RecitationActionBar: View {
             }
             viewModel.toggleRecording()
         } label: {
-            Label(primaryTitle, systemImage: primarySystemImage)
-                .frame(maxWidth: .infinity)
+            Group {
+                if isStarting {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .controlSize(.small)
+                            .accessibilityHidden(true)
+                        Text(primaryTitle)
+                    }
+                } else {
+                    Label(primaryTitle, systemImage: primarySystemImage)
+                }
+            }
+            .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
+        .disabled(isStarting)
         .keyboardShortcut("r", modifiers: [.command])
         .help("\(primaryTitle) (⌘R)")
     }
 
     private var primaryTitle: String {
-        viewModel.isRecording ? "Stop Recitation" : "Start Recitation"
+        if isStarting { return "Starting Recitation…" }
+        return viewModel.isRecording ? "Stop Recitation" : "Start Recitation"
     }
 
     private var primarySystemImage: String {
-        viewModel.isRecording ? "stop.circle.fill" : "mic.circle.fill"
+        viewModel.isRecording ? "stop.fill" : "mic.fill"
     }
-}
 
-private struct SidebarSection<Content: View>: View {
-    var title: String
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-
-            VStack(alignment: .leading, spacing: 8) {
-                content
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(.quaternary, lineWidth: 0.5)
-            }
-        }
+    private var isStarting: Bool {
+        viewModel.snapshot.phase == .requestingPermission
     }
 }
 

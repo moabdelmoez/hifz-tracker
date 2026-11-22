@@ -36,6 +36,39 @@ final class ProgressiveTranscriptLocatorTests: XCTestCase {
         XCTAssertEqual(location.completedThrough.location, "108:1:3")
     }
 
+    func testCompletesOneWordAyahOnlyWithFreshEvidenceAfterPreviousAyah() throws {
+        let expected = references([(1, ["one", "two", "three", "four"]), (2, ["طسم"])])
+        var locator = ProgressiveTranscriptLocator()
+        let staleOpening = TranscriptWordEvidence(text: "طسم", sampleRange: 0..<10)
+        let firstAyah = try XCTUnwrap(locator.locate(expected: expected, evidence: [
+            staleOpening,
+            TranscriptWordEvidence(text: "one", sampleRange: 10..<20),
+            TranscriptWordEvidence(text: "two", sampleRange: 20..<30),
+            TranscriptWordEvidence(text: "three", sampleRange: 30..<40),
+            TranscriptWordEvidence(text: "four", sampleRange: 40..<50)
+        ]))
+
+        XCTAssertEqual(firstAyah.completedThrough.location, "59:1:4")
+        XCTAssertEqual(locator.locateWithOutcome(expected: expected, evidence: [staleOpening]), .freshEvidenceRequired)
+        XCTAssertNil(locator.locate(expected: expected, evidence: [
+            TranscriptWordEvidence(text: "طس", sampleRange: 50..<60)
+        ]))
+
+        let secondAyah = try XCTUnwrap(locator.locate(expected: expected, evidence: [
+            TranscriptWordEvidence(text: "طٰسٓمٓ", sampleRange: 60..<70)
+        ]))
+        XCTAssertEqual(secondAyah.completedThrough.location, "59:2:1")
+    }
+
+    func testDoesNotTreatOneWordSearchRangeAsCompleteMultiWordAyah() throws {
+        let expected = references([(1, ["one", "two", "three", "four"]), (2, ["five", "six"])])
+        var locator = ProgressiveTranscriptLocator(lookAheadWordCount: 1)
+        let firstAyah = try XCTUnwrap(locator.locate(expected: expected, recognizedWords: ["one", "two", "three", "four"]))
+
+        XCTAssertEqual(firstAyah.completedThrough.location, "59:1:4")
+        XCTAssertNil(locator.locate(expected: expected, recognizedWords: ["five", "six"]))
+    }
+
     func testRejectsLaterCompleteShortAyahBeforeInitialLock() {
         var locator = ProgressiveTranscriptLocator(
             minimumInitialMatchLength: 4,

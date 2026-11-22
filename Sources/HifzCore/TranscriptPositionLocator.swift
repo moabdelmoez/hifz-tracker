@@ -411,6 +411,19 @@ public struct ProgressiveTranscriptLocator: Sendable {
         guard index.count > 0 else { return .emptyReference }
 
         let searchRange = expectedSearchRange(index: index)
+        if searchRange.count == 1,
+           index.ayahRange(containing: searchRange.lowerBound) == searchRange,
+           let location = TranscriptPositionLocator(minimumRunLength: 1).locate(
+               index: index,
+               recognizedWords: recognizedWords,
+               expectedRange: searchRange,
+               completingAfter: acceptedOffset
+           ) {
+            // A complete one-word ayah takes precedence over longer matches in later ayahs.
+            acceptedOffset = searchRange.lowerBound
+            return .located(location)
+        }
+
         if acceptedOffset == nil,
            searchRange.upperBound < index.count,
            let unrestrictedLocation = locator.locate(index: index, recognizedWords: recognizedWords),
