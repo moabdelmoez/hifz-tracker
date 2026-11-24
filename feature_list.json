@@ -1,6 +1,106 @@
 {
   "features": [
     {
+      "id": "reader-live-position-001",
+      "name": "Unify the reader position",
+      "description": "Use the live surah and ayah consistently across the Recitation window.",
+      "dependencies": [],
+      "status": "done",
+      "done_criteria": [
+        "The toolbar and Mushaf use the confirmed surah and ayah after crossing a surah boundary",
+        "Choosing a new starting passage clears the previous confirmed position",
+        "Automatic page turns and manual browsing still work"
+      ],
+      "verification": [
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "Baseline swift test ran 158 cases with one opt-in skip and zero failures after a manifest sandbox retry. Baseline swift build passed. The new setup-reset regression failed with ayah 11 instead of 7 before the fix. After the view model and its three views shared one surah–ayah position, all 27 focused RecitationViewModel tests passed, including the surah 100→101 fixture. The full suite ran 159 cases with one opt-in skip and zero failures, and swift build passed. The visible page stays independently labeled because browsing and automatic page turns can get ahead of the confirmed position. No release inputs changed."
+    },
+    {
+      "id": "progress-hierarchy-001",
+      "name": "Lead Progress with practiced surahs",
+      "description": "Place recent confirmed practice above the activity calendar and Quran index.",
+      "dependencies": [],
+      "status": "done",
+      "done_criteria": [
+        "Confirmed sessions determine practiced surahs and latest position",
+        "Zero-confirmation sessions are excluded",
+        "Calendar and all 114 surahs remain available by disclosure"
+      ],
+      "verification": [
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "The silent-session regression failed with credited surahs [1, 3] instead of [3]. The repaired calculator excludes zero-confirmation records and sorts practiced surahs by most recent session. The Progress window leads with their latest positions, folds the calendar and Quran index into disclosures, and places Reset in its actions menu. Eight focused calculator and reset tests passed. The full suite ran 161 cases with one opt-in skip and zero failures, and swift build passed. The Quran index labels the existing percentages as furthest positions. No release inputs changed. Final review reproduced a Progress regression when the Quran repository was missing. The focused test first returned no practiced surahs, then passed with both saved surahs and the known endpoint. Progress shows the calendar and saved positions independently of the repository and omits unavailable percentages. Nine focused tests passed. The final Swift suite ran 160 tests with one opt-in skip and zero failures. Swift build, eight download-page checks, four handoff checks, and JSON validation passed. SwiftPM used temporary caches and disabled its manifest sandbox after the managed sandbox blocked baseline manifest evaluation."
+    },
+    {
+      "id": "recording-feedback-density-001",
+      "name": "Simplify recording feedback and Settings",
+      "description": "Remove the decorative animation and make the recognition transcript opt-in.",
+      "dependencies": [],
+      "status": "done",
+      "done_criteria": [
+        "Fresh profiles hide the transcript",
+        "Existing preferences are respected",
+        "Settings uses one form"
+      ],
+      "verification": [
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "The fresh-profile preference test failed with the previous true default, while the saved opt-in test passed. Both passed when the shared AppStorage default became false. The timer-driven circles and their design-only tests were removed. The reader and single-form Settings share the existing stored preference key. The full suite ran 159 cases with one opt-in skip and zero failures, and swift build passed. No release inputs changed."
+    },
+    {
+      "id": "download-page-hierarchy-001",
+      "name": "Show the reader beside Download",
+      "description": "Lead the website with the app preview and Mac requirements while keeping installation guidance available.",
+      "dependencies": [],
+      "status": "done",
+      "done_criteria": [
+        "Preview and compatibility are alongside the main download",
+        "Signing notice is visible and installation steps are expandable"
+      ],
+      "verification": [
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "The local page check failed six hierarchy and loading expectations before the change and passed all eight checks afterward. The reader preview, compatibility, and signing notice now share the download section. Installation steps are expandable, and the existing DMG and checksum URLs remain intact. Browser Use rejected the local file URL, so desktop and mobile rendering are unverified. The full Swift suite ran 159 cases with one opt-in skip and zero failures, and swift build passed. No release assets or published URLs changed."
+    },
+    {
+      "id": "project-handoff-density-001",
+      "name": "Consolidate the project handoff",
+      "description": "Keep one active feature and a short handoff with outstanding verification.",
+      "dependencies": [],
+      "status": "done",
+      "done_criteria": [
+        "An active feature can be identified unambiguously",
+        "Startup documents direct the reader to one current handoff"
+      ],
+      "verification": [
+        "swift test",
+        "swift build"
+      ],
+      "evidence": "The startup check first failed on three stale-document conditions, then passed all four checks. The tracker owns active status, progress keeps dated verification, and the 11-line handoff lists pending acceptance in one place. The two older features awaiting manual verification are queued. Swift test ran 159 cases with one opt-in skip and zero failures, and swift build passed. No release inputs changed."
+    },
+    {
+      "id": "macos-window-reopen-001",
+      "name": "Reopen the Recitation window on macOS",
+      "description": "Restore the Recitation window when macOS reopens Hifz Tracker after the last window was closed.",
+      "dependencies": [],
+      "status": "planned",
+      "done_criteria": [
+        "Reopening the running app after closing its last window shows Recitation",
+        "Reopening the app while a window is visible uses default macOS handling"
+      ],
+      "verification": [
+        "swift test",
+        "./script/build_and_run.sh --verify",
+        "Close the last window and reopen the running app from macOS"
+      ],
+      "evidence": "The app delegate now handles the reopen event. Unit tests cover both visible-window states. macOS blocked automated window interaction, so the desktop close-and-reopen check remains pending."
+    },
+    {
       "id": "one-word-ayah-locator-001",
       "name": "Track complete one-word ayahs",
       "description": "Allow the progressive locator to complete a one-word ayah when its exact normalized word is recognized, including Al-Qasas 28:1.",
@@ -79,7 +179,7 @@
       "status": "done",
       "done_criteria": [
         "AGENTS.md routes startup, scope, verification, and end-of-session behavior",
-        "feature_list.json has one active feature and concrete status/evidence fields",
+        "feature_list.json has at most one active feature and concrete status and evidence fields",
         "progress.md records current state, next step, risks, files, and verification evidence",
         "AGENTS.md documents the lightweight SwiftPM verification gate without a startup script",
         "session-handoff.md gives the next session a restartable path"
@@ -1218,7 +1318,7 @@
       "name": "Free Tester Distribution Hardening",
       "description": "Make the free macOS tester path explicit, repeatable, and honest about its ad-hoc signature and required Gatekeeper override while preserving a strict future Developer ID release path.",
       "dependencies": ["github-pages-site-001", "progress-activity-dmg-refresh-001"],
-      "status": "in_progress",
+      "status": "planned",
       "done_criteria": [
         "Release and packaging scripts require an explicit local, tester, or release mode and reject invalid invocations",
         "Tester validation checks all runtime assets, the ad-hoc app signature, required entitlements, DMG integrity, and a SHA-256 sidecar",
@@ -1241,7 +1341,7 @@
         "jq empty feature_list.json",
         "git diff --check"
       ],
-      "evidence": "Local implementation and verification completed on 2026-08-04. Explicit mode syntax and failure checks passed. Both the tester release gate and tester packaging gate passed 152 tests with 1 expected skip, Swift builds, staging/launch, all release assets, ad-hoc signing, required entitlements, unsigned-DMG enforcement, image verification, and checksum generation. Browser checks passed at 1440px and 390px with correct responsive layout, visible anchored content, zero horizontal overflow, and no console errors. The original 520,587,236-byte DMG and sidecar matched SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`; source commit `8a88cbd` and Pages deployment `30900801534` published the tester guidance. A clean tester Mac completed Open Anyway and launched the app, exposing a Dark Mode white-on-white Surah divider bug. The exact page-570 regression failed twice with zero visible header and bismillah pixels, then passed after the shared white-canvas token color changed from dynamic `labelColor` to black. The refreshed tester gate passed 153 tests with 1 expected skip, build, staging/launch, assets, ad-hoc signing, entitlements, unsigned-DMG enforcement, and image verification. Commit `62c6586` published the fix. The replacement DMG asset `501698206` is 519,949,553 bytes with SHA-256 `1c6a12a9bfe02478c795a46862b913b5eeb23199b5b4a832ad1e5b7059618642`; `hdiutil verify` passed with CRC32 `$7F1B0C44`. Checksum asset `501663145`, the release body, downloaded sidecar, and README publish the same hash under the existing URLs. Status remains in progress only until clean-Mac verification of the replacement Dark Mode divider and microphone is recorded."
+      "evidence": "Local implementation and verification completed on 2026-08-04. Explicit mode syntax and failure checks passed. Both the tester release gate and tester packaging gate passed 152 tests with 1 expected skip, Swift builds, staging/launch, all release assets, ad-hoc signing, required entitlements, unsigned-DMG enforcement, image verification, and checksum generation. Browser checks passed at 1440px and 390px with correct responsive layout, visible anchored content, zero horizontal overflow, and no console errors. The original 520,587,236-byte DMG and sidecar matched SHA-256 `027693170c9b24888555a403eaf00e6c5913ad1a11abf8046c07dca22696b768`; source commit `8a88cbd` and Pages deployment `30900801534` published the tester guidance. A clean tester Mac completed Open Anyway and launched the app, exposing a Dark Mode white-on-white Surah divider bug. The exact page-570 regression failed twice with zero visible header and bismillah pixels, then passed after the shared white-canvas token color changed from dynamic `labelColor` to black. The refreshed tester gate passed 153 tests with 1 expected skip, build, staging/launch, assets, ad-hoc signing, entitlements, unsigned-DMG enforcement, and image verification. Commit `62c6586` published the fix. The replacement DMG asset `501698206` is 519,949,553 bytes with SHA-256 `1c6a12a9bfe02478c795a46862b913b5eeb23199b5b4a832ad1e5b7059618642`; `hdiutil verify` passed with CRC32 `$7F1B0C44`. Checksum asset `501663145`, the release body, downloaded sidecar, and README publish the same hash under the existing URLs. Clean-Mac verification of the replacement Dark Mode divider and microphone remains pending."
     }
   ]
 }

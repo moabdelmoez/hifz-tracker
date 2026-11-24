@@ -3,6 +3,8 @@ import SwiftUI
 import HifzCore
 
 struct RecitationRootView: View {
+    let registerWindowAction: (OpenWindowAction) -> Void
+
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
@@ -19,7 +21,8 @@ struct RecitationRootView: View {
             MushafPageView(viewModel: viewModel)
                 .toolbar {
                     ToolbarItem(placement: .principal) {
-                        Text("\(viewModel.selectedSurahInfo.arabicName) · \(viewModel.selectedSurahInfo.englishName)")
+                        let surah = SurahCatalog.surah(viewModel.readerPosition.surah) ?? viewModel.selectedSurahInfo
+                        Text("\(surah.arabicName) · \(surah.englishName)")
                             .font(.headline)
                             .lineLimit(1)
                     }
@@ -52,6 +55,9 @@ struct RecitationRootView: View {
                 }
         }
         .navigationSplitViewStyle(.balanced)
+        .onAppear {
+            registerWindowAction(openWindow)
+        }
     }
 
     private func persistCurrentSession() {

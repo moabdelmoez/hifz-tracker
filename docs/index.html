@@ -35,93 +35,54 @@
 
     <main>
       <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-background" aria-hidden="true">
-          <img src="assets/hifz-tracker-icon.png" alt="">
-        </div>
         <div class="hero-content">
-          <p class="eyebrow">Private Quran memorization tracking for Mac</p>
           <h1 id="hero-title">Hifz Tracker</h1>
           <p class="lede">
-            Practice Quran recitation with local progress tracking, live Mushaf highlights,
-            and session history that stays on your Mac.
+            Practice Quran memorization with word-by-word Mushaf highlights and progress saved on your Mac.
           </p>
-          <div class="actions" aria-label="Download links">
-            <a
-              class="button primary"
-              href="https://github.com/moabdelmoez/hifz-tracker/releases/download/v0.1.0-alpha/HifzTracker-0.1.0-arm64.dmg"
-            >
-              Download alpha for macOS
-            </a>
-            <a class="button secondary" href="https://github.com/moabdelmoez/hifz-tracker/releases">
-              View releases
-            </a>
-          </div>
+          <p id="requirements" class="requirements">Requires Apple silicon and macOS 14 or later.</p>
+          <a
+            class="button primary"
+            href="https://github.com/moabdelmoez/hifz-tracker/releases/download/v0.1.0-alpha/HifzTracker-0.1.0-arm64.dmg"
+          >
+            Download alpha for macOS
+          </a>
           <p class="tester-notice">
-            Free tester build — not signed with an Apple Developer ID or notarized by Apple.
-            First launch requires manual approval.
-            <a href="#installation">Read the installation steps.</a>
+            Free tester build with an ad-hoc signature. First launch requires manual approval because Apple has not notarized this build.
           </p>
         </div>
-      </section>
 
-      <section id="installation" class="installation" aria-labelledby="installation-title">
-        <div class="installation-content">
-          <div class="installation-heading">
-            <p class="section-label">Free tester installation</p>
-            <h2 id="installation-title">Approve this alpha once on your Mac.</h2>
-            <p>
-              This build uses an ad-hoc signature, so macOS will say Apple cannot verify
-              that it is free of malware. That message means Apple has not verified the
-              developer or notarized this build; it is not a malware detection.
-            </p>
-          </div>
-          <div class="installation-steps">
-            <ol>
-              <li>Download the DMG from the official Hifz Tracker GitHub release and open it.</li>
-              <li>Copy HifzTracker into your Applications folder.</li>
-              <li>Open HifzTracker once. When macOS blocks it, click Done.</li>
-              <li>
-                Within about one hour, open System Settings → Privacy &amp; Security,
-                scroll to Security, then click Open Anyway. Authenticate and click Open.
-              </li>
-              <li>The approved copy should open normally afterward.</li>
-            </ol>
-            <p class="installation-note">
-              A newly downloaded update may require approval again, and a managed work or
-              school Mac may not permit this override. Only continue if you trust the source.
-              See
-              <a href="https://support.apple.com/en-us/102445">Apple's Open Anyway guidance</a>
-              and
-              <a href="https://github.com/moabdelmoez/hifz-tracker/releases/download/v0.1.0-alpha/HifzTracker-0.1.0-arm64.dmg.sha256">
-                verify the published SHA-256 checksum</a> before opening the app.
-            </p>
-          </div>
-        </div>
+        <figure class="app-preview hero-preview">
+          <img
+            src="assets/hifztracker-app.png"
+            alt="Hifz Tracker showing the Al-Muzzammil Mushaf page and recitation controls"
+            width="1628"
+            height="1204"
+          >
+        </figure>
+
+        <details id="installation" class="installation">
+          <summary>How to install the alpha</summary>
+          <p>macOS will report that Apple cannot verify this build is free of malware.</p>
+          <ol>
+            <li>Open the downloaded DMG and copy HifzTracker into Applications.</li>
+            <li>Open HifzTracker once. When macOS blocks it, click Done.</li>
+            <li>
+              Within about one hour, open System Settings → Privacy &amp; Security,
+              scroll to Security, then click Open Anyway. Authenticate and click Open.
+            </li>
+          </ol>
+          <p class="installation-note">
+            A newly downloaded update may require approval again. Managed Macs may prevent manual approval.
+            See <a href="https://support.apple.com/en-us/102445">Apple's Open Anyway guidance</a> and
+            <a href="https://github.com/moabdelmoez/hifz-tracker/releases/download/v0.1.0-alpha/HifzTracker-0.1.0-arm64.dmg.sha256">verify the published SHA-256 checksum</a> before opening the app.
+          </p>
+        </details>
       </section>
 
       <section class="product-band" aria-label="Hifz Tracker features">
         <article class="section-grid feature-row">
           <div class="feature-copy">
-            <p class="section-label">Live recitation</p>
-            <h2 id="experience-title">Built for focused hifz sessions.</h2>
-            <p>
-              Choose a surah and starting ayah, then recite while the Mushaf keeps pace
-              with word-by-word highlights.
-            </p>
-          </div>
-          <figure class="app-preview">
-            <img
-              src="assets/hifztracker-app.png"
-              alt="Hifz Tracker showing the Al-Muzzammil Mushaf page and recitation controls"
-              width="1628"
-              height="1204"
-            >
-          </figure>
-        </article>
-
-        <article class="section-grid feature-row">
-          <div class="feature-copy">
-            <p class="section-label">Progress</p>
             <h2>Track your progress</h2>
             <p>
               See a year of recitation activity and follow your saved progress across
@@ -132,6 +93,7 @@
             <img
               src="assets/hifztracker-progress.png"
               alt="Hifz Tracker Progress showing a yearly activity calendar and progress for each surah"
+              loading="lazy"
               width="1874"
               height="1364"
             >
@@ -140,7 +102,6 @@
 
         <article class="section-grid feature-row">
           <div class="feature-copy">
-            <p class="section-label">Recall practice</p>
             <h2>Hide and recite</h2>
             <p>
               Hide upcoming ayat and reveal them as your recitation advances, turning
@@ -151,6 +112,7 @@
             <img
               src="assets/hifztracker-hide-and-recite.png"
               alt="Hifz Tracker with Hide Ayah enabled and recited ayat revealed"
+              loading="lazy"
               width="1632"
               height="1220"
             >
@@ -158,28 +120,9 @@
         </article>
       </section>
 
-      <section class="details" aria-label="App details">
-        <article id="privacy">
-          <h2>Private by default</h2>
-          <p>
-            Hifz Tracker is designed for offline runtime use after installation.
-            It does not persist user audio.
-          </p>
-        </article>
-        <article id="requirements">
-          <h2>Mac requirements</h2>
-          <p>
-            Requires macOS 14 or later on Apple Silicon. The free tester DMG is
-            ad-hoc signed and is not Apple-notarized.
-          </p>
-        </article>
-        <article>
-          <h2>Release notes</h2>
-          <p>
-            Each tester build is published as a GitHub Release with version notes,
-            its macOS download, checksum, and signing status.
-          </p>
-        </article>
+      <section id="privacy" class="privacy" aria-labelledby="privacy-title">
+        <h2 id="privacy-title">Private by default</h2>
+        <p>Hifz Tracker works offline after installation. Microphone audio stays in memory during recitation.</p>
       </section>
     </main>
 

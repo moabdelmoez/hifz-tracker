@@ -1,5 +1,37 @@
 # Session Progress Log
 
+## November 23, 2026 final review and verification
+
+Final review reproduced a Progress regression when the Quran repository was missing. The focused test first returned no practiced surahs, then passed with both saved surahs and the known endpoint. Progress shows the calendar and saved positions independently of the repository and omits unavailable percentages. Nine focused tests passed. The final Swift suite ran 160 tests with one opt-in skip and zero failures. Swift build, eight download-page checks, four handoff checks, and JSON validation passed. SwiftPM used temporary caches and disabled its manifest sandbox after the managed sandbox blocked baseline manifest evaluation.
+
+## November 23, 2026 review fix 5 · Project handoff
+
+The startup check first failed on three stale-document conditions, then passed all four checks. The tracker owns active status, progress keeps dated verification, and the 11-line handoff lists pending acceptance in one place. The two older features awaiting manual verification are queued. Swift test ran 159 cases with one opt-in skip and zero failures, and swift build passed. No release inputs changed.
+
+## November 23, 2026 review fix 4 · Download page
+
+The local page check failed six hierarchy and loading expectations before the change and passed all eight checks afterward. The reader preview, compatibility, and signing notice now share the download section. Installation steps are expandable, and the existing DMG and checksum URLs remain intact. Browser Use rejected the local file URL, so desktop and mobile rendering are unverified. The full Swift suite ran 159 cases with one opt-in skip and zero failures, and swift build passed. No release assets or published URLs changed.
+
+## November 23, 2026 review fix 3 · Recording feedback and Settings
+
+The fresh-profile preference test failed with the previous true default, while the saved opt-in test passed. Both passed when the shared AppStorage default became false. The timer-driven circles and their design-only tests were removed. The reader and single-form Settings share the existing stored preference key. The full suite ran 159 cases with one opt-in skip and zero failures, and swift build passed. No release inputs changed.
+
+## November 23, 2026 review fix 2 · Progress hierarchy
+
+The silent-session regression failed with credited surahs [1, 3] instead of [3]. The repaired calculator excludes zero-confirmation records and sorts practiced surahs by most recent session. The Progress window leads with their latest positions, folds the calendar and Quran index into disclosures, and places Reset in its actions menu. Eight focused calculator and reset tests passed. The full suite ran 161 cases with one opt-in skip and zero failures, and swift build passed. The Quran index labels the existing percentages as furthest positions. No release inputs changed.
+
+## November 23, 2026 review fix 1 · Reader position
+
+Baseline swift test ran 158 cases with one opt-in skip and zero failures after a manifest sandbox retry. Baseline swift build passed. The new setup-reset regression failed with ayah 11 instead of 7 before the fix. After the view model and its three views shared one surah–ayah position, all 27 focused RecitationViewModel tests passed, including the surah 100→101 fixture. The full suite ran 159 cases with one opt-in skip and zero failures, and swift build passed. The visible page stays independently labeled because browsing and automatic page turns can get ahead of the confirmed position. No release inputs changed.
+
+## November 23, 2026 window reopen
+
+`HifzTrackerApp.swift` now handles macOS reopen events when no windows are visible. `RecitationRootView.swift` registers its SwiftUI window action with the app delegate, and `AppDelegateTests.swift` covers both visible-window states. The full suite completed with zero failures and one skip during development. After moving action registration into the scene view, both focused tests passed and `./script/build_and_run.sh --verify` rebuilt and launched the app. The remaining check is to close the last window and reopen from the Dock because macOS denied desktop automation access. The release gate was skipped for this local window-lifecycle change.
+
+## November 23, 2026 local rebuild
+
+`swift test` completed with 95 tests, one skip, and zero failures. `./script/build_and_run.sh --verify` ran `swift build`, staged and signed `dist/HifzTracker.app`, and opened it. The process was verified at the staged executable path and `codesign --verify --deep --strict` passed. Swift reported a capture-ownership warning in `RecitationViewModel.swift`. Git status and history were unavailable because Git did not recognize this workspace as a repository. The app is open for use.
+
 ## November 22, 2026 native interface polish
 
 The Mushaf remains the focal point. Native system type keeps the English controls legible beside the Quran type, the full-width surah picker gives bilingual names room, and a divider separates setup from the live position. The toolbar uses the surah as its title and shows session status in plain text beside a status dot. The position heading, status, and transcript heading use primary text color for legibility on native surfaces. The native accent identifies the primary session control. The four-circle indicator appears when the microphone is active and follows Reduce Motion.
@@ -44,15 +76,11 @@ The isolated Swift locator probe compiled and ran. Full-package `swift test` and
 
 Reviewed the [Apple SDK 4.0 quick start](https://sdk.quranlab.ai/docs/4/quickstart/apple) and [offline behavior](https://sdk.quranlab.ai/docs/4/offline). Apple silicon supports local inference with a desktop key after the first online download. Subsequent model opens can require Quran Lab again, so the SDK cannot replace the current offline recognition path under the project's runtime requirement. The Swift SDK accepts sample audio for a separate replay experiment. This was a documentation review. SDK setup and live inference were not run.
 
-## Current State
-
-**Last Updated:** 2026-08-04
+## Historical verification through August 4, 2026
 
 **Session ID:** free-tester-distribution-2026-08-04
 
-**Active Feature:** `free-tester-distribution-001` - Free Tester Distribution Hardening.
-
-## Status
+**Feature at the time:** `free-tester-distribution-001` - Free Tester Distribution Hardening.
 
 ### What's Done
 
@@ -193,7 +221,7 @@ Reviewed the [Apple SDK 4.0 quick start](https://sdk.quranlab.ai/docs/4/quicksta
 - The clean non-development Mac Open Anyway/microphone smoke test remains a manual acceptance check; local signing, entitlements, packaging, and responsive website behavior passed.
 - The default sandbox compiler cache remains unwritable; documented verification uses `/private/tmp` module caches.
 
-## Files Modified This Session
+### Files changed in the earlier work
 
 - `script/release_checks.sh`, `script/package_dmg.sh` - Add explicit fail-closed local, tester, and Apple-verified distribution modes.
 - `docs/index.html`, `docs/styles.css`, `README.md`, `docs/releases/production-readiness.md` - Disclose the tester trust state and document the supported first-launch flow.
@@ -232,7 +260,7 @@ Reviewed the [Apple SDK 4.0 quick start](https://sdk.quranlab.ai/docs/4/quicksta
 - `dist/HifzTracker.app`, `dist/HifzTracker-0.1.0-arm64.dmg` - Rebuilt ignored local distribution artifacts.
 - Unrelated `.claude/` content and `docs/realtime-performance-audit-2026-07-20.md` were preserved untouched.
 
-## Evidence
+### Verification evidence
 
 - [x] Script syntax and mode validation: `bash -n` passed; missing/unknown modes returned exit 64; release packaging without a notary profile failed before mutation.
 - [x] Tester release/package gates: two complete runs, each with 152 tests, 1 expected skip, 0 failures, successful Swift builds, staging, launch, release-asset validation, ad-hoc signing, and entitlement validation.
@@ -356,7 +384,3 @@ Reviewed the [Apple SDK 4.0 quick start](https://sdk.quranlab.ai/docs/4/quicksta
 - [x] Mounted app passed deep strict codesign verification and launched from `/private/tmp/hifz-dmg-mount.PrFauS/HifzTracker.app` as PID 17667.
 - [x] The verification process was stopped, disk image `disk4` was detached, and temporary directories were removed.
 - [x] No Developer ID identity is installed; the app remains ad-hoc signed and the DMG is unsigned and not notarized.
-
-## Next Step
-
-Re-authenticate GitHub CLI, publish the scoped source changes and checksum/release metadata without replacing the existing DMG, then complete the clean-Mac manual acceptance check before marking `free-tester-distribution-001` done.

@@ -166,7 +166,7 @@ final class RecitationViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.pageNumber, 2)
         XCTAssertEqual(viewModel.mushafPage?.pageNumber, 2)
-        XCTAssertEqual(viewModel.focusedAyah, 1)
+        XCTAssertEqual(viewModel.readerPosition.ayah, 1)
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 1, wordIndex: 3)), .pending)
     }
 
@@ -187,7 +187,25 @@ final class RecitationViewModelTests: XCTestCase {
 
         viewModel.applyLocatedProgress(through: references[2], references: references)
 
-        XCTAssertEqual(viewModel.displayedAyah, 1)
+        XCTAssertEqual(viewModel.readerPosition.ayah, 1)
+    }
+
+    @MainActor
+    func testChoosingNewSetupClearsPreviousReaderPosition() {
+        let viewModel = RecitationViewModel(repository: InMemoryQuranRepository())
+        viewModel.selectedSurah = 100
+        viewModel.startAyah = 11
+        viewModel.isRecording = true
+        XCTAssertTrue(viewModel.applyASRTranscript(
+            Self.transcript("hundred final one two"), windowID: 1, sampleRange: 0..<400
+        ))
+        XCTAssertEqual(viewModel.readerPosition.ayah, 11)
+
+        viewModel.stopRecording()
+        viewModel.selectedSurah = 1
+
+        XCTAssertEqual(viewModel.readerPosition.surah, 1)
+        XCTAssertEqual(viewModel.readerPosition.ayah, 7)
     }
 
     @MainActor
@@ -347,7 +365,7 @@ final class RecitationViewModelTests: XCTestCase {
             references: references
         )
 
-        XCTAssertEqual(viewModel.displayedAyah, 1)
+        XCTAssertEqual(viewModel.readerPosition.ayah, 1)
         XCTAssertEqual(viewModel.pageNumber, 1)
         XCTAssertEqual(viewModel.mushafPage?.pageNumber, 1)
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 1, ayah: 2, wordIndex: 1)), .pending)
@@ -408,6 +426,9 @@ final class RecitationViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.snapshot.currentAyah, 1)
         XCTAssertEqual(viewModel.snapshot.completedWordCount, 4)
+        XCTAssertEqual(viewModel.readerPosition.surah, 101)
+        XCTAssertEqual(viewModel.readerPosition.ayah, 1)
+        XCTAssertEqual(viewModel.selectedSurah, 100)
         XCTAssertEqual(viewModel.pageNumber, 101)
         XCTAssertEqual(viewModel.mushafPage?.pageNumber, 101)
         XCTAssertEqual(viewModel.progressState(for: repository.word(surah: 101, ayah: 1, wordIndex: 1)), .completed)

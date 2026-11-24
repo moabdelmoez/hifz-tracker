@@ -63,11 +63,18 @@ enum ProgressActivityCalculator {
 }
 
 struct SurahProgressSummary: Equatable, Identifiable {
+    struct Practice: Equatable {
+        var date: Date
+        var ayah: Int
+        var word: Int?
+    }
+
     var id: Int { surah.number }
 
     var surah: SurahInfo
     var completedWords: Int
     var totalWords: Int
+    var latestPractice: Practice? = nil
 
     var fraction: Double {
         guard totalWords > 0 else { return 0 }
@@ -89,31 +96,42 @@ struct SurahProgressSummary: Equatable, Identifiable {
 }
 
 enum DashboardProgressCalculator {
+    static func practicedSurahs(in summaries: [SurahProgressSummary]) -> [SurahProgressSummary] {
+        let practiced: [(summary: SurahProgressSummary, date: Date)] = summaries.compactMap { summary in
+            summary.latestPractice.map { (summary: summary, date: $0.date) }
+        }
+        return practiced.sorted {
+            $0.date == $1.date ? $0.summary.id < $1.summary.id : $0.date > $1.date
+        }.map { $0.summary }
+    }
+
     static func summaries(
         records: [SessionRecord],
-        repository: QuranRepository,
+        repository: QuranRepository?,
         surahs: [SurahInfo] = SurahCatalog.all
     ) -> [SurahProgressSummary] {
         let metricsBySurah = Dictionary(uniqueKeysWithValues: surahs.map { surah in
             (surah.number, SurahWordMetrics(surah: surah, repository: repository))
         })
         var completedBySurah: [Int: Int] = [:]
+        var latestPracticeBySurah: [Int: SurahProgressSummary.Practice] = [:]
 
-        for record in records {
+        for record in records where record.completedWordCount > 0 {
             let startSurah = record.surah
             let endSurah = record.lastSurah < startSurah ? startSurah : record.lastSurah
+            let date = record.endedAt ?? record.startedAt
 
             for surah in startSurah...endSurah {
                 guard let metrics = metricsBySurah[surah] else { continue }
 
-                let completed: Int
-                if surah < endSurah {
-                    completed = metrics.totalWords
-                } else {
-                    completed = metrics.completedWords(throughAyah: record.lastAyah, wordIndex: record.lastWord)
-                }
-
+                let ayah = surah == endSurah ? record.lastAyah : metrics.lastAyah
+                let word = surah == endSurah ? record.lastWord : metrics.wordCountsByAyah[ayah]
+                let completed = metrics.completedWords(throughAyah: ayah, wordIndex: word ?? 0)
                 completedBySurah[surah] = max(completedBySurah[surah] ?? 0, completed)
+
+                if latestPracticeBySurah[surah].map({ $0.date < date }) ?? true {
+                    latestPracticeBySurah[surah] = .init(date: date, ayah: ayah, word: word)
+                }
             }
         }
 
@@ -123,7 +141,8 @@ enum DashboardProgressCalculator {
             return SurahProgressSummary(
                 surah: surah,
                 completedWords: completedWords,
-                totalWords: totalWords
+                totalWords: totalWords,
+                latestPractice: latestPracticeBySurah[surah.number]
             )
         }
     }
@@ -132,8 +151,16 @@ enum DashboardProgressCalculator {
 private struct SurahWordMetrics {
     let wordCountsByAyah: [Int: Int]
     let totalWords: Int
+    let lastAyah: Int
 
-    init(surah: SurahInfo, repository: QuranRepository) {
+    init(surah: SurahInfo, repository: QuranRepository?) {
+        self.lastAyah = surah.ayahCount
+        guard let repository else {
+            self.wordCountsByAyah = [:]
+            self.totalWords = 0
+            return
+        }
+
         var counts: [Int: Int] = [:]
         var total = 0
 

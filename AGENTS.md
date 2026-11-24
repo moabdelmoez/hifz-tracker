@@ -7,7 +7,7 @@ Harness for Hifz Tracker, a SwiftPM macOS app for local Quran memorization track
 Before writing code:
 
 1. Confirm the repo root with `pwd`.
-2. Read this file, then `feature_list.json`, `progress.md`, and `session-handoff.md` if it has active notes.
+2. Read this file, the `in_progress` entry in `feature_list.json` if there is one, and the latest dated entry in `progress.md`. Read `session-handoff.md` for outstanding manual checks or interrupted work.
 3. Review recent context with `git status --short` and `git log --oneline -5`.
 4. Run `swift test` and `swift build` when feasible. If either fails, record the failure in `progress.md` before changing scope.
 5. Load additional context just in time:
@@ -28,7 +28,7 @@ Avoid loading large model, font, database, or audio assets unless the task speci
 
 ## Working Rules
 
-- **One feature at a time**: Work only the active feature from `feature_list.json`.
+- **One feature at a time**: Use `feature_list.json` as the source for feature status. Keep at most one entry `in_progress`.
 - **Evidence required**: Do not claim done without command output or a clear blocked reason.
 - **Update artifacts**: Before ending, update `progress.md` and `feature_list.json`.
 - **Stay in scope**: Do not modify unrelated code, bundled assets, signing files, or generated output.
@@ -38,9 +38,9 @@ Avoid loading large model, font, database, or audio assets unless the task speci
 ## Required Artifacts
 
 - `feature_list.json` - Feature state tracker and scope boundary.
-- `progress.md` - Session continuity log and verification evidence.
+- `progress.md` - Dated verification log, newest entries first.
 - Verification commands in this file - Standard startup and lightweight verification path.
-- `session-handoff.md` - Handoff template for long or interrupted work.
+- `session-handoff.md` - Outstanding acceptance checks and restart notes for interrupted work.
 
 ## Tool Safety
 

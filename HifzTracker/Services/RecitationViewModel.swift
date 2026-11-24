@@ -29,15 +29,11 @@ final class RecitationViewModel {
     var wordProgress: [WordProgress] = []
     var mushafPage: MushafPage?
     var debugTranscript = ""
-    var audioLevel = 0.0
     var isRecording = false
     var hideRecitationText = false
     var assetMessage: String?
-    var focusedAyah: Int {
-        focusedReference?.ayah ?? snapshot.currentAyah ?? startAyah
-    }
-    var displayedAyah: Int {
-        focusedAyah
+    var readerPosition: (surah: Int, ayah: Int) {
+        (focusedReference?.surah ?? selectedSurah, focusedReference?.ayah ?? startAyah)
     }
 
     private let repository: QuranRepository?
@@ -102,7 +98,7 @@ final class RecitationViewModel {
         asrLogger.info("live_asr_timing event=start_requested")
         let request = RecitationSessionRequest(surah: selectedSurah, startAyah: startAyah)
         reducer = RecitationStateReducer()
-        resetAudioLevel()
+        audioLevelMeter.reset()
         snapshot = reducer.reduce(.startRequested(request))
         Task {
             do {
@@ -141,7 +137,7 @@ final class RecitationViewModel {
                 snapshot = reducer.reduce(.fail(error.localizedDescription))
                 isRecording = false
                 liveASRTimingProbe.reset()
-                resetAudioLevel()
+                audioLevelMeter.reset()
             }
         }
     }
@@ -159,7 +155,7 @@ final class RecitationViewModel {
         snapshot = reducer.reduce(.stop)
         isRecording = false
         lastCompletedReference = nil
-        resetAudioLevel()
+        audioLevelMeter.reset()
     }
 
     func makeSessionRecord() -> SessionRecord? {
@@ -246,7 +242,7 @@ final class RecitationViewModel {
         defer { asrSignposter.endInterval("MicrophoneSamples", interval) }
 
         guard isRecording, let service = liveASRService else { return }
-        audioLevel = audioLevelMeter.update(with: samples)
+        let audioLevel = audioLevelMeter.update(with: samples)
         if audioLevel >= Self.voiceOnsetLevel,
            let metrics = liveASRTimingProbe.voiceOnset(atNanoseconds: nowNanoseconds()) {
             logLiveASREvent("voice_onset", metrics: metrics)
@@ -672,12 +668,7 @@ final class RecitationViewModel {
         snapshot = reducer.reduce(.fail(error.localizedDescription))
         microphone.stop()
         isRecording = false
-        resetAudioLevel()
-    }
-
-    private func resetAudioLevel() {
         audioLevelMeter.reset()
-        audioLevel = audioLevelMeter.level
     }
 
     @discardableResult

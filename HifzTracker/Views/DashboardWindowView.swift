@@ -14,8 +14,12 @@ struct DashboardWindowView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if records.isEmpty {
+        let coreRecords = records.map(\.coreRecord)
+        let summaries = summaries(for: coreRecords)
+        let practiced = DashboardProgressCalculator.practicedSurahs(in: summaries)
+
+        Group {
+            if practiced.isEmpty {
                 ContentUnavailableView(
                     "No Saved Progress",
                     systemImage: "chart.bar.xaxis",
@@ -23,33 +27,40 @@ struct DashboardWindowView: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("Recitation activity")
-                            .font(.headline)
-                            .accessibilityAddTraits(.isHeader)
-
-                        Spacer()
-
-                        Button("Reset Progress…") {
-                            isConfirmingReset = true
+                List {
+                    Section("Practiced surahs") {
+                        ForEach(practiced) { summary in
+                            DashboardSurahProgressRow(summary: summary, showsLatestPractice: true)
+                                .padding(.vertical, 6)
                         }
-                        .help("Delete all saved recitation sessions")
                     }
-
-                    ProgressActivityCalendar(days: activityDays)
-                }
-                .padding()
-
-                Divider()
-
-                List(summaries) { summary in
-                    DashboardSurahProgressRow(summary: summary)
-                        .listRowSeparator(.hidden)
-                        .padding(.vertical, 6)
+                    DisclosureGroup("Recitation activity") {
+                        ProgressActivityCalendar(days: ProgressActivityCalculator.days(records: coreRecords))
+                            .padding(.vertical, 6)
+                    }
+                    DisclosureGroup("All 114 surahs") {
+                        if repository == nil {
+                            Text("Furthest positions require the bundled Quran resources.")
+                                .foregroundStyle(.secondary)
+                        }
+                        ForEach(summaries) { summary in
+                            DashboardSurahProgressRow(summary: summary)
+                                .padding(.vertical, 6)
+                        }
+                    }
                 }
                 .listStyle(.inset(alternatesRowBackgrounds: true))
             }
+        }
+        .toolbar {
+            Menu {
+                Button("Reset Progress…", role: .destructive) {
+                    isConfirmingReset = true
+                }
+            } label: {
+                Label("Progress actions", systemImage: "ellipsis.circle")
+            }
+            .disabled(records.isEmpty)
         }
         .alert("Reset all progress?", isPresented: $isConfirmingReset) {
             Button("Cancel", role: .cancel) {}
@@ -73,21 +84,9 @@ struct DashboardWindowView: View {
         }
     }
 
-    private var activityDays: [ProgressActivityDay] {
-        ProgressActivityCalculator.days(records: records.map(\.coreRecord))
-    }
-
-    private var summaries: [SurahProgressSummary] {
-        guard let repository else {
-            return SurahCatalog.all.map {
-                SurahProgressSummary(surah: $0, completedWords: 0, totalWords: 0)
-            }
-        }
-
-        return DashboardProgressCalculator.summaries(
-            records: records.map(\.coreRecord),
-            repository: repository
-        )
+    private func summaries(for records: [SessionRecord]) -> [SurahProgressSummary] {
+        guard records.contains(where: { $0.completedWordCount > 0 }) else { return [] }
+        return DashboardProgressCalculator.summaries(records: records, repository: repository)
     }
 }
 
@@ -226,6 +225,7 @@ func resetDashboardProgress(_ records: [StoredSessionRecord], in context: ModelC
 
 private struct DashboardSurahProgressRow: View {
     var summary: SurahProgressSummary
+    var showsLatestPractice = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -248,15 +248,28 @@ private struct DashboardSurahProgressRow: View {
 
                 Spacer(minLength: 12)
 
-                Text(summary.percentLabel)
-                    .font(.callout.monospacedDigit().weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .frame(minWidth: 44, alignment: .trailing)
+                if let positionLabel {
+                    Text(positionLabel)
+                        .font(.callout.monospacedDigit().weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 44, alignment: .trailing)
+                }
             }
 
-            DashboardProgressBar(fraction: summary.fraction)
-                .padding(.leading, 48)
+            if !showsLatestPractice, summary.totalWords > 0 {
+                DashboardProgressBar(fraction: summary.fraction)
+                    .padding(.leading, 48)
+            }
         }
+    }
+
+    private var positionLabel: String? {
+        if showsLatestPractice, let practice = summary.latestPractice {
+            let ayah = "Ayah \(practice.ayah)"
+            return practice.word.map { "\(ayah) · Word \($0)" } ?? ayah
+        }
+        guard summary.totalWords > 0 else { return nil }
+        return "Furthest position \(summary.percentLabel)"
     }
 }
 

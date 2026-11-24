@@ -1,33 +1,30 @@
 import SwiftUI
 
+enum RecognitionTranscriptPreference {
+    static func storage(in store: UserDefaults? = nil) -> AppStorage<Bool> {
+        AppStorage(wrappedValue: false, "showDebugTranscript", store: store)
+    }
+}
+
 struct SettingsView: View {
-    @AppStorage("showDebugTranscript") private var showDebugTranscript = true
+    @AppStorage private var showDebugTranscript: Bool
+
+    init() {
+        _showDebugTranscript = RecognitionTranscriptPreference.storage()
+    }
 
     var body: some View {
-        TabView {
-            Form {
-                Section("Display") {
-                    Toggle("Show recognition transcript", isOn: $showDebugTranscript)
-                        .help("Display the words recognized during recitation")
-                }
-            }
-            .formStyle(.grouped)
-            .tabItem {
-                Label("General", systemImage: "gearshape")
-            }
+        Form {
+            Toggle("Show recognition transcript", isOn: $showDebugTranscript)
+                .help("Display the words recognized during recitation")
 
-            Form {
-                Section("Recitation data") {
-                    LabeledContent("Speech recognition", value: "Offline, on this Mac")
-                    LabeledContent("Saved on this Mac", value: "Recitation progress")
-                    LabeledContent("Microphone audio", value: "Kept in memory during recitation")
-                }
-            }
-            .formStyle(.grouped)
-            .tabItem {
-                Label("Privacy", systemImage: "hand.raised")
+            Section("Recitation data") {
+                LabeledContent("Speech recognition", value: "Offline, on this Mac")
+                LabeledContent("Saved on this Mac", value: "Recitation progress")
+                LabeledContent("Microphone audio", value: "Kept in memory during recitation")
             }
         }
+        .formStyle(.grouped)
         .scenePadding()
     }
 }

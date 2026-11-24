@@ -3,18 +3,22 @@ import HifzCore
 
 struct MushafPageView: View {
     @Bindable var viewModel: RecitationViewModel
-    @AppStorage("showDebugTranscript") private var showDebugTranscript = true
+    @AppStorage private var showDebugTranscript: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHoveringReader = false
     @FocusState private var focusedPageControl: PageControl?
+
+    init(viewModel: RecitationViewModel) {
+        self.viewModel = viewModel
+        _showDebugTranscript = RecognitionTranscriptPreference.storage()
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             MushafContentView(
                 page: viewModel.mushafPage,
                 pageNumber: viewModel.pageNumber,
-                selectedSurah: viewModel.selectedSurah,
-                focusAyah: viewModel.focusedAyah,
+                readerPosition: viewModel.readerPosition,
                 wordProgress: viewModel.wordProgress
             ) { word in
                 viewModel.progressState(for: word)
@@ -105,8 +109,7 @@ private struct MushafContentView: View {
 
     var page: MushafPage?
     var pageNumber: Int
-    var selectedSurah: Int
-    var focusAyah: Int
+    var readerPosition: (surah: Int, ayah: Int)
     var wordProgress: [WordProgress]
     var state: (QuranWord) -> WordProgressState
     var isTextVisible: (QuranWord) -> Bool
@@ -118,8 +121,7 @@ private struct MushafContentView: View {
                 MushafPageStage(
                     page: page,
                     pageNumber: pageNumber,
-                    selectedSurah: selectedSurah,
-                    focusAyah: focusAyah,
+                    readerPosition: readerPosition,
                     state: state,
                     isTextVisible: isTextVisible
                 )
@@ -149,8 +151,7 @@ private struct MushafPageStage: View {
 
     var page: MushafPage
     var pageNumber: Int
-    var selectedSurah: Int
-    var focusAyah: Int
+    var readerPosition: (surah: Int, ayah: Int)
     var state: (QuranWord) -> WordProgressState
     var isTextVisible: (QuranWord) -> Bool
 
@@ -190,11 +191,11 @@ private struct MushafPageStage: View {
     }
 
     private var focusIdentity: String {
-        "\(page.pageNumber)-\(selectedSurah)-\(focusAyah)"
+        "\(page.pageNumber)-\(readerPosition.surah)-\(readerPosition.ayah)"
     }
 
     private var focusCanonicalY: CGFloat? {
-        MushafPageRenderer.canonicalAyahCenterY(surah: selectedSurah, ayah: focusAyah, in: page)
+        MushafPageRenderer.canonicalAyahCenterY(surah: readerPosition.surah, ayah: readerPosition.ayah, in: page)
     }
 
     private func scrollToFocusedAyah(_ scrollProxy: ScrollViewProxy) {

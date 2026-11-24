@@ -77,21 +77,17 @@ private struct SessionSummarySection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Current position")
+            Text("Recitation position")
                 .font(.subheadline.weight(.semibold))
                 .accessibilityAddTraits(.isHeader)
 
             HStack {
-                Text("Ayah \(viewModel.displayedAyah)")
+                Text("Ayah \(viewModel.readerPosition.ayah)")
                 Spacer(minLength: 8)
-                Text("Page \(viewModel.pageNumber)")
+                Text("Viewing page \(viewModel.pageNumber)")
             }
             .font(.body.monospacedDigit())
             .accessibilityElement(children: .combine)
-
-            if viewModel.isRecording {
-                VoiceActivityIndicator()
-            }
 
             if let message = viewModel.snapshot.message ?? viewModel.assetMessage {
                 Text(message)
@@ -100,63 +96,6 @@ private struct SessionSummarySection: View {
                     .textSelection(.enabled)
             }
         }
-    }
-}
-
-struct VoiceActivityIndicatorMetrics {
-    static let circleCount = 4
-    static let circleSize: CGFloat = 42
-    static let circleSpacing: CGFloat = 12
-    static let frameHeight: CGFloat = 64
-    static let activeScale: CGFloat = 1.06
-    static let stepIntervalNanoseconds: UInt64 = 320_000_000
-
-    static func nextIndex(after index: Int) -> Int {
-        (index + 1) % circleCount
-    }
-}
-
-private struct VoiceActivityIndicator: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    @State private var highlightedIndex = 0
-
-    var body: some View {
-        HStack(spacing: VoiceActivityIndicatorMetrics.circleSpacing) {
-            ForEach(0..<VoiceActivityIndicatorMetrics.circleCount, id: \.self) { index in
-                Circle()
-                    .fill(color(for: index))
-                    .frame(
-                        width: VoiceActivityIndicatorMetrics.circleSize,
-                        height: VoiceActivityIndicatorMetrics.circleSize
-                    )
-                    .scaleEffect(index == highlightedIndex ? VoiceActivityIndicatorMetrics.activeScale : 1.0)
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: highlightedIndex)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: VoiceActivityIndicatorMetrics.frameHeight)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Listening to recitation")
-        .task(id: reduceMotion) {
-            highlightedIndex = 0
-            guard !reduceMotion else { return }
-
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: VoiceActivityIndicatorMetrics.stepIntervalNanoseconds)
-                guard !Task.isCancelled else { return }
-
-                highlightedIndex = VoiceActivityIndicatorMetrics.nextIndex(after: highlightedIndex)
-            }
-        }
-    }
-
-    private func color(for index: Int) -> Color {
-        guard index == highlightedIndex else {
-            return Color(nsColor: .separatorColor).opacity(0.78)
-        }
-
-        return Color(red: 0.77, green: 0.86, blue: 0.89)
     }
 }
 
@@ -211,8 +150,6 @@ private enum RecitationSidebarPreviewData {
     static func viewModel(
         phase: RecitationPhase,
         isRecording: Bool = false,
-        audioLevel: Double = 0,
-        completed: Bool = false,
         message: String? = nil
     ) -> RecitationViewModel {
         let viewModel = RecitationViewModel(repository: nil)
@@ -220,19 +157,10 @@ private enum RecitationSidebarPreviewData {
         viewModel.startAyah = 1
         viewModel.snapshot = RecitationSnapshot(
             phase: phase,
-            currentAyah: 1,
-            currentWord: completed ? nil : 2,
-            completedWordCount: completed ? 3 : 1,
             message: message
         )
         viewModel.isRecording = isRecording
-        viewModel.audioLevel = audioLevel
         viewModel.assetMessage = nil
-        viewModel.wordProgress = [
-            WordProgress(wordIndex: 1, text: "الم", state: .completed),
-            WordProgress(wordIndex: 2, text: "الله", state: completed ? .completed : .current),
-            WordProgress(wordIndex: 3, text: "لا", state: completed ? .completed : .pending)
-        ]
         return viewModel
     }
 }
@@ -245,41 +173,9 @@ private enum RecitationSidebarPreviewData {
     .frame(width: 288, height: 680)
 }
 
-#Preview("Listening") {
+#Preview("Recording") {
     RecitationSidebarView(
-        viewModel: RecitationSidebarPreviewData.viewModel(phase: .listening, isRecording: true, audioLevel: 0.18),
-        persistSession: {}
-    )
-    .frame(width: 288, height: 680)
-}
-
-#Preview("Reciting") {
-    RecitationSidebarView(
-        viewModel: RecitationSidebarPreviewData.viewModel(phase: .progressing, isRecording: true, audioLevel: 0.72),
-        persistSession: {}
-    )
-    .frame(width: 288, height: 680)
-}
-
-#Preview("Correction") {
-    RecitationSidebarView(
-        viewModel: RecitationSidebarPreviewData.viewModel(phase: .correctionNeeded, isRecording: true, audioLevel: 0.44),
-        persistSession: {}
-    )
-    .frame(width: 288, height: 680)
-}
-
-#Preview("Stopped") {
-    RecitationSidebarView(
-        viewModel: RecitationSidebarPreviewData.viewModel(phase: .stopped),
-        persistSession: {}
-    )
-    .frame(width: 288, height: 680)
-}
-
-#Preview("Completed") {
-    RecitationSidebarView(
-        viewModel: RecitationSidebarPreviewData.viewModel(phase: .stopped, completed: true),
+        viewModel: RecitationSidebarPreviewData.viewModel(phase: .listening, isRecording: true),
         persistSession: {}
     )
     .frame(width: 288, height: 680)

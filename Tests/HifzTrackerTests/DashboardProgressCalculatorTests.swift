@@ -32,6 +32,54 @@ final class DashboardProgressCalculatorTests: XCTestCase {
         XCTAssertEqual(summaries[0].percentLabel, "33%")
     }
 
+    func testSilentSessionDoesNotCreditAnySurahProgress() {
+        var silent = makeRecord(surah: 1, lastSurah: 1, lastAyah: 2, lastWord: 1)
+        silent.startAyah = 2
+        silent.completedWordCount = 0
+
+        let summaries = DashboardProgressCalculator.summaries(
+            records: [silent, makeRecord(surah: 3, lastSurah: 3, lastAyah: 1, lastWord: 1)],
+            repository: DashboardProgressRepository(),
+            surahs: testSurahs
+        )
+
+        XCTAssertEqual(summaries.filter { $0.completedWords > 0 }.map(\.id), [3])
+        XCTAssertEqual(DashboardProgressCalculator.practicedSurahs(in: summaries).map(\.id), [3])
+        XCTAssertNil(summaries[0].latestPractice)
+    }
+
+    func testPracticedSurahsUseMostRecentSessionAndKeepFurthestPosition() {
+        let earlier = makeRecord(surah: 1, lastSurah: 1, lastAyah: 2, lastWord: 2)
+        var recent = makeRecord(surah: 1, lastSurah: 1, lastAyah: 1, lastWord: 2)
+        recent.endedAt = Date(timeIntervalSince1970: 1_700_000_060)
+        var latest = makeRecord(surah: 3, lastSurah: 3, lastAyah: 1, lastWord: 1)
+        latest.endedAt = Date(timeIntervalSince1970: 1_700_000_090)
+
+        let summaries = DashboardProgressCalculator.summaries(
+            records: [latest, earlier, recent], repository: DashboardProgressRepository(), surahs: testSurahs
+        )
+
+        XCTAssertEqual(DashboardProgressCalculator.practicedSurahs(in: summaries).map(\.id), [3, 1])
+        XCTAssertEqual(summaries[0].latestPractice?.ayah, 1)
+        XCTAssertEqual(summaries[0].latestPractice?.word, 2)
+        XCTAssertEqual(summaries[0].percentLabel, "100%")
+    }
+
+    func testSavedPracticeRemainsVisibleWithoutQuranRepository() {
+        let summaries = DashboardProgressCalculator.summaries(
+            records: [makeRecord(surah: 1, lastSurah: 2, lastAyah: 1, lastWord: 2)],
+            repository: nil,
+            surahs: testSurahs
+        )
+
+        let practiced = DashboardProgressCalculator.practicedSurahs(in: summaries)
+        XCTAssertEqual(practiced.map(\.id), [1, 2])
+        XCTAssertEqual(practiced.first?.latestPractice?.ayah, 2)
+        XCTAssertNil(practiced.first?.latestPractice?.word)
+        XCTAssertEqual(practiced.last?.latestPractice?.word, 2)
+        XCTAssertEqual(practiced.last?.totalWords, 0)
+    }
+
     func testMultipleRecordsChooseFarthestSavedPosition() {
         let summaries = DashboardProgressCalculator.summaries(
             records: [
@@ -58,6 +106,8 @@ final class DashboardProgressCalculatorTests: XCTestCase {
 
         XCTAssertEqual(summaries[0].completedWords, 6)
         XCTAssertEqual(summaries[0].percentLabel, "100%")
+        XCTAssertEqual(summaries[0].latestPractice?.ayah, 2)
+        XCTAssertEqual(summaries[0].latestPractice?.word, 2)
         XCTAssertEqual(summaries[1].completedWords, 2)
         XCTAssertEqual(summaries[1].totalWords, 3)
         XCTAssertEqual(summaries[1].percentLabel, "67%")

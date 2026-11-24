@@ -47,7 +47,6 @@ The release also includes a [checksum file](https://github.com/moabdelmoez/hifz-
 - Cross-surah live highlighting so progress can continue into the immediate next surah.
 - Hide Ayah mode that hides unrecited text from the selected start ayah while revealing completed or flagged words.
 - Dashboard window with word-based progress summaries across all 114 surahs.
-- Voice activity indicator for active recording sessions.
 - Local session persistence with SwiftData.
 - Privacy-oriented runtime: no user audio persistence and no runtime network requirement after installation.
 
