@@ -104,4 +104,4 @@ Run `./script/setup_assets.sh` only when preparing model, font, layout, or relea
 ## Citations
 
 - [Mushaf Layout](https://qul.tarteel.ai/resources/mushaf-layout/19)
-- [Quran Speech-to-text](https://huggingface.co/Saboorhsn/quran-stt-onnx)
+- [Offline Quran ASR](https://huggingface.co/Muno459/fastconformer-quran)
